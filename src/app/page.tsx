@@ -111,7 +111,7 @@ export default function Home() {
           Learn English{" "}
           <span className="relative inline-block">
             <span className="bg-gradient-to-r from-violet-500 via-pink-500 to-rose-400 bg-clip-text text-transparent">
-              the cute way
+              
             </span>
             <motion.span
               className="absolute -top-2 -right-6 text-2xl"
