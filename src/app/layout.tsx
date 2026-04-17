@@ -1,26 +1,21 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Nunito } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Navbar } from "@/components/navbar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppShell } from "@/components/app-shell";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const nunito = Nunito({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-nunito",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "StudyEN - AI-Powered English Learning",
+  title: "StudyEN ✨ - Learn English the Fun Way!",
   description:
-    "Learn English communication, vocabulary, and speaking skills with AI-powered tools",
+    "A kawaii, gamified English learning app with AI-powered conversations, vocabulary games, and speaking practice!",
 };
 
 export default function RootLayout({
@@ -29,19 +24,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", geistSans.variable)}>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn(nunito.variable, "font-kawaii antialiased")}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
           <TooltipProvider>
-            <Navbar />
-            <main className="min-h-[calc(100vh-4rem)]">{children}</main>
+            <AppShell>{children}</AppShell>
           </TooltipProvider>
         </ThemeProvider>
       </body>

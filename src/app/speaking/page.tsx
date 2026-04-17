@@ -16,8 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { Mascot } from "@/components/mascot";
+import { useGame } from "@/contexts/game-context";
 
 interface SpeechFeedback {
   pronunciation_score: number;
@@ -41,10 +42,10 @@ const PRACTICE_PROMPTS = [
 ];
 
 const SCORE_CONFIG = [
-  { key: "pronunciation_score", label: "Pronunciation", emoji: "👄", gradient: "from-pink-400 to-rose-500" },
-  { key: "grammar_score", label: "Grammar", emoji: "📖", gradient: "from-blue-400 to-cyan-500" },
-  { key: "fluency_score", label: "Fluency", emoji: "🌊", gradient: "from-purple-400 to-violet-500" },
-  { key: "overall_score", label: "Overall", emoji: "⭐", gradient: "from-amber-400 to-orange-500" },
+  { key: "pronunciation_score", label: "Pronunciation", emoji: "👄", gradient: "from-kawaii-pink to-rose-400" },
+  { key: "grammar_score", label: "Grammar", emoji: "📖", gradient: "from-kawaii-sky to-blue-400" },
+  { key: "fluency_score", label: "Fluency", emoji: "🌊", gradient: "from-kawaii-purple to-violet-400" },
+  { key: "overall_score", label: "Overall", emoji: "⭐", gradient: "from-kawaii-yellow to-amber-400" },
 ];
 
 export default function SpeakingPage() {
@@ -53,6 +54,8 @@ export default function SpeakingPage() {
   const [feedback, setFeedback] = useState<SpeechFeedback | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(0);
+  const [mascotMood, setMascotMood] = useState<"happy" | "thinking" | "excited" | "cheering">("happy");
+  const { addXP, addCoins } = useGame();
 
   const textToAnalyze = transcript || manualText;
 
@@ -66,6 +69,7 @@ export default function SpeakingPage() {
   const analyzeSpeech = async () => {
     if (!textToAnalyze.trim()) return;
     setIsAnalyzing(true);
+    setMascotMood("thinking");
     try {
       const response = await fetch("/api/speech", {
         method: "POST",
@@ -74,8 +78,20 @@ export default function SpeakingPage() {
       });
       const data = await response.json();
       setFeedback(data.feedback);
+      
+      // Reward based on score
+      const overall = data.feedback?.overall_score || 5;
+      addXP(overall * 3);
+      if (overall >= 7) {
+        addCoins(15);
+        setMascotMood("cheering");
+      } else {
+        setMascotMood("excited");
+      }
+      setTimeout(() => setMascotMood("happy"), 3000);
     } catch {
       console.error("Failed to analyze speech");
+      setMascotMood("happy");
     } finally {
       setIsAnalyzing(false);
     }
@@ -98,44 +114,48 @@ export default function SpeakingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 shadow-md text-2xl">
-              🎤
-            </span>
-            Speaking Practice
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Record your voice and get instant AI feedback! 🌟
-          </p>
+        <div className="flex items-center gap-4">
+          <Mascot mood={mascotMood} size="md" />
+          <div>
+            <h1 className="text-2xl font-bold">
+              <span className="bg-gradient-kawaii bg-clip-text text-transparent">
+                🎤 Speaking Practice
+              </span>
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Record your voice & get AI feedback! ✨
+            </p>
+          </div>
         </div>
 
         {/* Practice Prompt */}
-        <div className="rounded-2xl border-2 border-purple-200/50 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 p-6">
+        <div className="rounded-3xl bg-gradient-to-br from-kawaii-purple/20 to-kawaii-pink/20 p-6 shadow-kawaii">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-xl">🎯</span>
               <span className="font-bold text-sm">Practice Prompt</span>
-              <Badge variant="secondary" className="text-xs rounded-full">
+              <Badge className="text-xs rounded-full bg-white/50 text-foreground">
                 {currentPrompt + 1}/{PRACTICE_PROMPTS.length}
               </Badge>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={getNewPrompt}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-xl px-3 py-1.5 hover:bg-white/50 dark:hover:bg-white/10"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              New Prompt
-            </motion.button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={getNewPrompt}
+                className="gap-1.5 rounded-xl"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                New Prompt
+              </Button>
+            </motion.div>
           </div>
           <p className="text-lg font-semibold leading-relaxed">
             {PRACTICE_PROMPTS[currentPrompt]}
@@ -150,7 +170,7 @@ export default function SpeakingPage() {
         </div>
 
         {/* Recording Area */}
-        <div className="rounded-2xl border-2 border-border/50 bg-card/80 p-6 space-y-5">
+        <div className="rounded-3xl bg-white/70 dark:bg-gray-800/70 backdrop-blur p-6 shadow-kawaii space-y-5">
           <div>
             <h2 className="font-bold text-base">Your Response</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
@@ -167,12 +187,12 @@ export default function SpeakingPage() {
                 {isListening && (
                   <>
                     <motion.div
-                      className="absolute inset-0 rounded-full bg-red-400/20"
+                      className="absolute inset-0 rounded-full bg-kawaii-pink/30"
                       animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
                       transition={{ duration: 1.5, repeat: Infinity }}
                     />
                     <motion.div
-                      className="absolute inset-0 rounded-full bg-red-400/10"
+                      className="absolute inset-0 rounded-full bg-kawaii-pink/20"
                       animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
                       transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
                     />
@@ -182,10 +202,10 @@ export default function SpeakingPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={isListening ? stopListening : startListening}
-                  className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-cute-lg transition-all ${
+                  className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-kawaii-lg transition-all ${
                     isListening
                       ? "bg-gradient-to-br from-red-400 to-rose-500"
-                      : "bg-gradient-to-br from-pink-400 to-rose-500 hover:shadow-pink"
+                      : "bg-gradient-to-br from-kawaii-pink to-rose-400"
                   }`}
                 >
                   {isListening ? (
@@ -196,8 +216,9 @@ export default function SpeakingPage() {
                 </motion.button>
               </div>
               <Badge
-                variant={isListening ? "destructive" : "secondary"}
-                className={`rounded-full px-4 py-1.5 text-sm ${isListening ? "" : ""}`}
+                className={`rounded-full px-4 py-1.5 text-sm ${
+                  isListening ? "bg-red-100 text-red-600" : "bg-kawaii-purple/20"
+                }`}
               >
                 {isListening ? "🔴 Recording... Click to stop" : "🎤 Click to record"}
               </Badge>
@@ -209,9 +230,9 @@ export default function SpeakingPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-violet-200/50 dark:border-violet-800/50 bg-violet-50/50 dark:bg-violet-900/20 p-4"
+              className="rounded-2xl bg-kawaii-purple/10 p-4"
             >
-              <p className="text-xs font-semibold text-violet-600 dark:text-violet-400 mb-2 flex items-center gap-1">
+              <p className="text-xs font-semibold text-kawaii-purple mb-2 flex items-center gap-1">
                 🎙️ Transcript
               </p>
               <p className="text-base leading-relaxed">{transcript}</p>
@@ -221,7 +242,7 @@ export default function SpeakingPage() {
               placeholder="Or type your response here..."
               value={manualText}
               onChange={(e) => setManualText(e.target.value)}
-              className="min-h-[120px] rounded-2xl border-border/50"
+              className="min-h-[120px] rounded-2xl border-kawaii-purple/20"
             />
           )}
 
@@ -231,7 +252,7 @@ export default function SpeakingPage() {
               <Button
                 onClick={analyzeSpeech}
                 disabled={!textToAnalyze.trim() || isAnalyzing}
-                className="w-full gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-pink"
+                className="w-full gap-2 rounded-2xl bg-gradient-kawaii text-white shadow-kawaii"
               >
                 {isAnalyzing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -241,14 +262,16 @@ export default function SpeakingPage() {
                 {isAnalyzing ? "Analyzing..." : "Get AI Feedback ✨"}
               </Button>
             </motion.div>
-            <Button
-              variant="outline"
-              onClick={() => { resetTranscript(); setManualText(""); setFeedback(null); }}
-              className="gap-2 rounded-2xl"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="outline"
+                onClick={() => { resetTranscript(); setManualText(""); setFeedback(null); }}
+                className="gap-2 rounded-2xl border-2 border-kawaii-purple/30"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </Button>
+            </motion.div>
           </div>
         </div>
 
@@ -271,9 +294,9 @@ export default function SpeakingPage() {
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       whileHover={{ scale: 1.03, y: -2 }}
-                      className="rounded-2xl border border-border/50 bg-card/80 p-4 text-center shadow-sm"
+                      className="rounded-3xl bg-white/70 dark:bg-gray-800/70 p-4 text-center shadow-kawaii"
                     >
-                      <div className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} shadow-sm text-2xl`}>
+                      <div className={`mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} shadow-lg text-2xl`}>
                         {emoji}
                       </div>
                       <div className={`text-3xl font-extrabold bg-gradient-to-br ${gradient} bg-clip-text text-transparent`}>
@@ -283,7 +306,7 @@ export default function SpeakingPage() {
                       <p className="text-xs text-muted-foreground mt-1">{label}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{getScoreLabel(score)}</p>
                       {/* Mini progress bar */}
-                      <div className="mt-2 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                      <div className="mt-2 h-2 w-full rounded-full bg-kawaii-purple/10 overflow-hidden">
                         <motion.div
                           className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
                           initial={{ width: 0 }}
@@ -298,17 +321,17 @@ export default function SpeakingPage() {
 
               {/* Corrections */}
               {feedback.corrections && feedback.corrections.length > 0 && (
-                <div className="rounded-2xl border-2 border-amber-200/50 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/20 p-5 space-y-3">
+                <div className="rounded-3xl bg-kawaii-yellow/20 p-5 space-y-3 shadow-kawaii">
                   <div className="flex items-center gap-2 font-bold">
                     <AlertCircle className="h-5 w-5 text-amber-500" />
                     Corrections
                   </div>
                   {feedback.corrections.map((c, i) => (
-                    <div key={i} className="rounded-xl border border-amber-200/50 dark:border-amber-800/50 bg-white/60 dark:bg-black/20 p-3">
+                    <div key={i} className="rounded-2xl bg-white/60 dark:bg-gray-800/60 p-3">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <span className="line-through text-red-400">{c.original}</span>
                         <span className="text-muted-foreground">→</span>
-                        <span className="text-green-600 dark:text-green-400">{c.corrected}</span>
+                        <span className="text-kawaii-mint">{c.corrected}</span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{c.explanation}</p>
                     </div>
@@ -318,15 +341,15 @@ export default function SpeakingPage() {
 
               {/* Tips */}
               {feedback.tips && feedback.tips.length > 0 && (
-                <div className="rounded-2xl border-2 border-blue-200/50 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-900/20 p-5 space-y-2">
+                <div className="rounded-3xl bg-kawaii-sky/20 p-5 space-y-2 shadow-kawaii">
                   <div className="flex items-center gap-2 font-bold">
-                    <Lightbulb className="h-5 w-5 text-blue-500" />
+                    <Lightbulb className="h-5 w-5 text-kawaii-sky" />
                     Tips for Improvement
                   </div>
                   <ul className="space-y-2">
                     {feedback.tips.map((tip, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
-                        <span className="text-blue-500 mt-0.5 shrink-0">✦</span>
+                        <span className="text-kawaii-purple mt-0.5 shrink-0">✦</span>
                         {tip}
                       </li>
                     ))}
@@ -336,10 +359,10 @@ export default function SpeakingPage() {
 
               {/* Improved Version */}
               {feedback.improved_version && (
-                <div className="rounded-2xl border-2 border-green-200/50 dark:border-green-800/50 bg-green-50/50 dark:bg-green-900/20 p-5">
+                <div className="rounded-3xl bg-kawaii-mint/20 p-5 shadow-kawaii">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2 font-bold">
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <CheckCircle2 className="h-5 w-5 text-kawaii-mint" />
                       Improved Version ✨
                     </div>
                     <button
@@ -350,7 +373,6 @@ export default function SpeakingPage() {
                       Listen
                     </button>
                   </div>
-                  <Separator className="mb-3" />
                   <p className="text-sm leading-relaxed">{feedback.improved_version}</p>
                 </div>
               )}
