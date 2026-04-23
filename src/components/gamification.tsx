@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useGame, useTranslation } from "@/contexts/game-context";
 import { Flame, Zap, Coins, Star } from "lucide-react";
+import { AnimatedNumber } from "@/components/fx/animated-number";
 
 export function XPBar() {
   const { xp, xpToNextLevel, xpProgress, level } = useGame();
@@ -18,13 +19,16 @@ export function XPBar() {
           {xp} / {xpToNextLevel} {t.xp}
         </span>
       </div>
-      <div className="h-3 bg-muted rounded-full overflow-hidden shadow-inner">
+      <div className="h-3.5 bg-muted rounded-full overflow-hidden shadow-inner">
         <motion.div
-          className="h-full bg-gradient-kawaii rounded-full"
+          className="h-full xp-shimmer-bar rounded-full relative"
           initial={{ width: 0 }}
           animate={{ width: `${xpProgress}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        />
+          transition={{ duration: 0.7, ease: "easeOut" }}
+        >
+          {/* Sparkle dot at tip */}
+          <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-md animate-pulse" />
+        </motion.div>
       </div>
     </div>
   );
@@ -39,27 +43,27 @@ export function StatsBar() {
       icon: Star,
       value: level,
       label: t.level,
-      color: "text-kawaii-yellow",
-      bg: "bg-kawaii-yellow/20",
+      color: "text-yellow-600 dark:text-yellow-300",
+      bg: "bg-gradient-to-r from-yellow-400/30 to-amber-400/30 border border-yellow-300/50",
     },
     {
       icon: Flame,
       value: streak,
       label: t.streak,
-      color: "text-orange-500",
-      bg: "bg-orange-500/20",
+      color: "text-orange-600 dark:text-orange-300",
+      bg: "bg-gradient-to-r from-orange-400/30 to-red-400/30 border border-orange-300/50",
     },
     {
       icon: Coins,
       value: coins,
       label: t.coins,
-      color: "text-kawaii-yellow",
-      bg: "bg-kawaii-yellow/20",
+      color: "text-emerald-600 dark:text-emerald-300",
+      bg: "bg-gradient-to-r from-emerald-400/30 to-teal-400/30 border border-emerald-300/50",
     },
   ];
 
   return (
-    <div className="flex items-center gap-3">
+    <div data-xp-hud className="flex items-center gap-3">
       {stats.map((stat, i) => (
         <motion.div
           key={stat.label}
@@ -70,7 +74,7 @@ export function StatsBar() {
           whileHover={{ scale: 1.05 }}
         >
           <stat.icon className={`w-4 h-4 ${stat.color}`} />
-          <span className="font-bold text-sm">{stat.value}</span>
+          <AnimatedNumber value={stat.value} className="font-bold text-sm tabular-nums" />
         </motion.div>
       ))}
     </div>

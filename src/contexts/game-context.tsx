@@ -201,12 +201,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     let newLevel = state.level;
     let xpNeeded = getXPForLevel(newLevel);
     let bonusCoins = 0;
+    const startLevel = state.level;
 
     while (newXP >= xpNeeded) {
       newXP -= xpNeeded;
       newLevel++;
       bonusCoins += 50;
       xpNeeded = getXPForLevel(newLevel);
+    }
+
+    // 🎉 Celebrate level-ups with confetti
+    if (newLevel > startLevel && typeof window !== "undefined") {
+      import("@/lib/confetti").then((m) => m.fireCelebration()).catch(() => {});
     }
 
     const newWorld = { ...state.world };
@@ -429,6 +435,7 @@ export const translations = {
     openBox: "Open Box",
     comeTomorrow: "Come back tomorrow!",
     unlockAt: "Unlocks at Level",
+    pictureGuess: "Picture Guess",
   },
   vi: {
     welcome: "Chào mừng",
@@ -468,6 +475,7 @@ export const translations = {
     openBox: "Mở hộp",
     comeTomorrow: "Quay lại ngày mai!",
     unlockAt: "Mở khóa ở Cấp",
+    pictureGuess: "Đoán Hình",
   },
 };
 
