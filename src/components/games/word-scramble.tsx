@@ -14,7 +14,7 @@
  * - Runs confetti on a correct answer; fireXPParticles on tile place.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/contexts/game-context";
 import { Mascot } from "@/components/mascot";

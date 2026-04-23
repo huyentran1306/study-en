@@ -6,6 +6,8 @@ import { useGame, useTranslation } from "@/contexts/game-context";
 import { Mascot } from "@/components/mascot";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { WordScrambleGame } from "@/components/games/word-scramble";
+import { MemoryMatchGame } from "@/components/games/memory-match";
 
 // ─── Word Data ─────────────────────────────────────────────
 const GAME_WORDS = [
@@ -425,24 +427,40 @@ function MatchingGame() {
 }
 
 // ─── Main Games Page ───────────────────────────────────────
+type GameId = "catch" | "match" | "scramble" | "memory";
+
 export default function GamesPage() {
-  const [activeGame, setActiveGame] = useState<"catch" | "match" | null>(null);
+  const [activeGame, setActiveGame] = useState<GameId | null>(null);
   const t = useTranslation();
 
-  const games = [
+  const games: { id: GameId; title: string; emoji: string; desc: string; gradient: string }[] = [
     {
-      id: "catch" as const,
+      id: "catch",
       title: "Catch the Word",
       emoji: "🎯",
       desc: "Catch falling words that match the given meaning!",
       gradient: "from-orange-300 to-red-400",
     },
     {
-      id: "match" as const,
+      id: "match",
       title: "Word Matching",
       emoji: "🧩",
       desc: "Match English words with their translations!",
       gradient: "from-blue-300 to-purple-400",
+    },
+    {
+      id: "scramble",
+      title: "Word Scramble",
+      emoji: "🔤",
+      desc: "Unscramble the letters to form the English word!",
+      gradient: "from-pink-300 to-fuchsia-400",
+    },
+    {
+      id: "memory",
+      title: "Memory Match",
+      emoji: "🃏",
+      desc: "Flip cards to pair English words with their meanings!",
+      gradient: "from-emerald-300 to-sky-400",
     },
   ];
 
@@ -498,7 +516,10 @@ export default function GamesPage() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          {activeGame === "catch" ? <CatchTheWordGame /> : <MatchingGame />}
+          {activeGame === "catch" && <CatchTheWordGame />}
+          {activeGame === "match" && <MatchingGame />}
+          {activeGame === "scramble" && <WordScrambleGame />}
+          {activeGame === "memory" && <MemoryMatchGame />}
         </motion.div>
       )}
 

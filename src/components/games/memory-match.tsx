@@ -15,8 +15,8 @@
  * - Confetti on every match + full celebration when the board is cleared.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useGame } from "@/contexts/game-context";
 import { Mascot } from "@/components/mascot";
 import { fireConfetti, fireCelebration } from "@/lib/confetti";
