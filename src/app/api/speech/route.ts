@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAI } from "@/lib/openai";
 
+// Prevent Next.js from pre-rendering this route during build
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     const { text } = await request.json();

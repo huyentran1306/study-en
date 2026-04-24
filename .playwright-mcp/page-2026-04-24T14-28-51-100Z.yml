@@ -1,0 +1,28 @@
+- generic [active]:
+  - alert [ref=e1]
+  - generic [ref=e2]:
+    - generic:
+      - generic: ⭐
+      - generic: ☁️
+      - generic: 🌸
+      - generic: 🌈
+      - generic: ✨
+      - generic: 📚
+    - generic [ref=e3]:
+      - heading "StudyEN ✨" [level=1] [ref=e21]
+      - paragraph [ref=e22]: Select your language
+      - generic [ref=e23]:
+        - button "🇬🇧 English ✨ ✨ ✨" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: 🇬🇧
+          - text: English
+          - generic:
+            - generic: ✨
+            - generic: ✨
+            - generic: ✨
+        - button "🇻🇳 Tiếng Việt ✨ ✨ ✨" [ref=e26] [cursor=pointer]:
+          - generic [ref=e27]: 🇻🇳
+          - text: Tiếng Việt
+          - generic:
+            - generic: ✨
+            - generic: ✨
+            - generic: ✨

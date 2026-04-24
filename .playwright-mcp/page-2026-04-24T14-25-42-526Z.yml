@@ -1,0 +1,63 @@
+- generic [active]:
+  - alert [ref=e1]
+  - dialog [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - heading "Build Error" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Failed to compile
+        - generic [ref=e9]:
+          - text: Next.js (14.2.35) is outdated
+          - link "(learn more)" [ref=e11] [cursor=pointer]:
+            - /url: https://nextjs.org/docs/messages/version-staleness
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - link "./src/app/page.tsx:9:1" [ref=e14] [cursor=pointer]:
+            - text: ./src/app/page.tsx:9:1
+            - img [ref=e15]
+          - generic [ref=e19]:
+            - generic [ref=e20]: Module not found
+            - generic [ref=e21]: ": Can't resolve '"
+            - text: "@/components/gamification"
+            - generic [ref=e22]: "'"
+            - generic [ref=e23]: 7 |
+            - text: import
+            - generic [ref=e24]: "{"
+            - text: DailyChallengeCard
+            - generic [ref=e25]: "}"
+            - text: from "@/components/daily-challenge";
+            - generic [ref=e26]: 8 |
+            - text: import
+            - generic [ref=e27]: "{"
+            - text: Mascot
+            - generic [ref=e28]: "}"
+            - text: from "@/components/mascot"; >
+            - generic [ref=e29]: 9 |
+            - text: import
+            - generic [ref=e30]: "{"
+            - text: XPBar, LevelBadge
+            - generic [ref=e31]: "}"
+            - text: from "@/components/gamification";
+            - generic [ref=e32]: "|"
+            - text: ^
+            - generic [ref=e33]: 10 |
+            - text: import
+            - generic [ref=e34]: "{ useGame"
+            - text: ","
+            - generic [ref=e35]: "useTranslation }"
+            - text: from "@/contexts/game-context";
+            - generic [ref=e36]: 11 |
+            - text: import
+            - generic [ref=e37]: "{"
+            - text: PetWidget
+            - generic [ref=e38]: "}"
+            - text: from "@/components/pet-system";
+            - generic [ref=e39]: 12 |
+            - text: import
+            - generic [ref=e40]: "{"
+            - text: WorldMap
+            - generic [ref=e41]: "}"
+            - text: from "@/components/world-map";
+            - link "https://nextjs.org/docs/messages/module-not-found" [ref=e43] [cursor=pointer]:
+              - /url: https://nextjs.org/docs/messages/module-not-found
+        - contentinfo [ref=e44]:
+          - paragraph [ref=e45]: This error occurred during the build process and can only be dismissed by fixing the error.
