@@ -1,0 +1,54 @@
+[   37724ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/:0
+[   37925ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:29889
+[   37943ms] Error: Module not found: Can't resolve '@/components/gamification'
+   7 | import { DailyChallengeCard } from "@/components/daily-challenge";
+   8 | import { Mascot } from "@/components/mascot";
+>  9 | import { XPBar, LevelBadge } from "@/components/gamification";
+     | ^
+  10 | import { useGame, useTranslation } from "@/contexts/game-context";
+  11 | import { PetWidget } from "@/components/pet-system";
+  12 | import { WorldMap } from "@/components/world-map";
+
+https://nextjs.org/docs/messages/module-not-found
+
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at getNotFoundError (file:///Users/pro/Coding/study-en/node_modules/next/dist/build/webpack/plugins/wellknown-errors-plugin/parseNotFoundError.js:124:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async getModuleBuildError (file:///Users/pro/Coding/study-en/node_modules/next/dist/build/webpack/plugins/wellknown-errors-plugin/webpackModuleError.js:104:27)
+    at async (file:///Users/pro/Coding/study-en/node_modules/next/dist/build/webpack/plugins/wellknown-errors-plugin/index.js:29:49)
+    at async (file:///Users/pro/Coding/study-en/node_modules/next/dist/build/webpack/plugins/wellknown-errors-plugin/index.js:27:21)
+[   37943ms] [LOG] [HMR] connected @ webpack-internal:///./node_modules/next/dist/client/components/react-dev-overlay/pages/websocket.js:38
+[   37944ms] [ERROR] ./src/app/page.tsx:9:1
+Module not found: Can't resolve '@/components/gamification'
+   7 | import { DailyChallengeCard } from "@/components/daily-challenge";
+   8 | import { Mascot } from "@/components/mascot";
+>  9 | import { XPBar, LevelBadge } from "@/components/gamification";
+     | ^
+  10 | import { useGame, useTranslation } from "@/contexts/game-context";
+  11 | import { PetWidget } from "@/components/pet-system";
+  12 | import { WorldMap } from "@/components/world-map";
+
+https://nextjs.org/docs/messages/module-not-found @ webpack-internal:///./node_modules/next/dist/client/components/react-dev-overlay/internal/helpers/hydration-error-info.js:62
+[   37947ms] [ERROR] ./src/app/page.tsx:9:1
+Module not found: Can't resolve '@/components/gamification'
+   7 | import { DailyChallengeCard } from "@/components/daily-challenge";
+   8 | import { Mascot } from "@/components/mascot";
+>  9 | import { XPBar, LevelBadge } from "@/components/gamification";
+     | ^
+  10 | import { useGame, useTranslation } from "@/contexts/game-context";
+  11 | import { PetWidget } from "@/components/pet-system";
+  12 | import { WorldMap } from "@/components/world-map";
+
+https://nextjs.org/docs/messages/module-not-found @ webpack-internal:///./node_modules/next/dist/client/components/react-dev-overlay/internal/helpers/hydration-error-info.js:62
+[   38126ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[   38127ms] [ERROR] ./src/app/page.tsx:9:1
+Module not found: Can't resolve '@/components/gamification'
+   7 | import { DailyChallengeCard } from "@/components/daily-challenge";
+   8 | import { Mascot } from "@/components/mascot";
+>  9 | import { XPBar, LevelBadge } from "@/components/gamification";
+     | ^
+  10 | import { useGame, useTranslation } from "@/contexts/game-context";
+  11 | import { PetWidget } from "@/components/pet-system";
+  12 | import { WorldMap } from "@/components/world-map";
+
+https://nextjs.org/docs/messages/module-not-found @ webpack-internal:///./node_modules/next/dist/client/components/react-dev-overlay/internal/helpers/hydration-error-info.js:62
