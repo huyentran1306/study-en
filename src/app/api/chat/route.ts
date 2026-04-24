@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { openai, AI_ROLES, AIRole } from "@/lib/openai";
+import { getOpenAI, AI_ROLES, AIRole } from "@/lib/openai";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
 
     const aiRole = AI_ROLES[role as AIRole] || AI_ROLES.partner;
 
+    const openai = getOpenAI();
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [

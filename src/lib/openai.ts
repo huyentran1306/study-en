@@ -1,8 +1,16 @@
 import OpenAI from "openai";
 
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-load OpenAI client to avoid errors during build time
+let cachedOpenAI: OpenAI | null = null;
+
+export function getOpenAI(): OpenAI {
+  if (!cachedOpenAI) {
+    cachedOpenAI = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || "",
+    });
+  }
+  return cachedOpenAI;
+}
 
 export const AI_ROLES = {
   partner: {
