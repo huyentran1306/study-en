@@ -404,14 +404,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetProgress = () => setState(defaultState);
 
   const logout = () => {
-    // Clear user ID and reset game state to onboarding
+    // Only clear user ID, keep game progress
+    // User will re-login with same account and restore from API
     if (typeof window !== 'undefined') {
       localStorage.removeItem('studyen-uid');
     }
-    setState({
-      ...defaultState,
-      onboardingComplete: false,
-    });
+    // Keep the current state but mark as logged out
+    setState((prev) => ({ ...prev, username: '' }));
   };
 
   const recordStudyDate = () => {
