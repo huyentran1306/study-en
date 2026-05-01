@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { WordScrambleGame } from "@/components/games/word-scramble";
 import { MemoryMatchGame } from "@/components/games/memory-match";
+import { useApiVocab } from "@/hooks/use-api-vocab";
 
 // ─── Word Data ─────────────────────────────────────────────
 const GAME_WORDS = [
@@ -40,18 +41,19 @@ interface FallingWord {
   y: number;
 }
 
-function CatchTheWordGame() {
+function CatchTheWordGame({ words: externalWords }: { words?: { word: string; meaning: string; emoji: string }[] } = {}) {
   const { addXP, addCoins, language } = useGame();
+  const wordBank = externalWords && externalWords.length > 0 ? externalWords : GAME_WORDS;
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  const [targetWord, setTargetWord] = useState(GAME_WORDS[0]);
+  const [targetWord, setTargetWord] = useState(wordBank[0]);
   const [fallingWords, setFallingWords] = useState<FallingWord[]>([]);
   const [gameActive, setGameActive] = useState(false);
   const [wordId, setWordId] = useState(0);
   const [gameOver, setGameOver] = useState(false);
 
   const spawnWord = useCallback(() => {
-    const randomWord = GAME_WORDS[Math.floor(Math.random() * GAME_WORDS.length)];
+    const randomWord = wordBank[Math.floor(Math.random() * wordBank.length)];
     setWordId((prev) => prev + 1);
     setFallingWords((prev) => [
       ...prev,
@@ -65,7 +67,7 @@ function CatchTheWordGame() {
         y: -10,
       },
     ]);
-  }, [wordId]);
+  }, [wordId, wordBank]);
 
   useEffect(() => {
     if (!gameActive || gameOver) return;
@@ -103,7 +105,7 @@ function CatchTheWordGame() {
       setScore((s) => s + 10);
       setFallingWords((prev) => prev.filter((w) => w.id !== word.id));
       // New target
-      const newTarget = GAME_WORDS[Math.floor(Math.random() * GAME_WORDS.length)];
+      const newTarget = wordBank[Math.floor(Math.random() * wordBank.length)];
       setTargetWord(newTarget);
     } else {
       setLives((l) => {
@@ -121,7 +123,7 @@ function CatchTheWordGame() {
     setFallingWords([]);
     setGameOver(false);
     setGameActive(true);
-    setTargetWord(GAME_WORDS[Math.floor(Math.random() * GAME_WORDS.length)]);
+    setTargetWord(wordBank[Math.floor(Math.random() * wordBank.length)]);
   };
 
   const endGame = () => {
@@ -238,8 +240,9 @@ function CatchTheWordGame() {
 }
 
 // ─── Drag & Drop Matching Game ─────────────────────────────
-function MatchingGame() {
+function MatchingGame({ words: externalWords }: { words?: { word: string; meaning: string; emoji: string }[] } = {}) {
   const { addXP, addCoins, language } = useGame();
+  const wordBank = externalWords && externalWords.length > 0 ? externalWords : GAME_WORDS;
   const [pairs, setPairs] = useState<typeof GAME_WORDS>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [matched, setMatched] = useState<Set<number>>(new Set());
@@ -248,9 +251,26 @@ function MatchingGame() {
   const [wrongPair, setWrongPair] = useState<[number, number] | null>(null);
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
+  const [rewardGiven, setRewardGiven] = useState(false);
+
+  const isComplete = matched.size === pairs.length && pairs.length > 0;
+
+  // Award XP only once when game completes
+  useEffect(() => {
+    if (isComplete && !rewardGiven) {
+      // Compute score from matched pairs to avoid stale closure issue
+      const finalScore = matched.size * 15;
+      if (finalScore > 0) {
+        addXP(finalScore);
+        addCoins(Math.floor(finalScore / 3));
+        setRewardGiven(true);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isComplete, rewardGiven]);
 
   const startGame = () => {
-    const shuffled = [...GAME_WORDS].sort(() => Math.random() - 0.5).slice(0, 6);
+    const shuffled = [...wordBank].sort(() => Math.random() - 0.5).slice(0, 6);
     setPairs(shuffled);
     setShuffledMeanings(shuffled.map((w) => w.meaning).sort(() => Math.random() - 0.5));
     setMatched(new Set());
@@ -258,6 +278,7 @@ function MatchingGame() {
     setSelectedMeaning(null);
     setScore(0);
     setGameStarted(true);
+    setRewardGiven(false);
   };
 
   const handleWordClick = (idx: number) => {
@@ -306,8 +327,6 @@ function MatchingGame() {
     }
   };
 
-  const isComplete = matched.size === pairs.length && pairs.length > 0;
-
   if (!gameStarted) {
     return (
       <div className="text-center py-12">
@@ -337,8 +356,6 @@ function MatchingGame() {
   }
 
   if (isComplete) {
-    addXP(score);
-    addCoins(Math.floor(score / 3));
     return (
       <div className="text-center py-12">
         <Mascot mood="excited" size="lg" />
@@ -432,6 +449,15 @@ type GameId = "catch" | "match" | "scramble" | "memory";
 export default function GamesPage() {
   const [activeGame, setActiveGame] = useState<GameId | null>(null);
   const t = useTranslation();
+  const { activeStudyLanguage } = useGame();
+  // Load vocab from API based on active study language for games
+  const [apiWords] = useApiVocab(activeStudyLanguage);
+  // Convert to game word format (sample 30 words)
+  const gameWords = apiWords.slice(0, 30).map((w) => ({
+    word: w.word,
+    meaning: w.meaning,
+    emoji: w.emoji || "📖",
+  }));
 
   const games: { id: GameId; title: string; emoji: string; desc: string; gradient: string }[] = [
     {
@@ -516,10 +542,10 @@ export default function GamesPage() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          {activeGame === "catch" && <CatchTheWordGame />}
-          {activeGame === "match" && <MatchingGame />}
-          {activeGame === "scramble" && <WordScrambleGame />}
-          {activeGame === "memory" && <MemoryMatchGame />}
+          {activeGame === "catch" && <CatchTheWordGame words={gameWords.length >= 4 ? gameWords : undefined} />}
+          {activeGame === "match" && <MatchingGame words={gameWords.length >= 4 ? gameWords : undefined} />}
+          {activeGame === "scramble" && <WordScrambleGame words={gameWords.length >= 5 ? gameWords : undefined} />}
+          {activeGame === "memory" && <MemoryMatchGame words={gameWords.length >= 8 ? gameWords : undefined} />}
         </motion.div>
       )}
 

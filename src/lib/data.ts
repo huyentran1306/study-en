@@ -17,6 +17,8 @@ export interface DailyChallenge {
   answer: string;
   options?: string[];
   hint?: string;
+  xpReward?: number;
+  language?: string;
 }
 
 export const SAMPLE_VOCABULARY: VocabWord[] = [
@@ -148,6 +150,8 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     answer: "eloquent",
     options: ["eloquent", "ambiguous", "reluctant", "pragmatic"],
     hint: "It means fluent or persuasive in speaking 🗣️",
+    xpReward: 15,
+    language: "en",
   },
   {
     id: "2",
@@ -161,6 +165,8 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
       "Speaking multiple languages",
     ],
     hint: "Think about not giving up",
+    xpReward: 20,
+    language: "en",
   },
   {
     id: "3",
@@ -169,5 +175,80 @@ export const DAILY_CHALLENGES: DailyChallenge[] = [
     answer: "ambiguous",
     options: ["comprehensive", "ambiguous", "resilient", "ubiquitous"],
     hint: "It means unclear or open to interpretation 🤔",
+    xpReward: 15,
+    language: "en",
+  },
+  {
+    id: "4",
+    type: "translate",
+    question: 'What does "gratitude" mean?',
+    answer: "A feeling of thankfulness and appreciation",
+    options: ["A feeling of thankfulness and appreciation", "Extreme sadness", "Overconfidence in one\'s abilities", "Strong dislike"],
+    hint: "Think about saying \'thank you\' from the heart",
+    xpReward: 20,
+    language: "en",
+  },
+  {
+    id: "5",
+    type: "fill-blank",
+    question: "His ___ attitude helped him overcome many challenges in life.",
+    answer: "resilient",
+    options: ["resilient", "complacent", "melancholy", "verbose"],
+    hint: "It means able to recover quickly from difficulties 💪",
+    xpReward: 15,
+    language: "en",
+  },
+];
+
+export const DAILY_CHALLENGES_ZH: DailyChallenge[] = [
+  {
+    id: "zh1",
+    type: "translate",
+    question: '"谢谢" 是什么意思？',
+    answer: "Thank you (cảm ơn)",
+    options: ["Thank you (cảm ơn)", "Sorry (xin lỗi)", "Hello (xin chào)", "Goodbye (tạm biệt)"],
+    hint: "是一个感谢的词语 🙏",
+    xpReward: 15,
+    language: "zh",
+  },
+  {
+    id: "zh2",
+    type: "fill-blank",
+    question: "我___去商店买东西。（I ___ go to the store to buy things.）",
+    answer: "想",
+    options: ["想", "是", "有", "在"],
+    hint: "表示想要做某件事的词 💭",
+    xpReward: 15,
+    language: "zh",
+  },
+  {
+    id: "zh3",
+    type: "translate",
+    question: '"朋友" 是什么意思？',
+    answer: "Friend (bạn bè)",
+    options: ["Friend (bạn bè)", "Family (gia đình)", "Teacher (giáo viên)", "Work (công việc)"],
+    hint: "一起玩耍、学习的人 🤝",
+    xpReward: 15,
+    language: "zh",
+  },
+  {
+    id: "zh4",
+    type: "fill-blank",
+    question: "今天天气___好！（Today the weather is ___ good!）",
+    answer: "非常",
+    options: ["非常", "不是", "没有", "一下"],
+    hint: "表示程度的副词，意思是'very' ☀️",
+    xpReward: 15,
+    language: "zh",
+  },
+  {
+    id: "zh5",
+    type: "translate",
+    question: '"学习" 是什么意思？',
+    answer: "To study / learn (học tập)",
+    options: ["To study / learn (học tập)", "To eat (ăn)", "To sleep (ngủ)", "To play (chơi)"],
+    hint: "在学校做的主要事情 📚",
+    xpReward: 20,
+    language: "zh",
   },
 ];

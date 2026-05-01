@@ -6,6 +6,7 @@ import { OnboardingFlow } from "@/components/onboarding";
 import { Navbar } from "@/components/navbar";
 import { FloatingDecorations } from "@/components/floating-decorations";
 import { XPParticleLayer } from "@/components/fx/xp-particles";
+import { AchievementToast, useAchievementToastManager } from "@/components/achievement-toast";
 
 /** Animated gradient blobs that float in the background */
 function KawaiiBackground() {
@@ -39,6 +40,7 @@ function KawaiiBackground() {
 
 function AppContent({ children }: { children: ReactNode }) {
   const { onboardingComplete } = useGame();
+  const { current: currentAchievement, dismiss } = useAchievementToastManager();
 
   if (!onboardingComplete) {
     return <OnboardingFlow />;
@@ -51,6 +53,7 @@ function AppContent({ children }: { children: ReactNode }) {
       <Navbar />
       <main className="min-h-[calc(100vh-4rem)] relative z-10">{children}</main>
       <XPParticleLayer />
+      <AchievementToast achievement={currentAchievement} onDismiss={dismiss} />
     </>
   );
 }

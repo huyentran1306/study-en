@@ -11,6 +11,7 @@ import { useGame, useTranslation } from "@/contexts/game-context";
 import { PetWidget } from "@/components/pet-system";
 import { WorldMap } from "@/components/world-map";
 import { MysteryBoxWidget } from "@/components/mystery-box";
+import { StreakHeatmap } from "@/components/streak-heatmap";
 
 const container = {
   hidden: { opacity: 0 },
@@ -261,6 +262,16 @@ export default function Home() {
           <WorldMap />
           <MysteryBoxWidget />
         </div>
+      </motion.section>
+
+      {/* Study Activity Heatmap */}
+      <motion.section
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="py-6"
+      >
+        <StreakHeatmap />
       </motion.section>
     </div>
   );

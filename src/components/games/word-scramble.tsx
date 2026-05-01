@@ -75,8 +75,12 @@ function scramble(word: string, attempt = 0): string {
   return scrambled;
 }
 
-export function WordScrambleGame() {
+export function WordScrambleGame({ words: externalWords }: { words?: { word: string; meaning: string; emoji: string }[] }) {
   const { addXP, addCoins, spendCoins, coins, language } = useGame();
+  // For Chinese, use phonetic (pinyin) as the scramble target; fall back to word
+  const effectiveWordBank = externalWords
+    ? externalWords.map((w) => ({ word: (w as { word: string; phonetic?: string; meaning: string; emoji: string }).phonetic?.toUpperCase() || w.word.toUpperCase(), meaning: w.meaning, emoji: w.emoji }))
+    : WORD_BANK;
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [roundWords, setRoundWords] = useState<typeof WORD_BANK>([]);
@@ -106,7 +110,7 @@ export function WordScrambleGame() {
   }, []);
 
   const startSession = () => {
-    const picks = shuffle(WORD_BANK).slice(0, WORDS_PER_SESSION);
+    const picks = shuffle(effectiveWordBank).slice(0, WORDS_PER_SESSION);
     setRoundWords(picks);
     setRoundIdx(0);
     setScore(0);

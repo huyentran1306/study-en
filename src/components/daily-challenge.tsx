@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Lightbulb } from "lucide-react";
-import { DAILY_CHALLENGES } from "@/lib/data";
+import { DAILY_CHALLENGES, DAILY_CHALLENGES_ZH } from "@/lib/data";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useGame } from "@/contexts/game-context";
 
 const OPTION_COLORS = [
   "from-violet-400 to-purple-500 border-violet-300/50 dark:border-violet-700/50",
@@ -14,6 +15,9 @@ const OPTION_COLORS = [
 ];
 
 export function DailyChallengeCard() {
+  const { activeStudyLanguage, addXP } = useGame();
+  const isZh = activeStudyLanguage === "zh";
+  const challenges = isZh ? DAILY_CHALLENGES_ZH : DAILY_CHALLENGES;
   const [streak, setStreak] = useLocalStorage("daily-streak", 0);
   const [lastCompleted, setLastCompleted] = useLocalStorage("last-challenge-date", "");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -23,7 +27,7 @@ export function DailyChallengeCard() {
 
   const today = new Date().toDateString();
   const isCompletedToday = lastCompleted === today;
-  const challenge = DAILY_CHALLENGES[currentIndex % DAILY_CHALLENGES.length];
+  const challenge = challenges[currentIndex % challenges.length];
   const isCorrect = selectedAnswer === challenge.answer;
 
   const handleAnswer = (answer: string) => {
@@ -33,6 +37,7 @@ export function DailyChallengeCard() {
     if (answer === challenge.answer && !isCompletedToday) {
       setStreak((prev: number) => prev + 1);
       setLastCompleted(today);
+      addXP(challenge.xpReward || 10);
     }
   };
 
@@ -52,7 +57,7 @@ export function DailyChallengeCard() {
             {challenge.type === "fill-blank" ? "✏️ Fill in the Blank" : challenge.type === "translate" ? "🔤 What does it mean?" : "🔀 Rearrange"}
           </span>
           <span className="text-xs text-muted-foreground bg-white/50 dark:bg-white/10 rounded-full px-2.5 py-0.5 font-medium">
-            {(currentIndex % DAILY_CHALLENGES.length) + 1}/{DAILY_CHALLENGES.length}
+            {(currentIndex % challenges.length) + 1}/{challenges.length}
           </span>
         </div>
 
@@ -153,7 +158,7 @@ export function DailyChallengeCard() {
                     <div>
                       <p className="font-bold">Correct! Awesome job!</p>
                       {!isCompletedToday && (
-                        <p className="text-xs opacity-90 mt-0.5">+1 streak 🔥</p>
+                        <p className="text-xs opacity-90 mt-0.5">+1 streak 🔥 +{challenge.xpReward || 10} XP ⭐</p>
                       )}
                     </div>
                   </div>

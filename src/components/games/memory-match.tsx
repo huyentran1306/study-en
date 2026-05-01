@@ -74,9 +74,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function buildDeck(difficulty: Difficulty): Card[] {
+function buildDeck(difficulty: Difficulty, externalWords?: { word: string; meaning: string; emoji: string }[]): Card[] {
   const { pairs } = DIFFICULTY_CONFIG[difficulty];
-  const picks = shuffle(WORD_BANK).slice(0, pairs);
+  const bank = externalWords && externalWords.length >= pairs ? externalWords : WORD_BANK;
+  const picks = shuffle(bank).slice(0, pairs);
   const cards: Card[] = [];
   let id = 0;
   for (const p of picks) {
@@ -86,7 +87,7 @@ function buildDeck(difficulty: Difficulty): Card[] {
   return shuffle(cards);
 }
 
-export function MemoryMatchGame() {
+export function MemoryMatchGame({ words: externalWords }: { words?: { word: string; meaning: string; emoji: string }[] } = {}) {
   const { addXP, addCoins, language } = useGame();
 
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
@@ -104,7 +105,7 @@ export function MemoryMatchGame() {
 
   const startGame = (d: Difficulty) => {
     setDifficulty(d);
-    setDeck(buildDeck(d));
+    setDeck(buildDeck(d, externalWords));
     setFlipped([]);
     setMatched(new Set());
     setMoves(0);

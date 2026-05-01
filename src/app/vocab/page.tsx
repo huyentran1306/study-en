@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -24,10 +25,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { VocabWord, SAMPLE_VOCABULARY } from "@/lib/data";
+import { VocabWord } from "@/lib/data";
+import { useApiVocab } from "@/hooks/use-api-vocab";
 import { Mascot } from "@/components/mascot";
 import { useGame } from "@/contexts/game-context";
+import { addSRCard, getSRCards } from "@/lib/spaced-repetition";
 
 const CARD_GRADIENTS = [
   "from-kawaii-purple to-violet-400",
@@ -38,15 +40,23 @@ const CARD_GRADIENTS = [
 ];
 
 export default function VocabPage() {
-  const [words, setWords] = useLocalStorage<VocabWord[]>("vocabulary", SAMPLE_VOCABULARY);
+  const { addXP, addCoins, targetLanguages, activeStudyLanguage, setActiveStudyLanguage } = useGame();
+  const [words, setWords] = useApiVocab(activeStudyLanguage);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newWord, setNewWord] = useState({ word: "", meaning: "", example: "", phonetic: "", emoji: "" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [mascotMood, setMascotMood] = useState<"happy" | "excited" | "thinking">("happy");
-  const { addXP, addCoins } = useGame();
 
+  // Randomize starting card each visit
+  useEffect(() => {
+    if (words.length > 1) {
+      setCurrentIndex(Math.floor(Math.random() * words.length));
+      setIsFlipped(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [words.length > 0 ? words[0]?.id : null]);
   const learnedCount = words.filter((w) => w.learned).length;
   const progress = words.length > 0 ? (learnedCount / words.length) * 100 : 0;
 
@@ -127,6 +137,25 @@ export default function VocabPage() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
+        {/* Language Filter Tabs — now controlled by navbar global switcher */}
+        {targetLanguages && targetLanguages.length > 1 && (
+          <div className="flex gap-2">
+            {targetLanguages.map((lang) => (
+              <button
+                key={lang}
+                onClick={() => { setActiveStudyLanguage(lang); setCurrentIndex(0); }}
+                className={`px-4 py-2 rounded-2xl font-semibold text-sm transition-all ${
+                  activeStudyLanguage === lang
+                    ? "bg-gradient-kawaii text-white shadow-kawaii"
+                    : "bg-white/80 dark:bg-gray-800/80 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {lang === "en" ? "🇬🇧 English" : "🇨🇳 Chinese"}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -219,6 +248,15 @@ export default function VocabPage() {
               transition={{ duration: 0.5 }}
             />
           </div>
+          {/* SR Review link */}
+          {typeof window !== "undefined" && getSRCards().length > 0 && (
+            <Link href="/review" className="mt-3 flex items-center justify-between bg-orange-50 dark:bg-orange-900/20 rounded-2xl px-4 py-2 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+              <span className="text-sm font-bold text-orange-700 dark:text-orange-400">
+                🔄 {getSRCards().filter(c => c.nextReview <= new Date().toISOString().split("T")[0]).length} cards due for review
+              </span>
+              <span className="text-orange-500 text-sm">→</span>
+            </Link>
+          )}
         </div>
 
         {/* Tabs */}
@@ -314,7 +352,7 @@ export default function VocabPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap justify-center">
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Button
                       onClick={() => currentWord && toggleLearned(currentWord.id)}
@@ -326,6 +364,23 @@ export default function VocabPage() {
                     >
                       <Check className="h-4 w-4" />
                       {currentWord?.learned ? "Mastered! 🎉" : "Mark as Learned"}
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (currentWord) {
+                          addSRCard({ id: currentWord.id, word: currentWord.word, meaning: currentWord.meaning, phonetic: currentWord.phonetic, emoji: currentWord.emoji, example: currentWord.example });
+                        }
+                      }}
+                      className={`gap-2 rounded-2xl border-2 ${
+                        currentWord && getSRCards().some(c => c.id === currentWord.id)
+                          ? "border-orange-300 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
+                          : "border-kawaii-yellow/40"
+                      }`}
+                    >
+                      🔄 {currentWord && getSRCards().some(c => c.id === currentWord.id) ? "In Review" : "Add to Review"}
                     </Button>
                   </motion.div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

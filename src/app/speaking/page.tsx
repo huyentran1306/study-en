@@ -39,6 +39,21 @@ const PRACTICE_PROMPTS = [
   "Talk about a person who has influenced your life.",
   "Describe the city or town where you live.",
   "What are your goals for the next five years?",
+  "Describe your favorite food and how it is made.",
+  "Talk about a challenge you overcame and what you learned.",
+];
+
+const CHINESE_PROMPTS = [
+  "请描述一下你的家人。（Please describe your family members.）",
+  "你喜欢吃什么中国菜？为什么？（What Chinese food do you like? Why?）",
+  "请介绍一下你的家乡。（Please introduce your hometown.）",
+  "你周末通常做什么？（What do you usually do on weekends?）",
+  "请描述一下你的日常生活。（Describe your daily routine.）",
+  "你最喜欢的中国节日是什么？（What is your favorite Chinese holiday?）",
+  "请说说你学习中文的原因。（Why are you learning Chinese?）",
+  "你最近去过哪里旅行？（Where have you traveled recently?）",
+  "请描述你的朋友。（Describe your friend.）",
+  "你有什么爱好？（What are your hobbies?）",
 ];
 
 const SCORE_CONFIG = [
@@ -55,12 +70,14 @@ export default function SpeakingPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(0);
   const [mascotMood, setMascotMood] = useState<"happy" | "thinking" | "excited" | "cheering">("happy");
-  const { addXP, addCoins } = useGame();
+  const { addXP, addCoins, activeStudyLanguage, unlockAchievement } = useGame();
+  const isZh = activeStudyLanguage === 'zh';
+  const prompts = isZh ? CHINESE_PROMPTS : PRACTICE_PROMPTS;
 
   const textToAnalyze = transcript || manualText;
 
   const getNewPrompt = () => {
-    setCurrentPrompt((prev) => (prev + 1) % PRACTICE_PROMPTS.length);
+    setCurrentPrompt((prev) => (prev + 1) % prompts.length);
     resetTranscript();
     setManualText("");
     setFeedback(null);
@@ -74,7 +91,7 @@ export default function SpeakingPage() {
       const response = await fetch("/api/speech", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: textToAnalyze }),
+        body: JSON.stringify({ text: textToAnalyze, language: isZh ? 'zh' : 'en' }),
       });
       const data = await response.json();
       setFeedback(data.feedback);
@@ -88,6 +105,15 @@ export default function SpeakingPage() {
       } else {
         setMascotMood("excited");
       }
+      // Unlock achievement for 90%+ pronunciation score
+      if ((data.feedback?.pronunciation_score || 0) >= 9) {
+        unlockAchievement("perfect_pronunciation");
+      }
+      // First speaking achievement
+      if (!sessionStorage.getItem("first_speaking")) {
+        sessionStorage.setItem("first_speaking", "1");
+        unlockAchievement("first_speaking");
+      }
       setTimeout(() => setMascotMood("happy"), 3000);
     } catch {
       console.error("Failed to analyze speech");
@@ -100,7 +126,7 @@ export default function SpeakingPage() {
   const speakText = (text: string) => {
     if ("speechSynthesis" in window) {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "en-US";
+      utterance.lang = isZh ? "zh-CN" : "en-US";
       utterance.rate = 0.85;
       speechSynthesis.speak(utterance);
     }
@@ -126,11 +152,11 @@ export default function SpeakingPage() {
           <div>
             <h1 className="text-2xl font-bold">
               <span className="bg-gradient-kawaii bg-clip-text text-transparent">
-                🎤 Speaking Practice
+                🎤 {isZh ? "口语练习" : "Speaking Practice"}
               </span>
             </h1>
             <p className="text-sm text-muted-foreground">
-              Record your voice & get AI feedback! ✨
+              {isZh ? "录音并获得AI反馈！✨" : "Record your voice & get AI feedback! ✨"}
             </p>
           </div>
         </div>
@@ -142,7 +168,7 @@ export default function SpeakingPage() {
               <span className="text-xl">🎯</span>
               <span className="font-bold text-sm">Practice Prompt</span>
               <Badge className="text-xs rounded-full bg-white/50 text-foreground">
-                {currentPrompt + 1}/{PRACTICE_PROMPTS.length}
+                {currentPrompt + 1}/{prompts.length}
               </Badge>
             </div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -158,11 +184,11 @@ export default function SpeakingPage() {
             </motion.div>
           </div>
           <p className="text-lg font-semibold leading-relaxed">
-            {PRACTICE_PROMPTS[currentPrompt]}
+            {prompts[currentPrompt]}
           </p>
           <button
             className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => speakText(PRACTICE_PROMPTS[currentPrompt])}
+            onClick={() => speakText(prompts[currentPrompt])}
           >
             <Volume2 className="h-4 w-4" />
             Listen to prompt
@@ -236,10 +262,47 @@ export default function SpeakingPage() {
                 🎙️ Transcript
               </p>
               <p className="text-base leading-relaxed">{transcript}</p>
+              {/* Waveform animation + pronunciation similarity score */}
+              {!isListening && transcript && (() => {
+                const promptWords = prompts[currentPrompt].toLowerCase().replace(/[^a-z\u4e00-\u9fa5\s]/g, "").split(/\s+/);
+                const transcriptWords = transcript.toLowerCase().replace(/[^a-z\u4e00-\u9fa5\s]/g, "").split(/\s+/);
+                const matches = transcriptWords.filter(w => promptWords.includes(w)).length;
+                const score = Math.min(100, Math.round((matches / Math.max(promptWords.length, 1)) * 100 + transcriptWords.length * 2));
+                const clampedScore = Math.min(100, score);
+                return (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-muted-foreground">🎵 Pronunciation Match</span>
+                      <span className={`text-xs font-bold ${clampedScore >= 70 ? "text-green-600" : clampedScore >= 40 ? "text-yellow-600" : "text-red-500"}`}>
+                        {clampedScore}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${clampedScore}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className={`h-full rounded-full ${clampedScore >= 70 ? "bg-green-400" : clampedScore >= 40 ? "bg-yellow-400" : "bg-red-400"}`}
+                      />
+                    </div>
+                    {/* Mini waveform bars */}
+                    <div className="flex items-end gap-0.5 h-6 mt-2 justify-center">
+                      {Array.from({ length: 20 }).map((_, i) => (
+                        <motion.div
+                          key={i}
+                          className="w-1.5 bg-kawaii-purple/60 rounded-full"
+                          animate={{ height: [4, Math.random() * 20 + 4, 4] }}
+                          transition={{ duration: 0.6 + Math.random() * 0.4, repeat: 3, delay: i * 0.05 }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           ) : (
             <Textarea
-              placeholder="Or type your response here..."
+              placeholder={isZh ? "输入你的回应..." : "Or type your response here..."}
               value={manualText}
               onChange={(e) => setManualText(e.target.value)}
               className="min-h-[120px] rounded-2xl border-kawaii-purple/20"
