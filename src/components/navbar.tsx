@@ -16,8 +16,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatsBar } from "@/components/gamification";
 import { useTranslation, useGame } from "@/contexts/game-context";
-import { Mascot } from "@/components/mascot";
+import PetIcon from "@/components/pet-icon";
 import { WOTDBadge } from "@/components/wotd-badge";
+import LogoutDialog from "@/components/logout-dialog";
 
 function useDropdown() {
   const [open, setOpen] = useState(false);
@@ -84,7 +85,7 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const t = useTranslation();
-  const { activeStudyLanguage, setActiveStudyLanguage, username, xp, level, resetProgress, logout } = useGame();
+  const { activeStudyLanguage, setActiveStudyLanguage, username, xp, level, resetProgress, logout, pet } = useGame();
   const profileDropdown = useDropdown();
 
   const primaryLinks = [
@@ -114,8 +115,8 @@ export function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-          <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
-            <Mascot mood="happy" size="sm" animate={false} />
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <PetIcon type={pet?.type || 'cat'} size="sm" />
           </motion.div>
           <div className="hidden sm:block">
             <span className="text-xl font-extrabold bg-gradient-kawaii bg-clip-text text-transparent">StudyEN</span>
@@ -222,13 +223,10 @@ export function Navbar() {
                       <RotateCcw className="h-4 w-4" />
                       Reset Progress
                     </button>
-                    <button
-                      onClick={() => { if (confirm("Log out and reset?")) { logout(); profileDropdown.setOpen(false); } }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Log Out
-                    </button>
+                    <LogoutDialog
+                      renderTrigger={<button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"><LogOut className="h-4 w-4" />Log Out</button>}
+                      onConfirm={() => { logout(); profileDropdown.setOpen(false); }}
+                    />
                   </div>
                 </motion.div>
               )}

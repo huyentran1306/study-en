@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DailyChallengeCard } from "@/components/daily-challenge";
-import { Mascot } from "@/components/mascot";
+// Mascot removed for hero — small pet appears in Navbar
 import { XPBar, LevelBadge } from "@/components/gamification";
 import { useGame, useTranslation } from "@/contexts/game-context";
 import { PetWidget } from "@/components/pet-system";
@@ -88,17 +88,7 @@ export default function Home() {
       >
         {/* Greeting with Mascot */}
         <div className="flex flex-col items-center gap-4">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", bounce: 0.5, delay: 0.2 }}
-          >
-            <Mascot 
-              mood={streak >= 3 ? "excited" : "happy"} 
-              size="xl" 
-              message={`${t.hello}, ${username}! 💜`}
-            />
-          </motion.div>
+          {/* Large mascot removed per design — keep greeting only */}
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
