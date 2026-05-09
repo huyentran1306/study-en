@@ -76,6 +76,22 @@ export default function Home() {
       color: "kawaii-purple",
       gradient: "from-indigo-300 to-purple-400",
     },
+    {
+      title: "Full Voice Mode",
+      description: "Speak naturally with AI — no typing! Real conversations.",
+      emoji: "🎙️",
+      href: "/voice",
+      color: "kawaii-pink",
+      gradient: "from-rose-300 to-pink-400",
+    },
+    {
+      title: "Shadowing Practice",
+      description: "Listen → Repeat → Get scored. Best for pronunciation!",
+      emoji: "🔁",
+      href: "/shadowing",
+      color: "kawaii-mint",
+      gradient: "from-teal-300 to-cyan-400",
+    },
   ];
 
   return (
