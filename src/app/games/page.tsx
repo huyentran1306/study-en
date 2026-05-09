@@ -449,9 +449,9 @@ type GameId = "catch" | "match" | "scramble" | "memory";
 export default function GamesPage() {
   const [activeGame, setActiveGame] = useState<GameId | null>(null);
   const t = useTranslation();
-  const { activeStudyLanguage } = useGame();
+  const { activeStudyLanguage, hskLevel } = useGame();
   // Load vocab from API based on active study language for games
-  const [apiWords] = useApiVocab(activeStudyLanguage);
+  const [apiWords] = useApiVocab(activeStudyLanguage, activeStudyLanguage === 'zh' ? hskLevel : undefined);
   // Convert to game word format (sample 30 words)
   const gameWords = apiWords.slice(0, 30).map((w) => ({
     word: w.word,

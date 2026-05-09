@@ -40,8 +40,8 @@ const CARD_GRADIENTS = [
 ];
 
 export default function VocabPage() {
-  const { addXP, addCoins, targetLanguages, activeStudyLanguage, setActiveStudyLanguage } = useGame();
-  const [words, setWords] = useApiVocab(activeStudyLanguage);
+  const { addXP, addCoins, targetLanguages, activeStudyLanguage, setActiveStudyLanguage, hskLevel, setHskLevel } = useGame();
+  const [words, setWords] = useApiVocab(activeStudyLanguage, activeStudyLanguage === 'zh' ? hskLevel : undefined);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -137,7 +137,7 @@ export default function VocabPage() {
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
-        {/* Language Filter Tabs — now controlled by navbar global switcher */}
+        {/* Language Filter Tabs */}
         {targetLanguages && targetLanguages.length > 1 && (
           <div className="flex gap-2">
             {targetLanguages.map((lang) => (
@@ -151,6 +151,32 @@ export default function VocabPage() {
                 }`}
               >
                 {lang === "en" ? "🇬🇧 English" : "🇨🇳 Chinese"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* HSK Level Picker — shown when studying Chinese */}
+        {activeStudyLanguage === "zh" && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-muted-foreground">📊 HSK Level:</span>
+            {[
+              { level: 1, label: "HSK 1", desc: "Beginner" },
+              { level: 2, label: "HSK 2", desc: "Elementary" },
+              { level: 3, label: "HSK 3", desc: "Intermediate" },
+              { level: 4, label: "HSK 4+", desc: "Advanced" },
+            ].map(({ level, label, desc }) => (
+              <button
+                key={level}
+                onClick={() => { setHskLevel(level); setCurrentIndex(0); }}
+                className={`px-3 py-1.5 rounded-2xl text-xs font-bold transition-all border-2 ${
+                  hskLevel === level
+                    ? "bg-kawaii-purple text-white border-kawaii-purple shadow-kawaii"
+                    : "bg-white/80 dark:bg-gray-800/80 text-muted-foreground border-transparent hover:border-kawaii-purple/40"
+                }`}
+                title={desc}
+              >
+                {label}
               </button>
             ))}
           </div>

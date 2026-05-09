@@ -41,6 +41,7 @@ export function setStoredUserId(id: string): void {
 export interface ApiUser {
   id: string;
   username: string;
+  display_name: string | null;
   email: string | null;
   xp: number;
   level: number;
@@ -58,7 +59,7 @@ export const createOrGetUser = (username: string, language = 'en', app_mode = 'a
 export const getUser = (userId: string) =>
   apiGet<ApiUser>(`/users/${userId}`);
 
-export const updateUser = (userId: string, data: Partial<{ username: string; language: string; app_mode: string; streak: number; coins: number; target_languages: string }>) =>
+export const updateUser = (userId: string, data: Partial<{ username: string; language: string; app_mode: string; streak: number; coins: number; target_languages: string; hsk_level: number }>) =>
   apiPut<ApiUser>(`/users/${userId}`, data);
 
 // ─── Game State ───────────────────────────────────────────
@@ -95,13 +96,14 @@ export interface ApiVocab {
   learned_at?: string | null;
 }
 
-export const getVocab = (userId?: string, params?: { category?: string; limit?: number; offset?: number; language?: string }) => {
+export const getVocab = (userId?: string, params?: { category?: string; limit?: number; offset?: number; language?: string; hsk_level?: number }) => {
   const q = new URLSearchParams();
   if (userId) q.set('userId', userId);
   if (params?.category) q.set('category', params.category);
   if (params?.limit) q.set('limit', String(params.limit));
   if (params?.offset) q.set('offset', String(params.offset));
   if (params?.language) q.set('language', params.language);
+  if (params?.hsk_level) q.set('hsk_level', String(params.hsk_level));
   return apiGet<ApiVocab[]>(`/vocab?${q}`);
 };
 

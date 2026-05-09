@@ -28,16 +28,16 @@ function statusFromWord(w: VocabWord): "known" | "unknown" | "learning" {
  * Drop-in replacement for useLocalStorage<VocabWord[]>("vocabulary", SAMPLE_VOCABULARY)
  * Returns [words, setWords] with the same interface, but backed by the API.
  */
-export function useApiVocab(language?: string): [VocabWord[], React.Dispatch<React.SetStateAction<VocabWord[]>>] {
+export function useApiVocab(language?: string, hskLevel?: number): [VocabWord[], React.Dispatch<React.SetStateAction<VocabWord[]>>] {
   const [words, setWordsLocal] = useState<VocabWord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const prevWordsRef = useRef<VocabWord[]>([]);
 
-  // Load vocab from API on mount (or when language filter changes)
+  // Load vocab from API on mount (or when language/hskLevel filter changes)
   useEffect(() => {
     setLoaded(false);
     const userId = getStoredUserId();
-    getVocab(userId || undefined, { limit: 200, language: language || undefined })
+    getVocab(userId || undefined, { limit: 200, language: language || undefined, hsk_level: (language === 'zh' && hskLevel) ? hskLevel : undefined })
       .then((apiWords) => {
         const mapped = apiWords.map(mapApiVocab);
         setWordsLocal(mapped);
@@ -50,7 +50,7 @@ export function useApiVocab(language?: string): [VocabWord[], React.Dispatch<Rea
         prevWordsRef.current = SAMPLE_VOCABULARY;
         setLoaded(true);
       });
-  }, [language]);
+  }, [language, hskLevel]);
 
   // Intercept setWords to detect changes and sync to API
   const setWords = useCallback<React.Dispatch<React.SetStateAction<VocabWord[]>>>((updater) => {

@@ -66,6 +66,7 @@ interface GameState {
   studyDates: string[]; // YYYY-MM-DD strings for heatmap
   reviewCount: number; // spaced repetition reviews completed
   onboardingComplete: boolean;
+  hskLevel: number; // HSK level for Chinese learners: 1, 2, 3, 4
   pet: PetState;
   avatar: AvatarState;
   world: WorldState;
@@ -77,6 +78,7 @@ interface GameContextType extends GameState {
   setLanguage: (lang: "en" | "vi") => void;
   setTargetLanguages: (langs: string[]) => void;
   setActiveStudyLanguage: (lang: string) => void;
+  setHskLevel: (level: number) => void;
   setMode: (mode: AppMode) => void;
   addXP: (amount: number) => void;
   addCoins: (amount: number) => void;
@@ -156,6 +158,7 @@ const defaultState: GameState = {
   studyDates: [],
   reviewCount: 0,
   onboardingComplete: false,
+  hskLevel: 1,
   pet: defaultPet,
   avatar: defaultAvatar,
   world: defaultWorld,
@@ -238,7 +241,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         .then(([user, savedGame]) => {
           setState((prev) => ({
             ...prev,
-            username: user.username,
+            username: user.display_name || user.username,
             xp: user.xp ?? prev.xp,
             level: user.level ?? prev.level,
             streak: user.streak ?? prev.streak,
@@ -369,6 +372,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (userId) updateUser(userId, { target_languages: langs.join(',') } as Parameters<typeof updateUser>[1]).catch(() => {});
   };
   const setActiveStudyLanguage = (lang: string) => setState({ ...state, activeStudyLanguage: lang });
+  const setHskLevel = (level: number) => {
+    setState({ ...state, hskLevel: level });
+    const userId = getStoredUserId();
+    if (userId) updateUser(userId, { hsk_level: level } as Parameters<typeof updateUser>[1]).catch(() => {});
+  };
   const setMode = (mode: AppMode) => setState({ ...state, mode: mode });
 
   const completeLesson = (lessonId: string) => {
@@ -644,6 +652,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setLanguage,
         setTargetLanguages,
         setActiveStudyLanguage,
+        setHskLevel,
         setMode,
         addXP,
         addCoins,
