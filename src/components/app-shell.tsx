@@ -1,12 +1,14 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { GameProvider, useGame } from "@/contexts/game-context";
 import { OnboardingFlow } from "@/components/onboarding";
 import { Navbar } from "@/components/navbar";
 import { FloatingDecorations } from "@/components/floating-decorations";
 import { XPParticleLayer } from "@/components/fx/xp-particles";
 import { AchievementToast, useAchievementToastManager } from "@/components/achievement-toast";
+import { AuthLoginModal } from "@/components/auth-login-modal";
+import { usePathname } from "next/navigation";
 
 /** Animated gradient blobs that float in the background */
 function KawaiiBackground() {
@@ -39,8 +41,42 @@ function KawaiiBackground() {
 }
 
 function AppContent({ children }: { children: ReactNode }) {
-  const { onboardingComplete } = useGame();
+  const { onboardingComplete, isAuthenticated, authLoading, authLoginUser, authRegisterUser } = useGame();
   const { current: currentAchievement, dismiss } = useAchievementToastManager();
+  const pathname = usePathname();
+  const [guestMode, setGuestMode] = useState(false);
+
+  // Load guest mode from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setGuestMode(!!localStorage.getItem('studyen-guest-mode'));
+    }
+  }, []);
+
+  // Allow auth-callback page to bypass auth
+  if (pathname === "/auth-callback") {
+    return <>{children}</>;
+  }
+
+  // Show auth modal unless authenticated or guest mode
+  if (authLoading) {
+    return <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-kawaii-lavender/20 to-kawaii-pink/20"><div className="text-4xl animate-bounce">✨</div></div>;
+  }
+
+  if (!isAuthenticated && !guestMode) {
+    return (
+      <AuthLoginModal
+        onLogin={authLoginUser}
+        onRegister={authRegisterUser}
+        onContinueAsGuest={() => {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('studyen-guest-mode', '1');
+          }
+          setGuestMode(true);
+        }}
+      />
+    );
+  }
 
   if (!onboardingComplete) {
     return <OnboardingFlow />;

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { createOrGetUser, getGameState, updateGameState, updateUser, getStoredUserId, setStoredUserId, getUser } from "@/lib/api";
+import { createOrGetUser, getGameState, updateGameState, updateUser, getStoredUserId, setStoredUserId, getUser, authLogin, authRegister, AuthUser } from "@/lib/api";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { triggerAchievementToast } from "@/components/achievement-toast";
 
@@ -100,6 +100,12 @@ interface GameContextType extends GameState {
   openMysteryBox: () => string | null;
   canOpenMysteryBox: boolean;
   logout: () => void;
+  // Auth
+  currentUser: AuthUser | null;
+  isAuthenticated: boolean;
+  authLoading: boolean;
+  authLoginUser: (username: string, password: string) => Promise<void>;
+  authRegisterUser: (username: string, password: string, displayName?: string) => Promise<void>;
 }
 
 const defaultPet: PetState = {
@@ -172,6 +178,49 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useLocalStorage<GameState>("studyen-game-state", defaultState);
   const [mounted, setMounted] = useState(false);
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Load stored auth user on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('studyen-auth-user');
+        if (raw) {
+          const storedAuthUser = JSON.parse(raw) as AuthUser;
+          setCurrentUser(storedAuthUser);
+          // Also restore their game state
+          setStoredUserId(storedAuthUser.id);
+          getGameState(storedAuthUser.id)
+            .then(savedGame => {
+              setState(prev => ({
+                ...prev,
+                username: storedAuthUser.display_name || storedAuthUser.username,
+                xp: storedAuthUser.xp ?? prev.xp,
+                level: storedAuthUser.level ?? prev.level,
+                streak: storedAuthUser.streak ?? prev.streak,
+                coins: storedAuthUser.coins ?? prev.coins,
+                language: (storedAuthUser.language as "en" | "vi") ?? prev.language,
+                mode: (storedAuthUser.app_mode as AppMode) ?? prev.mode,
+                onboardingComplete: true,
+                pet: (savedGame?.pet as typeof prev.pet) || prev.pet,
+                avatar: (savedGame?.avatar as typeof prev.avatar) || prev.avatar,
+                world: (savedGame?.world as typeof prev.world) || prev.world,
+                mysteryBox: (savedGame?.mystery_box as typeof prev.mysteryBox) || prev.mysteryBox,
+              }));
+            })
+            .catch(() => {
+              setState(prev => ({ ...prev, onboardingComplete: true }));
+            })
+            .finally(() => setAuthLoading(false));
+        } else {
+          setAuthLoading(false);
+        }
+      } catch { setAuthLoading(false); }
+    } else {
+      setAuthLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -404,14 +453,52 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetProgress = () => setState(defaultState);
 
   const logout = () => {
-    // Only clear user ID and mark as logged out, keep game progress
-    // User will re-login with same account and restore from API
     if (typeof window !== 'undefined') {
       localStorage.removeItem('studyen-uid');
+      localStorage.removeItem('studyen-auth-user');
     }
-    // Clear username and show onboarding flow without wiping progress
+    setCurrentUser(null);
     setState((prev) => ({ ...prev, username: '', onboardingComplete: false }));
   };
+
+  const applyUserGameState = (user: AuthUser, savedGame?: Record<string, unknown> | null) => {
+    setStoredUserId(user.id);
+    setCurrentUser(user);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studyen-auth-user', JSON.stringify(user));
+    }
+    setState(prev => ({
+      ...prev,
+      username: user.display_name || user.username,
+      xp: user.xp ?? prev.xp,
+      level: user.level ?? prev.level,
+      streak: user.streak ?? prev.streak,
+      coins: user.coins ?? prev.coins,
+      language: (user.language as "en" | "vi") ?? prev.language,
+      mode: (user.app_mode as AppMode) ?? prev.mode,
+      onboardingComplete: true,
+      pet: (savedGame?.pet as typeof prev.pet) || prev.pet,
+      avatar: (savedGame?.avatar as typeof prev.avatar) || prev.avatar,
+      world: (savedGame?.world as typeof prev.world) || prev.world,
+      mysteryBox: (savedGame?.mystery_box as typeof prev.mysteryBox) || prev.mysteryBox,
+    }));
+  };
+
+  const authLoginUser = async (username: string, password: string) => {
+    const user = await authLogin(username, password);
+    try {
+      const savedGame = await getGameState(user.id) as unknown as Record<string, unknown> | null;
+      applyUserGameState(user, savedGame);
+    } catch {
+      applyUserGameState(user, null);
+    }
+  };
+
+  const authRegisterUser = async (username: string, password: string, displayName?: string) => {
+    const user = await authRegister(username, password, displayName);
+    applyUserGameState(user, null);
+  };
+
 
   const recordStudyDate = () => {
     const today = new Date().toISOString().split("T")[0];
@@ -580,6 +667,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         openMysteryBox,
         canOpenMysteryBox,
         logout,
+        currentUser,
+        isAuthenticated: !!currentUser,
+        authLoading,
+        authLoginUser,
+        authRegisterUser,
       }}
     >
       {children}

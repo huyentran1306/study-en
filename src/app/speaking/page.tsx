@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useSTTRecorder } from "@/hooks/use-stt-recorder";
 import { Mascot } from "@/components/mascot";
 import { useGame } from "@/contexts/game-context";
 
@@ -64,7 +65,29 @@ const SCORE_CONFIG = [
 ];
 
 export default function SpeakingPage() {
-  const { transcript, isListening, startListening, stopListening, resetTranscript, isSupported } = useSpeechRecognition();
+  // Browser speech recognition (fallback)
+  const { transcript: browserTranscript, isListening, startListening, stopListening, resetTranscript: resetBrowserTranscript, isSupported: isBrowserSpeechSupported } = useSpeechRecognition();
+  // AI-powered STT via Cloudflare Whisper worker
+  const {
+    isRecording: isAIRecording,
+    isTranscribing: isAITranscribing,
+    transcript: aiTranscript,
+    startRecording: startAIRecording,
+    stopRecording: stopAIRecording,
+    resetTranscript: resetAITranscript,
+    isSupported: isMicSupported,
+  } = useSTTRecorder();
+
+  // Prefer AI transcript when available
+  const transcript = aiTranscript || browserTranscript;
+  const isListeningOrRecording = isListening || isAIRecording;
+  const isSupported = isMicSupported || isBrowserSpeechSupported;
+
+  const resetTranscript = () => {
+    resetBrowserTranscript();
+    resetAITranscript();
+  };
+
   const [manualText, setManualText] = useState("");
   const [feedback, setFeedback] = useState<SpeechFeedback | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -210,7 +233,7 @@ export default function SpeakingPage() {
           {isSupported && (
             <div className="flex flex-col items-center gap-4 py-2">
               <div className="relative">
-                {isListening && (
+                {isListeningOrRecording && (
                   <>
                     <motion.div
                       className="absolute inset-0 rounded-full bg-kawaii-pink/30"
@@ -227,14 +250,27 @@ export default function SpeakingPage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={isListening ? stopListening : startListening}
-                  className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-kawaii-lg transition-all ${
-                    isListening
+                  disabled={isAITranscribing}
+                  onClick={async () => {
+                    if (isAIRecording) {
+                      stopAIRecording();
+                    } else if (isListening) {
+                      stopListening();
+                    } else if (isMicSupported) {
+                      await startAIRecording();
+                    } else {
+                      startListening();
+                    }
+                  }}
+                  className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-kawaii-lg transition-all disabled:opacity-60 ${
+                    isListeningOrRecording
                       ? "bg-gradient-to-br from-red-400 to-rose-500"
                       : "bg-gradient-to-br from-kawaii-pink to-rose-400"
                   }`}
                 >
-                  {isListening ? (
+                  {isAITranscribing ? (
+                    <Loader2 className="h-10 w-10 animate-spin" />
+                  ) : isListeningOrRecording ? (
                     <MicOff className="h-10 w-10" />
                   ) : (
                     <Mic className="h-10 w-10" />
@@ -243,10 +279,20 @@ export default function SpeakingPage() {
               </div>
               <Badge
                 className={`rounded-full px-4 py-1.5 text-sm ${
-                  isListening ? "bg-red-100 text-red-600" : "bg-kawaii-purple/20"
+                  isAITranscribing
+                    ? "bg-kawaii-purple/20 text-kawaii-purple"
+                    : isListeningOrRecording
+                    ? "bg-red-100 text-red-600"
+                    : "bg-kawaii-purple/20"
                 }`}
               >
-                {isListening ? "🔴 Recording... Click to stop" : "🎤 Click to record"}
+                {isAITranscribing
+                  ? "⏳ AI transcribing..."
+                  : isListeningOrRecording
+                  ? "🔴 Recording... Click to stop"
+                  : isMicSupported
+                  ? "🎤 Click to record (AI-powered)"
+                  : "🎤 Click to record"}
               </Badge>
             </div>
           )}

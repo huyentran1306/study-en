@@ -178,3 +178,26 @@ export const getStats = (userId: string) =>
 // ─── Activity ─────────────────────────────────────────────
 export const getActivity = (userId: string, limit = 20) =>
   apiGet(`/activity/${userId}?limit=${limit}`);
+
+// ─── Auth ─────────────────────────────────────────────────
+export interface AuthUser {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  xp: number;
+  level: number;
+  streak: number;
+  coins: number;
+  language: string;
+  app_mode: string;
+}
+
+export const authLogin = (username: string, password: string) =>
+  apiPost<AuthUser>('/auth/login', { username, password });
+
+export const authRegister = (username: string, password: string, display_name?: string) =>
+  apiPost<AuthUser>('/auth/register', { username, password, display_name });
+
+export const GOOGLE_OAUTH_URL = 'https://d1-template.trann46698.workers.dev/api/auth/google';
+
