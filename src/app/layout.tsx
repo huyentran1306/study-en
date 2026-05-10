@@ -13,9 +13,9 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "StudyEN ✨ - Learn English the Fun Way!",
+  title: "LinguaPlay ✨ - Học Ngôn Ngữ Theo Cách Vui Nhộn!",
   description:
-    "A kawaii, gamified English learning app with AI-powered conversations, vocabulary games, and speaking practice!",
+    "Ứng dụng học đa ngôn ngữ (Tiếng Anh, Tiếng Trung...) theo phong cách kawaii — AI hội thoại, flashcard từ vựng, luyện phát âm và hơn thế nữa!",
 };
 
 export default function RootLayout({

@@ -119,7 +119,7 @@ export function Navbar() {
             <PetIcon type={pet?.type || 'cat'} size="sm" />
           </motion.div>
           <div className="hidden sm:block">
-            <span className="text-xl font-extrabold bg-gradient-kawaii bg-clip-text text-transparent">StudyEN</span>
+            <span className="text-xl font-extrabold bg-gradient-kawaii bg-clip-text text-transparent">LinguaPlay</span>
             <span className="ml-1 text-sm">✨</span>
           </div>
         </Link>

@@ -77,7 +77,7 @@ export function OnboardingFlow() {
             <motion.div className="text-7xl mb-4" animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>
               🌟
             </motion.div>
-            <h1 className="text-3xl font-extrabold mb-2 bg-gradient-kawaii bg-clip-text text-transparent">StudyEN ✨</h1>
+            <h1 className="text-3xl font-extrabold mb-2 bg-gradient-kawaii bg-clip-text text-transparent">LinguaPlay ✨</h1>
             <p className="text-muted-foreground mb-6 text-base">
               {language === "en" ? "What's your name?" : "Tên bạn là gì?"}
             </p>

@@ -22,7 +22,7 @@ export function AuthLoginModal({ onLogin, onRegister, onContinueAsGuest }: AuthL
     e.preventDefault();
     setError("");
     if (mode === "register" && password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Mật khẩu xác nhận không khớp");
       return;
     }
     setLoading(true);
@@ -33,7 +33,7 @@ export function AuthLoginModal({ onLogin, onRegister, onContinueAsGuest }: AuthL
         await onRegister(username.trim(), password, displayName.trim() || username.trim());
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi, vui lòng thử lại");
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export function AuthLoginModal({ onLogin, onRegister, onContinueAsGuest }: AuthL
         {/* Header */}
         <div className="text-center mb-6">
           <div className="text-5xl mb-2">✨</div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">StudyEN</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">LinguaPlay ✨</h1>
           <p className="text-sm text-gray-500 mt-1">
             {mode === "login" ? "Đăng nhập để tiếp tục học!" : "Tạo tài khoản mới 🎉"}
           </p>
@@ -88,12 +88,12 @@ export function AuthLoginModal({ onLogin, onRegister, onContinueAsGuest }: AuthL
             </div>
           )}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Username</label>
-            <input
+            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Tên đăng nhập</label>
+              <input
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="username"
+              placeholder="tên đăng nhập của bạn"
               required
               autoComplete="username"
               className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-kawaii-pink transition-colors"
