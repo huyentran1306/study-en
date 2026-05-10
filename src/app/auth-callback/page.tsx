@@ -15,6 +15,7 @@ function AuthCallbackInner() {
   useEffect(() => {
     const uid = searchParams.get("uid");
     const error = searchParams.get("error");
+    const googleDisplayName = searchParams.get("display_name"); // passed from worker
 
     if (error) {
       setErrorMsg(decodeURIComponent(error));
@@ -32,10 +33,14 @@ function AuthCallbackInner() {
       .then((res: { success: boolean; data: Record<string, unknown> }) => {
         if (!res.success) throw new Error("Failed to fetch user");
         const user = res.data;
+        // Prefer display_name from Google (passed via URL) > DB display_name > username
+        const displayName = googleDisplayName
+          ? decodeURIComponent(googleDisplayName)
+          : ((user.display_name as string) || (user.username as string));
         const authUser = {
           id: user.id,
           username: user.username,
-          display_name: (user.display_name || user.username) as string,
+          display_name: displayName,
           email: (user.email as string) || null,
           xp: (user.xp as number) || 0,
           level: (user.level as number) || 1,

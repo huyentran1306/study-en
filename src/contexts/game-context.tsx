@@ -217,7 +217,47 @@ export function GameProvider({ children }: { children: ReactNode }) {
             })
             .finally(() => setAuthLoading(false));
         } else {
-          setAuthLoading(false);
+          // No auth user in storage — but if we have a UID, re-fetch from API
+          // to recover proper display_name (e.g. after browser cleared studyen-auth-user)
+          const storedUid = getStoredUserId();
+          if (storedUid) {
+            Promise.all([getUser(storedUid), getGameState(storedUid)])
+              .then(([user, savedGame]) => {
+                const authUser: AuthUser = {
+                  id: user.id,
+                  username: user.username,
+                  display_name: user.display_name || user.username,
+                  email: user.email || null,
+                  xp: user.xp || 0,
+                  level: user.level || 1,
+                  streak: user.streak || 0,
+                  coins: user.coins || 0,
+                  language: user.language || 'en',
+                  app_mode: user.app_mode || 'adult',
+                };
+                localStorage.setItem('studyen-auth-user', JSON.stringify(authUser));
+                setCurrentUser(authUser);
+                setState(prev => ({
+                  ...prev,
+                  username: authUser.display_name || authUser.username,
+                  xp: authUser.xp ?? prev.xp,
+                  level: authUser.level ?? prev.level,
+                  streak: authUser.streak ?? prev.streak,
+                  coins: authUser.coins ?? prev.coins,
+                  language: (authUser.language as "en" | "vi") ?? prev.language,
+                  mode: (authUser.app_mode as AppMode) ?? prev.mode,
+                  onboardingComplete: true,
+                  pet: (savedGame?.pet as typeof prev.pet) || prev.pet,
+                  avatar: (savedGame?.avatar as typeof prev.avatar) || prev.avatar,
+                  world: (savedGame?.world as typeof prev.world) || prev.world,
+                  mysteryBox: (savedGame?.mystery_box as typeof prev.mysteryBox) || prev.mysteryBox,
+                }));
+              })
+              .catch(() => {/* keep existing state */})
+              .finally(() => setAuthLoading(false));
+          } else {
+            setAuthLoading(false);
+          }
         }
       } catch { setAuthLoading(false); }
     } else {
