@@ -92,6 +92,46 @@ export default function Home() {
       color: "kawaii-mint",
       gradient: "from-teal-300 to-cyan-400",
     },
+    {
+      title: "Fix My English",
+      description: "Gửi câu tiếng Anh của bạn — AI sửa và gợi ý cách nói tự nhiên hơn!",
+      emoji: "🔧",
+      href: "/fix-english",
+      color: "kawaii-orange",
+      gradient: "from-orange-300 to-red-400",
+    },
+    {
+      title: "Phrases Bank",
+      description: "500+ cụm từ giao tiếp theo chủ đề. Quiz + nghe phát âm chuẩn!",
+      emoji: "💬",
+      href: "/phrases",
+      color: "kawaii-yellow",
+      gradient: "from-amber-300 to-yellow-400",
+    },
+    {
+      title: "Pronunciation Drill",
+      description: "Luyện phân biệt âm khó (Ship/Sheep, V/W, R/L...) với AI chấm điểm!",
+      emoji: "🔤",
+      href: "/pronunciation",
+      color: "kawaii-lavender",
+      gradient: "from-lime-300 to-green-400",
+    },
+    {
+      title: "Speed Speaking",
+      description: "30 giây nói càng nhiều càng tốt. AI đo WPM + chấm fluency!",
+      emoji: "⚡",
+      href: "/speed-speaking",
+      color: "kawaii-yellow",
+      gradient: "from-yellow-300 to-orange-400",
+    },
+    {
+      title: "Conversation Starters",
+      description: "Không biết bắt đầu nói gì? AI gợi ý câu mở đầu tự nhiên theo tình huống!",
+      emoji: "🗣️",
+      href: "/conversation-starters",
+      color: "kawaii-pink",
+      gradient: "from-fuchsia-300 to-pink-400",
+    },
   ];
 
   return (
