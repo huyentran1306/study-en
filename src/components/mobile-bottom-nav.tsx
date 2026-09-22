@@ -309,11 +309,11 @@ export function MobileBottomNav() {
                 <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto absolute left-1/2 -translate-x-1/2 top-2.5" />
                 <div className="flex items-center gap-2 pt-2">
                   <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-black">
-                    {username?.[0]?.toUpperCase() || "U"}
+                    {username?.[0]?.toUpperCase() || "T"}
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-foreground truncate max-w-[150px]">
-                      {username || "Học viên"}
+                      {username || "Trân"}
                     </h3>
                     <p className="text-[10px] text-muted-foreground">
                       Level {level} · {xp} XP

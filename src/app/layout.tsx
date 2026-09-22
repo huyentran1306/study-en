@@ -13,9 +13,9 @@ const fontSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "LinguaPro — Nền Tảng Luyện Tiếng Anh & Giao Tiếp Chuyên Nghiệp",
+  title: "TranTech Talk — Luyện Tiếng Anh & Call Solution Chuyên Nghiệp",
   description:
-    "Môi trường học tiếng Anh chuyên nghiệp cho người đi làm: AI Conversation Partner, Speech Lab, Shadowing thực chiến và Spaced Repetition.",
+    "Nền tảng luyện tiếng Anh chuyên sâu cho dân Tech: AI Partner, Shadowing kịch bản Call Solution, Speech Lab và Spaced Repetition.",
 };
 
 export default function RootLayout({

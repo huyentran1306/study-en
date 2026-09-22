@@ -172,7 +172,7 @@ export function Navbar() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-              Lingua<span className="text-indigo-600 dark:text-indigo-400">Pro</span>
+              TranTech<span className="text-indigo-600 dark:text-indigo-400"> Talk</span>
             </span>
             <span className="hidden sm:inline-block text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
               Studio
@@ -238,9 +238,9 @@ export function Navbar() {
               className="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-slate-200/70 dark:border-slate-800 rounded-lg px-2.5 py-1.5 transition-all text-xs font-semibold"
             >
               <div className="w-5 h-5 rounded-md bg-indigo-600 flex items-center justify-center text-white text-[11px] font-bold">
-                {username?.[0]?.toUpperCase() || "U"}
+                {username?.[0]?.toUpperCase() || "T"}
               </div>
-              <span className="max-w-16 truncate">{username || "User"}</span>
+              <span className="max-w-16 truncate">{username || "Trân"}</span>
               <ChevronDown
                 className={cn(
                   "h-3 w-3 text-slate-400 transition-transform",
@@ -259,11 +259,11 @@ export function Navbar() {
                   <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200/70 dark:border-slate-800">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                        {username?.[0]?.toUpperCase() || "U"}
+                        {username?.[0]?.toUpperCase() || "T"}
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-sm text-foreground truncate">
-                          {username}
+                          {username || "Trân"}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
                           Level {level} · {xp} XP

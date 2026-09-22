@@ -69,7 +69,7 @@ export default function Home() {
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
               Chào mừng trở lại,{" "}
               <span className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 bg-clip-text text-transparent">
-                {username}
+                {username || "Trân"}
               </span>
             </h1>
 

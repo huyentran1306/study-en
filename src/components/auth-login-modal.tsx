@@ -54,7 +54,7 @@ export function AuthLoginModal({ onLogin, onRegister, onContinueAsGuest }: AuthL
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Lingua<span className="text-indigo-600 dark:text-indigo-400">Pro</span> Studio
+            TranTech<span className="text-indigo-600 dark:text-indigo-400"> Talk</span> Studio
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             {mode === "login"

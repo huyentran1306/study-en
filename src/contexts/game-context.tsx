@@ -143,7 +143,7 @@ const defaultMysteryBox: MysteryBoxState = {
 };
 
 const defaultState: GameState = {
-  username: "",
+  username: "Trân",
   language: "en",
   targetLanguages: ["en"],
   activeStudyLanguage: "en",

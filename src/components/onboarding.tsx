@@ -108,7 +108,7 @@ export function OnboardingFlow() {
             >
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                  Chào mừng bạn đến với LinguaPro
+                  Chào mừng bạn đến với TranTech Talk
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
                   Để cá nhân hóa lộ trình và các phản hồi AI, xin vui lòng cho biết tên của bạn.
@@ -142,7 +142,7 @@ export function OnboardingFlow() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleNameSubmit()}
-                  placeholder="Ví dụ: Hoàng Long, Minh Thư..."
+                  placeholder="Ví dụ: Huyền Trân, Tech Lead..."
                   maxLength={25}
                   className="w-full px-4 py-3 text-base bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-foreground"
                   autoFocus
@@ -175,7 +175,7 @@ export function OnboardingFlow() {
                   Mục tiêu trọng tâm của bạn?
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1.5">
-                  LinguaPro sẽ ưu tiên các tình huống và từ vựng phù hợp với nhu cầu của bạn.
+                  TranTech Talk sẽ ưu tiên các tình huống và từ vựng phù hợp với nhu cầu của bạn.
                 </p>
               </div>
 
