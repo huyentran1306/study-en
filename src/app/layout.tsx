@@ -16,6 +16,17 @@ export const metadata: Metadata = {
   title: "TranTech Talk — Luyện Tiếng Anh & Call Solution Chuyên Nghiệp",
   description:
     "Nền tảng luyện tiếng Anh chuyên sâu cho dân Tech: AI Partner, Shadowing kịch bản Call Solution, Speech Lab và Spaced Repetition.",
+  icons: {
+    icon: [
+      { url: "/mascot-logo.png", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/mascot-logo.png",
+  },
 };
 
 export default function RootLayout({
