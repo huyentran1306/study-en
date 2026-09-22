@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { GOOGLE_OAUTH_URL } from "@/lib/api";
 import { Sparkles, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
+import { BrandLogoIcon } from "@/components/brand-logo";
 
 interface AuthLoginModalProps {
   onLogin: (username: string, password: string) => Promise<void>;
@@ -50,11 +51,11 @@ export function AuthLoginModal({ onLogin, onRegister, onContinueAsGuest }: AuthL
       <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-7 sm:p-8">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="mx-auto w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-sm mb-3">
-            <Sparkles className="w-5 h-5 text-white" />
+          <div className="flex justify-center mb-3">
+            <BrandLogoIcon size="lg" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            TranTech<span className="text-indigo-600 dark:text-indigo-400"> Talk</span> Studio
+            TranTech<span className="bg-gradient-to-r from-rose-500 via-pink-500 to-indigo-500 bg-clip-text text-transparent font-extrabold ml-1">Talk</span> Studio
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             {mode === "login"

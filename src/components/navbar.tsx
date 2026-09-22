@@ -26,6 +26,7 @@ import { StatsBar } from "@/components/gamification";
 import { useTranslation, useGame } from "@/contexts/game-context";
 import { WOTDBadge } from "@/components/wotd-badge";
 import LogoutDialog from "@/components/logout-dialog";
+import { BrandLogo } from "@/components/brand-logo";
 
 function useDropdown() {
   const [open, setOpen] = useState(false);
@@ -166,19 +167,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-500 flex items-center justify-center text-white shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-              TranTech<span className="text-indigo-600 dark:text-indigo-400"> Talk</span>
-            </span>
-            <span className="hidden sm:inline-block text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
-              Studio
-            </span>
-          </div>
-        </Link>
+        <BrandLogo />
 
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-1 md:flex">
@@ -237,7 +226,7 @@ export function Navbar() {
               onClick={() => profileDropdown.setOpen(!profileDropdown.open)}
               className="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-slate-200/70 dark:border-slate-800 rounded-lg px-2.5 py-1.5 transition-all text-xs font-semibold"
             >
-              <div className="w-5 h-5 rounded-md bg-indigo-600 flex items-center justify-center text-white text-[11px] font-bold">
+              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-rose-400 via-pink-400 to-indigo-400 flex items-center justify-center text-white text-[11px] font-bold shadow-xs">
                 {username?.[0]?.toUpperCase() || "T"}
               </div>
               <span className="max-w-16 truncate">{username || "Trân"}</span>
@@ -258,7 +247,7 @@ export function Navbar() {
                 >
                   <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200/70 dark:border-slate-800">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-400 via-pink-400 to-indigo-400 flex items-center justify-center text-white font-bold text-sm shadow-xs shadow-pink-500/20">
                         {username?.[0]?.toUpperCase() || "T"}
                       </div>
                       <div className="min-w-0">

@@ -308,7 +308,7 @@ export function MobileBottomNav() {
               <div className="flex-shrink-0 pt-3 pb-2 px-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto absolute left-1/2 -translate-x-1/2 top-2.5" />
                 <div className="flex items-center gap-2 pt-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-black">
+                  <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-rose-400 via-pink-400 to-indigo-400 flex items-center justify-center text-white text-xs font-black shadow-xs shadow-pink-500/20">
                     {username?.[0]?.toUpperCase() || "T"}
                   </div>
                   <div>
