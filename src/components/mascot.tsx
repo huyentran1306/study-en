@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Sparkles, Brain, CheckCircle2, AlertCircle, Volume2, Radio } from "lucide-react";
 
 export type MascotMood = "happy" | "thinking" | "excited" | "cheering" | "shocked" | "sleeping";
 
@@ -14,50 +15,49 @@ interface MascotProps {
   animate?: boolean;
 }
 
-const messages = {
+const coachingMessages: Record<MascotMood, string[]> = {
   happy: [
-    "Yay! Let's learn together! 📚",
-    "You're doing great! ⭐",
-    "Keep it up, superstar! 🌟",
-    "Learning is fun! 🎉",
+    "Sẵn sàng luyện phản xạ cùng bạn.",
+    "Mỗi ngày một chủ đề để tự tin giao tiếp.",
+    "Chú ý ngữ điệu và trọng âm từ nhé.",
+    "Luyện nói đều đặn tạo nên sự lưu loát.",
   ],
   thinking: [
-    "Hmm, let me think... 🤔",
-    "That's a good question! 💭",
-    "Processing... 🧠",
-    "Interesting... 📖",
+    "Đang phân tích ngữ cảnh câu nói...",
+    "Đang gợi ý cách diễn đạt tự nhiên...",
+    "Đang xử lý âm học...",
+    "Đang kiểm tra từ vựng chuyên môn...",
   ],
   excited: [
-    "WOW! Amazing! 🎊",
-    "You got it! 🎯",
-    "Incredible work! 💫",
-    "Fantastic! 🚀",
+    "Cách diễn đạt rất chuẩn bản xứ!",
+    "Phát âm chính xác và tự nhiên!",
+    "Từ vựng áp dụng rất chuẩn ngữ cảnh!",
+    "Tốc độ phản xạ đang cải thiện rõ rệt!",
   ],
   cheering: [
-    "You can do it! 💪",
-    "Go go go! 🏃‍♂️",
-    "Almost there! 🏁",
-    "Never give up! ✨",
+    "Duy trì nhịp độ rèn luyện tuyệt vời!",
+    "Gần đạt mốc mục tiêu hôm nay rồi!",
+    "Tiếp tục phát huy nhé!",
+    "Tự tin hơn qua từng câu nói!",
   ],
   shocked: [
-    "Oh no! 😱",
-    "Oops! Let's try again! 🔄",
-    "Don't worry, mistakes help us learn! 💜",
-    "That was unexpected! 😮",
+    "Lưu ý lỗi ngữ pháp nhỏ ở câu vừa rồi nhé.",
+    "Hãy thử cách diễn đạt tự nhiên hơn.",
+    "Kiểm tra lại thì hoặc giới từ nhé!",
+    "Không sao, sai sót giúp ta nhớ lâu hơn.",
   ],
   sleeping: [
-    "Zzz... 💤",
-    "*snore* 😴",
-    "So sleepy... 🌙",
-    "Need... coffee... ☕",
+    "AI Coach ở chế độ chờ.",
+    "Bấm mic hoặc nhập tin nhắn để bắt đầu.",
+    "Sẵn sàng khi bạn bước vào bài học.",
   ],
 };
 
-const sizeClasses = {
-  sm: "w-16 h-16",
-  md: "w-24 h-24",
-  lg: "w-32 h-32",
-  xl: "w-48 h-48",
+const sizeConfig = {
+  sm: { container: "w-12 h-12", icon: "w-5 h-5", ring: "p-1.5" },
+  md: { container: "w-16 h-16", icon: "w-7 h-7", ring: "p-2" },
+  lg: { container: "w-24 h-24", icon: "w-10 h-10", ring: "p-3" },
+  xl: { container: "w-32 h-32", icon: "w-14 h-14", ring: "p-4" },
 };
 
 export function Mascot({
@@ -71,211 +71,138 @@ export function Mascot({
   const [showMessage, setShowMessage] = useState(false);
   const [currentMessage, setCurrentMessage] = useState("");
 
+  const currentSize = sizeConfig[size] || sizeConfig.md;
+
   const handleClick = () => {
     if (onClick) {
       onClick();
     } else {
-      // Show random message
-      const moodMessages = messages[mood];
-      const randomMsg = moodMessages[Math.floor(Math.random() * moodMessages.length)];
+      const list = coachingMessages[mood] || coachingMessages.happy;
+      const randomMsg = list[Math.floor(Math.random() * list.length)];
       setCurrentMessage(randomMsg);
       setShowMessage(true);
-      setTimeout(() => setShowMessage(false), 2500);
+      setTimeout(() => setShowMessage(false), 3000);
     }
   };
 
-  const getEyes = () => {
+  const getMoodVisual = () => {
     switch (mood) {
-      case "happy":
-      case "cheering":
-        return (
-          <>
-            <div className="absolute top-[28%] left-[22%] w-[18%] h-[18%] bg-gray-800 rounded-full">
-              <div className="absolute top-[15%] left-[25%] w-[35%] h-[35%] bg-white rounded-full" />
-            </div>
-            <div className="absolute top-[28%] right-[22%] w-[18%] h-[18%] bg-gray-800 rounded-full">
-              <div className="absolute top-[15%] left-[25%] w-[35%] h-[35%] bg-white rounded-full" />
-            </div>
-          </>
-        );
-      case "excited":
-        return (
-          <>
-            <div className="absolute top-[26%] left-[20%] w-[20%] h-[22%] bg-gray-800 rounded-full">
-              <div className="absolute top-[10%] left-[20%] w-[40%] h-[40%] bg-white rounded-full" />
-              <div className="absolute top-[35%] left-[55%] w-[20%] h-[20%] bg-white rounded-full" />
-            </div>
-            <div className="absolute top-[26%] right-[20%] w-[20%] h-[22%] bg-gray-800 rounded-full">
-              <div className="absolute top-[10%] left-[20%] w-[40%] h-[40%] bg-white rounded-full" />
-              <div className="absolute top-[35%] left-[55%] w-[20%] h-[20%] bg-white rounded-full" />
-            </div>
-          </>
-        );
       case "thinking":
-        return (
-          <>
-            <div className="absolute top-[30%] left-[25%] w-[15%] h-[15%] bg-gray-800 rounded-full" />
-            <div className="absolute top-[28%] right-[20%] w-[18%] h-[18%] bg-gray-800 rounded-full">
-              <div className="absolute top-[15%] left-[25%] w-[35%] h-[35%] bg-white rounded-full" />
-            </div>
-          </>
-        );
+        return {
+          icon: Brain,
+          gradient: "from-purple-600 via-indigo-600 to-blue-600",
+          glow: "rgba(99, 102, 241, 0.5)",
+          label: "Analyzing",
+        };
+      case "excited":
+        return {
+          icon: Sparkles,
+          gradient: "from-emerald-500 via-teal-500 to-cyan-500",
+          glow: "rgba(16, 185, 129, 0.5)",
+          label: "Mastery",
+        };
+      case "cheering":
+        return {
+          icon: CheckCircle2,
+          gradient: "from-amber-500 via-orange-500 to-rose-500",
+          glow: "rgba(245, 158, 11, 0.5)",
+          label: "Consistent",
+        };
       case "shocked":
-        return (
-          <>
-            <div className="absolute top-[25%] left-[20%] w-[20%] h-[24%] bg-gray-800 rounded-full border-4 border-white">
-              <div className="absolute top-[20%] left-[30%] w-[25%] h-[25%] bg-white rounded-full" />
-            </div>
-            <div className="absolute top-[25%] right-[20%] w-[20%] h-[24%] bg-gray-800 rounded-full border-4 border-white">
-              <div className="absolute top-[20%] left-[30%] w-[25%] h-[25%] bg-white rounded-full" />
-            </div>
-          </>
-        );
+        return {
+          icon: AlertCircle,
+          gradient: "from-rose-500 to-orange-500",
+          glow: "rgba(244, 63, 94, 0.5)",
+          label: "Review",
+        };
       case "sleeping":
-        return (
-          <>
-            <div className="absolute top-[32%] left-[22%] w-[18%] h-[4%] bg-gray-800 rounded-full" />
-            <div className="absolute top-[32%] right-[22%] w-[18%] h-[4%] bg-gray-800 rounded-full" />
-          </>
-        );
+        return {
+          icon: Radio,
+          gradient: "from-slate-600 to-slate-700",
+          glow: "rgba(100, 116, 139, 0.2)",
+          label: "Standby",
+        };
+      case "happy":
       default:
-        return null;
+        return {
+          icon: Volume2,
+          gradient: "from-indigo-600 via-indigo-500 to-sky-500",
+          glow: "rgba(99, 102, 241, 0.4)",
+          label: "AI Mentor",
+        };
     }
   };
 
-  const getMouth = () => {
-    switch (mood) {
-      case "happy":
-        return (
-          <div className="absolute bottom-[22%] left-1/2 -translate-x-1/2 w-[30%] h-[15%] border-b-4 border-gray-800 rounded-b-full" />
-        );
-      case "excited":
-      case "cheering":
-        return (
-          <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 w-[35%] h-[20%] bg-gray-800 rounded-full flex items-center justify-center">
-            <div className="w-[60%] h-[40%] bg-pink-400 rounded-full mt-1" />
-          </div>
-        );
-      case "thinking":
-        return (
-          <div className="absolute bottom-[24%] left-[55%] w-[12%] h-[8%] bg-gray-800 rounded-full" />
-        );
-      case "shocked":
-        return (
-          <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 w-[20%] h-[20%] bg-gray-800 rounded-full" />
-        );
-      case "sleeping":
-        return (
-          <div className="absolute bottom-[25%] left-1/2 -translate-x-1/2 w-[8%] h-[12%] bg-transparent border-2 border-gray-400 rounded-full" />
-        );
-      default:
-        return null;
-    }
-  };
-
-  const getBlush = () => {
-    if (mood === "sleeping") return null;
-    return (
-      <>
-        <div className="absolute top-[42%] left-[12%] w-[12%] h-[8%] bg-pink-300/60 rounded-full blur-[2px]" />
-        <div className="absolute top-[42%] right-[12%] w-[12%] h-[8%] bg-pink-300/60 rounded-full blur-[2px]" />
-      </>
-    );
-  };
+  const visual = getMoodVisual();
+  const IconComponent = visual.icon;
 
   return (
-    <div className={`relative ${className}`}>
-      {/* Speech bubble */}
+    <div className={`relative inline-flex flex-col items-center select-none ${className}`}>
+      {/* Speech / Coaching Bubble */}
       {(showMessage || message) && (
         <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.8 }}
+          initial={{ opacity: 0, y: 10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.8 }}
-          className="absolute -top-16 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded-2xl shadow-kawaii text-sm font-medium text-gray-700 whitespace-nowrap z-10"
+          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          className="absolute -top-14 z-50 whitespace-nowrap rounded-xl bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 px-3.5 py-1.5 text-xs font-semibold shadow-xl border border-slate-700/50 dark:border-slate-200"
         >
           {message || currentMessage}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45" />
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-slate-900/95 dark:bg-white/95" />
         </motion.div>
       )}
 
-      {/* Mascot body */}
-      <motion.div
+      {/* Holographic AI Core Button */}
+      <motion.button
+        type="button"
         onClick={handleClick}
-        className={`${sizeClasses[size]} relative cursor-pointer`}
-        animate={
-          animate
-            ? {
-                y: mood === "sleeping" ? [0, -3, 0] : [0, -8, 0],
-                rotate: mood === "excited" ? [-2, 2, -2] : 0,
-              }
-            : {}
-        }
-        transition={{
-          duration: mood === "sleeping" ? 3 : 2,
-          repeat: Infinity,
-          ease: "easeInOut",
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.94 }}
+        className={`relative ${currentSize.container} rounded-2xl flex items-center justify-center p-0.5 cursor-pointer focus:outline-none`}
+        style={{
+          boxShadow: `0 0 25px ${visual.glow}`,
         }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
       >
-        {/* Main body - blue blob */}
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-300 via-sky-400 to-blue-400 rounded-[45%_55%_50%_50%/55%_50%_50%_45%] shadow-kawaii-sky">
-          {/* Belly highlight */}
-          <div className="absolute top-[55%] left-1/2 -translate-x-1/2 w-[50%] h-[35%] bg-white/40 rounded-[50%]" />
+        {/* Animated outer ring */}
+        {animate && mood === "thinking" ? (
+          <motion.div
+            className={`absolute inset-0 rounded-2xl bg-gradient-to-tr ${visual.gradient} opacity-75 blur-xs`}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          />
+        ) : (
+          <div className={`absolute inset-0 rounded-2xl bg-gradient-to-tr ${visual.gradient} opacity-80`} />
+        )}
+
+        {/* Inner glass core */}
+        <div className="relative w-full h-full rounded-[14px] bg-slate-950/40 backdrop-blur-md flex items-center justify-center border border-white/20">
+          <IconComponent className={`${currentSize.icon} text-white drop-shadow-sm`} />
+
+          {/* Micro status pulse dot */}
+          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+            <span
+              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                mood === "thinking"
+                  ? "bg-purple-400"
+                  : mood === "excited"
+                  ? "bg-emerald-400"
+                  : "bg-indigo-400"
+              }`}
+            />
+            <span
+              className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                mood === "thinking"
+                  ? "bg-purple-500"
+                  : mood === "excited"
+                  ? "bg-emerald-500"
+                  : "bg-indigo-500"
+              }`}
+            />
+          </span>
         </div>
-
-        {/* Face */}
-        {getEyes()}
-        {getMouth()}
-        {getBlush()}
-
-        {/* Ears/antennas */}
-        <div className="absolute -top-[8%] left-[20%] w-[15%] h-[15%] bg-gradient-to-br from-sky-300 to-sky-400 rounded-full" />
-        <div className="absolute -top-[8%] right-[20%] w-[15%] h-[15%] bg-gradient-to-br from-sky-300 to-sky-400 rounded-full" />
-
-        {/* Arms */}
-        <motion.div
-          className="absolute top-[50%] -left-[10%] w-[20%] h-[15%] bg-gradient-to-br from-sky-300 to-sky-400 rounded-full"
-          animate={mood === "cheering" ? { rotate: [0, -20, 0] } : {}}
-          transition={{ duration: 0.5, repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-[50%] -right-[10%] w-[20%] h-[15%] bg-gradient-to-br from-sky-300 to-sky-400 rounded-full"
-          animate={mood === "cheering" ? { rotate: [0, 20, 0] } : {}}
-          transition={{ duration: 0.5, repeat: Infinity }}
-        />
-
-        {/* Feet */}
-        <div className="absolute -bottom-[5%] left-[20%] w-[20%] h-[12%] bg-gradient-to-br from-sky-300 to-sky-400 rounded-full" />
-        <div className="absolute -bottom-[5%] right-[20%] w-[20%] h-[12%] bg-gradient-to-br from-sky-300 to-sky-400 rounded-full" />
-
-        {/* Z's for sleeping */}
-        {mood === "sleeping" && (
-          <div className="absolute -top-4 -right-2 text-gray-400 text-lg font-bold animate-pulse">
-            💤
-          </div>
-        )}
-
-        {/* Stars for excited */}
-        {mood === "excited" && (
-          <>
-            <motion.span
-              className="absolute -top-2 -left-2 text-yellow-400"
-              animate={{ scale: [1, 1.3, 1], rotate: [0, 15, 0] }}
-              transition={{ duration: 0.8, repeat: Infinity }}
-            >
-              ✨
-            </motion.span>
-            <motion.span
-              className="absolute -top-4 right-0 text-yellow-400"
-              animate={{ scale: [1.2, 1, 1.2], rotate: [0, -15, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-            >
-              ⭐
-            </motion.span>
-          </>
-        )}
-      </motion.div>
+      </motion.button>
     </div>
   );
 }
+
+export const AICoach = Mascot;
+export default Mascot;

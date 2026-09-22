@@ -5,18 +5,25 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Menu,
-  X,
   ChevronDown,
   LogOut,
   RotateCcw,
+  Compass,
+  MessageSquare,
+  BookOpen,
+  Mic,
+  Gamepad2,
+  Sparkles,
+  Award,
+  BarChart3,
+  Repeat,
+  Layers,
+  Activity,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatsBar } from "@/components/gamification";
 import { useTranslation, useGame } from "@/contexts/game-context";
-import PetIcon from "@/components/pet-icon";
 import { WOTDBadge } from "@/components/wotd-badge";
 import LogoutDialog from "@/components/logout-dialog";
 
@@ -33,47 +40,85 @@ function useDropdown() {
   return { open, setOpen, ref };
 }
 
-interface DropdownItem { href: string; label: string; emoji: string; }
+interface DropdownItem {
+  href: string;
+  label: string;
+  desc?: string;
+  icon?: React.ElementType;
+}
 
-function NavDropdown({ label, emoji, items, pathname }: { label: string; emoji: string; items: DropdownItem[]; pathname: string }) {
+function NavDropdown({
+  label,
+  items,
+  pathname,
+}: {
+  label: string;
+  items: DropdownItem[];
+  pathname: string;
+}) {
   const { open, setOpen, ref } = useDropdown();
-  const isAnyActive = items.some(i => pathname === i.href);
+  const isAnyActive = items.some((i) => pathname === i.href);
 
   return (
     <div className="relative" ref={ref}>
-      <motion.button
-        whileHover={{ scale: 1.03, y: -1 }}
-        whileTap={{ scale: 0.97 }}
+      <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-sm font-semibold transition-all",
-          isAnyActive ? "bg-gradient-kawaii text-white shadow-kawaii" : "hover:bg-kawaii-purple/10 text-foreground"
+          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all",
+          isAnyActive
+            ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/80"
+            : "text-slate-600 dark:text-slate-400 hover:text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
         )}
       >
-        <span>{emoji}</span>
         <span>{label}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
-      </motion.button>
+        <ChevronDown
+          className={cn(
+            "h-3 w-3 transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </button>
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-10 left-0 z-50 min-w-44 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-kawaii-purple/15 overflow-hidden py-1"
+            className="absolute top-9 left-0 z-50 min-w-48 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden p-1.5"
           >
-            {items.map(item => (
-              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-                <div className={cn(
-                  "flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold hover:bg-kawaii-purple/10 transition-colors",
-                  pathname === item.href && "bg-kawaii-purple/10 text-kawaii-purple"
-                )}>
-                  <span className="text-base">{item.emoji}</span>
-                  {item.label}
-                </div>
-              </Link>
-            ))}
+            {items.map((item) => {
+              const active = pathname === item.href;
+              const IconComponent = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                >
+                  <div
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all",
+                      active
+                        ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400"
+                        : "text-slate-600 dark:text-slate-300 hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                    )}
+                  >
+                    {IconComponent && (
+                      <IconComponent className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
+                    )}
+                    <div>
+                      <div>{item.label}</div>
+                      {item.desc && (
+                        <div className="text-[10px] text-muted-foreground font-normal">
+                          {item.desc}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>
@@ -83,215 +128,209 @@ function NavDropdown({ label, emoji, items, pathname }: { label: string; emoji: 
 
 export function Navbar() {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const t = useTranslation();
-  const { activeStudyLanguage, setActiveStudyLanguage, username, xp, level, resetProgress, logout, pet } = useGame();
+  const {
+    activeStudyLanguage,
+    setActiveStudyLanguage,
+    username,
+    xp,
+    level,
+    resetProgress,
+    logout,
+  } = useGame();
   const profileDropdown = useDropdown();
 
   const primaryLinks = [
-    { href: "/", label: t.home, emoji: "🏠" },
-    { href: "/chat", label: t.chat, emoji: "💬" },
-    { href: "/vocab", label: t.vocab, emoji: "📚" },
-    { href: "/speaking", label: t.speaking, emoji: "🎤" },
-    { href: "/games", label: t.games, emoji: "🎮" },
+    { href: "/", label: t.home, icon: Compass },
+    { href: "/chat", label: "AI Mentor", icon: MessageSquare },
+    { href: "/vocab", label: "Vocabulary", icon: BookOpen },
+    { href: "/speaking", label: "Speech Lab", icon: Mic },
+    { href: "/games", label: "Arena", icon: Gamepad2 },
   ];
 
-  const practiceLinks = [
-    { href: "/story", label: t.story || "Story", emoji: "📖" },
-    { href: "/roleplay", label: t.roleplay || "Roleplay", emoji: "🎭" },
-    { href: "/path", label: "Path", emoji: "🗺️" },
-    { href: "/review", label: "Review", emoji: "🔄" },
+  const practiceLinks: DropdownItem[] = [
+    { href: "/voice", label: "Voice Realtime", desc: "Hands-free AI speaking", icon: Mic },
+    { href: "/shadowing", label: "Shadowing Studio", desc: "Accent & intonation drill", icon: Repeat },
+    { href: "/roleplay", label: "Situational Roleplay", desc: "Workplace & life scenarios", icon: Layers },
+    { href: "/story", label: "Contextual Stories", desc: "Immersive narrative reading", icon: BookOpen },
+    { href: "/review", label: "Spaced Review", desc: "Smart memory retention", icon: Activity },
+    { href: "/path", label: "Learning Path", desc: "Milestone progression", icon: Compass },
   ];
 
-  const statsLinks = [
-    { href: "/achievements", label: "Achievements", emoji: "🏆" },
-    { href: "/leaderboard", label: "Leaderboard", emoji: "📊" },
+  const statsLinks: DropdownItem[] = [
+    { href: "/achievements", label: "Certifications & Badges", icon: Award },
+    { href: "/leaderboard", label: "Performance Board", icon: BarChart3 },
   ];
-
-  const allLinks = [...primaryLinks, ...practiceLinks, ...statsLinks];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-kawaii-purple/20 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <PetIcon type={pet?.type || 'cat'} size="sm" />
-          </motion.div>
-          <div className="hidden sm:block">
-            <span className="text-xl font-extrabold bg-gradient-kawaii bg-clip-text text-transparent">LinguaPlay</span>
-            <span className="ml-1 text-sm">✨</span>
+        {/* Brand Logo */}
+        <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-500 flex items-center justify-center text-white shadow-sm shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+              Lingua<span className="text-indigo-600 dark:text-indigo-400">Pro</span>
+            </span>
+            <span className="hidden sm:inline-block text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
+              Studio
+            </span>
           </div>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-0.5 md:flex">
+        {/* Desktop Navigation */}
+        <nav className="hidden items-center gap-1 md:flex">
           {primaryLinks.map((link) => {
             const isActive = pathname === link.href;
+            const IconComponent = link.icon;
             return (
               <Link key={link.href} href={link.href}>
-                <motion.div whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.97 }}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "gap-1.5 rounded-2xl transition-all font-semibold text-sm px-3",
-                      isActive ? "bg-gradient-kawaii text-white shadow-kawaii" : "hover:bg-kawaii-purple/10"
-                    )}
-                  >
-                    <span className="text-sm">{link.emoji}</span>
-                    {link.label}
-                  </Button>
-                </motion.div>
+                <button
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all",
+                    isActive
+                      ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs"
+                      : "text-slate-600 dark:text-slate-400 hover:text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
+                  )}
+                >
+                  <IconComponent className="w-3.5 h-3.5" />
+                  {link.label}
+                </button>
               </Link>
             );
           })}
-          <NavDropdown label="Practice" emoji="🎯" items={practiceLinks} pathname={pathname} />
-          <NavDropdown label="Stats" emoji="📈" items={statsLinks} pathname={pathname} />
+          <NavDropdown label="Drills & Lab" items={practiceLinks} pathname={pathname} />
+          <NavDropdown label="Analytics" items={statsLinks} pathname={pathname} />
         </nav>
 
-        {/* Right side */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Right HUD & Profile */}
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
           <WOTDBadge />
-          {/* Language switcher */}
-          <div className="hidden sm:flex items-center gap-0.5 bg-white/60 dark:bg-gray-800/60 rounded-2xl p-1 shadow-sm">
+
+          {/* Language Switcher */}
+          <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-0.5 rounded-lg">
             {["en", "zh"].map((lang) => (
               <button
                 key={lang}
                 onClick={() => setActiveStudyLanguage(lang)}
                 className={cn(
-                  "px-2 py-1 rounded-xl text-xs font-bold transition-all",
+                  "px-2.5 py-1 rounded-md text-xs font-semibold tracking-wide transition-all",
                   activeStudyLanguage === lang
-                    ? "bg-gradient-kawaii text-white shadow-kawaii"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold"
+                    : "text-slate-500 hover:text-foreground"
                 )}
               >
-                {lang === "en" ? "🇬🇧" : "🇨🇳"}
+                {lang === "en" ? "EN" : "ZH"}
               </button>
             ))}
           </div>
-          <div className="hidden lg:block"><StatsBar /></div>
-          {/* Profile dropdown */}
+
+          <div className="hidden lg:block">
+            <StatsBar />
+          </div>
+
+          {/* Profile Dropdown */}
           <div className="hidden md:block relative" ref={profileDropdown.ref}>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={() => profileDropdown.setOpen(!profileDropdown.open)}
-              className="flex items-center gap-1.5 bg-kawaii-purple/10 hover:bg-kawaii-purple/20 rounded-2xl px-2.5 py-1.5 transition-all"
+              className="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-slate-200/70 dark:border-slate-800 rounded-lg px-2.5 py-1.5 transition-all text-xs font-semibold"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-kawaii flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-5 h-5 rounded-md bg-indigo-600 flex items-center justify-center text-white text-[11px] font-bold">
                 {username?.[0]?.toUpperCase() || "U"}
               </div>
-              <span className="text-xs font-bold max-w-14 truncate">{username || "User"}</span>
-              <ChevronDown className={cn("h-3 w-3 transition-transform text-muted-foreground", profileDropdown.open && "rotate-180")} />
-            </motion.button>
+              <span className="max-w-16 truncate">{username || "User"}</span>
+              <ChevronDown
+                className={cn(
+                  "h-3 w-3 text-slate-400 transition-transform",
+                  profileDropdown.open && "rotate-180"
+                )}
+              />
+            </button>
             <AnimatePresence>
               {profileDropdown.open && (
                 <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                  className="absolute right-0 top-10 z-50 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-kawaii-purple/15 overflow-hidden"
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  className="absolute right-0 top-10 z-50 w-60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden"
                 >
-                  <div className="px-4 py-3 bg-kawaii-purple/5 border-b border-kawaii-purple/10">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gradient-kawaii flex items-center justify-center text-white font-bold">
+                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200/70 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
                         {username?.[0]?.toUpperCase() || "U"}
                       </div>
-                      <div>
-                        <div className="font-bold text-sm">{username}</div>
-                        <div className="text-xs text-muted-foreground">⭐ {xp} XP · Level {level}</div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-foreground truncate">
+                          {username}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Level {level} · {xp} XP
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="px-4 py-2.5 border-b border-kawaii-purple/10">
-                    <p className="text-xs text-muted-foreground mb-1.5">Study Language</p>
-                    <div className="flex gap-2">
-                      {["en", "zh"].map(lang => (
-                        <button key={lang} onClick={() => { setActiveStudyLanguage(lang); profileDropdown.setOpen(false); }}
-                          className={cn("flex-1 py-1.5 rounded-xl text-xs font-bold transition-all", activeStudyLanguage === lang ? "bg-gradient-kawaii text-white" : "bg-gray-100 dark:bg-gray-700 text-muted-foreground")}>
-                          {lang === "en" ? "🇬🇧 English" : "🇨🇳 中文"}
+
+                  <div className="px-4 py-2.5 border-b border-slate-200/70 dark:border-slate-800">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      Active Curriculum
+                    </p>
+                    <div className="flex gap-1.5">
+                      {["en", "zh"].map((lang) => (
+                        <button
+                          key={lang}
+                          onClick={() => {
+                            setActiveStudyLanguage(lang);
+                            profileDropdown.setOpen(false);
+                          }}
+                          className={cn(
+                            "flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all text-center",
+                            activeStudyLanguage === lang
+                              ? "bg-indigo-600 text-white shadow-xs"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-foreground"
+                          )}
+                        >
+                          {lang === "en" ? "English" : "Chinese"}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div className="py-1">
+
+                  <div className="p-1">
                     <button
-                      onClick={() => { if (confirm("Reset all progress?")) { resetProgress(); profileDropdown.setOpen(false); } }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 text-orange-500 transition-colors"
+                      onClick={() => {
+                        if (confirm("Reset all progress?")) {
+                          resetProgress();
+                          profileDropdown.setOpen(false);
+                        }
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors"
                     >
-                      <RotateCcw className="h-4 w-4" />
-                      Reset Progress
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reset Training Progress
                     </button>
                     <LogoutDialog
-                      renderTrigger={<button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"><LogOut className="h-4 w-4" />Log Out</button>}
-                      onConfirm={() => { logout(); profileDropdown.setOpen(false); }}
+                      renderTrigger={
+                        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors">
+                          <LogOut className="h-3.5 w-3.5" />
+                          Sign Out
+                        </button>
+                      }
+                      onConfirm={() => {
+                        logout();
+                        profileDropdown.setOpen(false);
+                      }}
                     />
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 md:hidden rounded-xl"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
         </div>
       </div>
-
-      {/* Mobile Nav */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-kawaii-purple/20 md:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl"
-          >
-            <nav className="flex flex-col gap-1 p-4">
-              <div className="mb-3 pb-3 border-b border-kawaii-purple/10"><StatsBar /></div>
-              <div className="mb-3 pb-3 border-b border-kawaii-purple/10 flex items-center gap-2">
-                <span className="text-sm text-muted-foreground font-medium">Study:</span>
-                {["en", "zh"].map((lang) => (
-                  <button key={lang} onClick={() => { setActiveStudyLanguage(lang); setMobileOpen(false); }}
-                    className={cn("px-3 py-1.5 rounded-xl text-sm font-bold transition-all",
-                      activeStudyLanguage === lang ? "bg-gradient-kawaii text-white shadow-kawaii" : "bg-white/80 dark:bg-gray-700/80 text-muted-foreground")}>
-                    {lang === "en" ? "🇬🇧 English" : "🇨🇳 Chinese"}
-                  </button>
-                ))}
-              </div>
-              {allLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}>
-                    <motion.div whileTap={{ scale: 0.95 }}>
-                      <Button variant="ghost"
-                        className={cn("w-full justify-start gap-3 rounded-2xl text-base py-5",
-                          isActive ? "bg-gradient-kawaii text-white shadow-kawaii" : "hover:bg-kawaii-purple/10")}>
-                        <span className="text-xl">{link.emoji}</span>
-                        {link.label}
-                      </Button>
-                    </motion.div>
-                  </Link>
-                );
-              })}
-              <button
-                onClick={() => { if (confirm("Log out?")) { resetProgress(); setMobileOpen(false); } }}
-                className="mt-2 flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-base font-semibold"
-              >
-                <LogOut className="h-5 w-5" />
-                Log Out
-              </button>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </header>
   );
 }

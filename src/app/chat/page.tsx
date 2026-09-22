@@ -2,13 +2,26 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Loader2, RotateCcw, Mic, Square } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  RotateCcw,
+  Mic,
+  Square,
+  Volume2,
+  Sparkles,
+  Award,
+  Briefcase,
+  GraduationCap,
+  MessageSquare,
+  Wand2,
+  CornerDownLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Mascot } from "@/components/mascot";
+import { Mascot, MascotMood } from "@/components/mascot";
 import { useGame } from "@/contexts/game-context";
 import { useSTTRecorder } from "@/hooks/use-stt-recorder";
 
@@ -23,46 +36,57 @@ interface Message {
 
 const AI_ROLES = {
   partner: {
-    name: "Conversation Partner",
-    emoji: "��",
-    description: "Casual chat practice",
-    gradient: "from-kawaii-sky to-blue-400",
+    name: "General Fluency Partner",
+    roleTag: "Daily English",
+    icon: MessageSquare,
+    description: "Luyện phản xạ giao tiếp tự nhiên và linh hoạt về đời sống, tin tức và sở thích.",
+    gradient: "from-sky-600 to-indigo-600",
   },
   interviewer: {
-    name: "Job Interviewer",
-    emoji: "👔",
-    description: "Mock interview practice",
-    gradient: "from-kawaii-yellow to-amber-400",
+    name: "Senior Job Interviewer",
+    roleTag: "Career Prep",
+    icon: Award,
+    description: "Phỏng vấn thử nghiệm, đặt câu hỏi hành vi (STAR) và đánh giá độ tự tin.",
+    gradient: "from-indigo-600 to-violet-600",
   },
-  support: {
-    name: "Customer Support",
-    emoji: "🎧",
-    description: "Real-world scenarios",
-    gradient: "from-kawaii-purple to-violet-400",
+  colleague: {
+    name: "Workplace Colleague",
+    roleTag: "Office Standup",
+    icon: Briefcase,
+    description: "Trao đổi công việc, họp dự án, viết phản hồi email và đàm phán ý kiến.",
+    gradient: "from-emerald-600 to-teal-600",
   },
   teacher: {
-    name: "English Teacher",
-    emoji: "📚",
-    description: "Grammar & vocabulary",
-    gradient: "from-kawaii-mint to-green-400",
+    name: "Speech & Grammar Mentor",
+    roleTag: "Language Coach",
+    icon: GraduationCap,
+    description: "Chỉ ra lỗi diễn đạt, giải thích ngữ pháp và gợi ý cách dùng từ chuẩn C1.",
+    gradient: "from-purple-600 to-pink-600",
   },
 };
 
 type RoleKey = keyof typeof AI_ROLES;
+
+const STARTER_PROMPTS = [
+  "Can you ask me a common job interview question?",
+  "Let's roleplay a standup meeting where I report project updates.",
+  "How can I sound more polite when disagreeing in a business meeting?",
+  "Let's discuss the future of AI and technology.",
+];
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<RoleKey>("partner");
-  const [mascotMood, setMascotMood] = useState<"happy" | "thinking" | "excited">("happy");
+  const [coachMood, setCoachMood] = useState<MascotMood>("happy");
+  const [ttsPlayingId, setTtsPlayingId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const { addXP, addCoins } = useGame();
 
   const {
     isRecording,
-    isTranscribing,
     transcript: sttTranscript,
     startRecording,
     stopRecording,
@@ -83,99 +107,134 @@ export default function ChatPage() {
     }
   }, [messages]);
 
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-    setMascotMood("thinking");
-
-    const assistantId = (Date.now() + 1).toString();
-    setMessages((prev) => [...prev, {
-      id: assistantId,
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-    }]);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-
+  const playTTS = async (text: string, msgId: string) => {
+    if (ttsPlayingId === msgId) return;
+    setTtsPlayingId(msgId);
     try {
-      const response = await fetch(CHAT_WORKER_URL, {
+      const res = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({ role: m.role, content: m.content })),
-          role: selectedRole,
-        }),
+        body: JSON.stringify({ text, lang: "en" }),
       });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      await audio.play();
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setTtsPlayingId(null);
+      };
+    } catch {
+      setTtsPlayingId(null);
+    }
+  };
 
-      if (!response.ok) throw new Error("Request failed");
-      if (!response.body) throw new Error("No response body");
+  const sendMessage = useCallback(
+    async (overrideText?: string) => {
+      const textToSend = (overrideText || input).trim();
+      if (!textToSend || isLoading) return;
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulatedText = "";
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: textToSend,
+        timestamp: new Date(),
+      };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      setMessages((prev) => [...prev, userMessage]);
+      setInput("");
+      setIsLoading(true);
+      setCoachMood("thinking");
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
+      const assistantId = (Date.now() + 1).toString();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          timestamp: new Date(),
+        },
+      ]);
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(data) as { response?: string };
-              if (parsed.response) {
-                accumulatedText += parsed.response;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: accumulatedText } : m
-                  )
-                );
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const response = await fetch(CHAT_WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            messages: [...messages, userMessage].map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+            role: selectedRole,
+          }),
+        });
+
+        if (!response.ok || !response.body) throw new Error("Request failed");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulatedText = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6).trim();
+              if (data === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(data) as { response?: string };
+                if (parsed.response) {
+                  accumulatedText += parsed.response;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: accumulatedText } : m
+                    )
+                  );
+                }
+              } catch {
+                // skip
               }
-            } catch {
-              // Skip malformed chunks
             }
           }
         }
-      }
 
-      addXP(5);
-      const msgCount = messages.filter(m => m.role === "user").length + 1;
-      if (msgCount % 5 === 0) addCoins(10);
-      setMascotMood("excited");
-      setTimeout(() => setMascotMood("happy"), 2000);
-    } catch (err) {
-      if ((err as Error).name !== "AbortError") {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId
-              ? { ...m, content: "Sorry, there was an error. Please try again." }
-              : m
-          )
-        );
-        setMascotMood("happy");
+        addXP(5);
+        const msgCount = messages.filter((m) => m.role === "user").length + 1;
+        if (msgCount % 5 === 0) addCoins(10);
+        setCoachMood("excited");
+        setTimeout(() => setCoachMood("happy"), 2500);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    content: "Xin lỗi, đã xảy ra lỗi kết nối. Bạn hãy thử lại câu vừa rồi nhé.",
+                  }
+                : m
+            )
+          );
+          setCoachMood("happy");
+        }
+      } finally {
+        setIsLoading(false);
+        abortRef.current = null;
       }
-    } finally {
-      setIsLoading(false);
-      abortRef.current = null;
-    }
-  }, [input, isLoading, messages, selectedRole, addXP, addCoins]);
+    },
+    [input, isLoading, messages, selectedRole, addXP, addCoins]
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -193,246 +252,260 @@ export default function ChatPage() {
   };
 
   const activeRole = AI_ROLES[selectedRole];
+  const ActiveIcon = activeRole.icon;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
-      >
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Mascot mood={mascotMood} size="md" />
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+      {/* Header & AI Coach Telemetry */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div className="flex items-center gap-3.5">
+          <Mascot mood={coachMood} size="md" />
           <div>
-            <h1 className="text-2xl font-bold">
-              <span className="bg-gradient-kawaii bg-clip-text text-transparent">
-                💬 AI Chat Practice
-              </span>
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 mb-1">
+              <span>{activeRole.roleTag}</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Phòng Luyện Hội Thoại & Đàm Phán AI
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Chat with AI & earn XP! Speak or type in English ✨
+            <p className="text-xs text-muted-foreground">
+              Tương tác trực tiếp bằng văn bản hoặc giọng nói. Tích lũy 5 XP cho mỗi phản hồi đàm thoại.
             </p>
           </div>
         </div>
 
-        {/* Role Selection */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(Object.entries(AI_ROLES) as [RoleKey, (typeof AI_ROLES)[RoleKey]][]).map(([key, role]) => (
-            <motion.button
-              key={key}
-              whileHover={{ scale: 1.03, y: -3 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => { setSelectedRole(key); setMessages([]); }}
-              className={cn(
-                "rounded-2xl p-4 text-left transition-all border-2",
-                selectedRole === key
-                  ? "bg-white/80 dark:bg-gray-800/80 border-kawaii-purple/50 shadow-kawaii"
-                  : "bg-white/50 dark:bg-gray-800/50 border-transparent hover:border-kawaii-purple/30"
-              )}
-            >
-              <motion.div
-                className={`mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${role.gradient} shadow-lg text-2xl`}
-                animate={selectedRole === key ? { rotate: [0, -5, 5, 0] } : {}}
-                transition={{ duration: 0.5 }}
+        <div className="flex items-center gap-2 self-end sm:self-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setMessages([]);
+              abortRef.current?.abort();
+            }}
+            className="rounded-xl border-slate-200 dark:border-slate-700 text-xs font-semibold gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+            Làm mới hội thoại
+          </Button>
+        </div>
+      </div>
+
+      {/* Role Selector Bento Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {(Object.entries(AI_ROLES) as [RoleKey, (typeof AI_ROLES)[RoleKey]][]).map(
+          ([key, role]) => {
+            const isSel = selectedRole === key;
+            const Icon = role.icon;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setSelectedRole(key);
+                  setMessages([]);
+                }}
+                className={`p-3.5 text-left rounded-xl border transition-all flex flex-col justify-between ${
+                  isSel
+                    ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500/60 shadow-xs ring-1 ring-indigo-500/20"
+                    : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                }`}
               >
-                {role.emoji}
-              </motion.div>
-              <div className="font-bold text-sm">{role.name}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{role.description}</div>
-            </motion.button>
-          ))}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-white bg-gradient-to-tr ${role.gradient} shadow-xs`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    {isSel && (
+                      <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                    )}
+                  </div>
+                  <div className="text-xs font-bold text-foreground line-clamp-1">{role.name}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                    {role.description}
+                  </div>
+                </div>
+              </button>
+            );
+          }
+        )}
+      </div>
+
+      {/* Main Chat Interface */}
+      <div
+        className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden flex flex-col"
+        style={{ height: "58vh" }}
+      >
+        {/* Active Role Status Bar */}
+        <div className="px-5 py-3 border-b border-slate-200/70 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${activeRole.gradient} flex items-center justify-center text-white`}
+            >
+              <ActiveIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                {activeRole.name}
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+              <div className="text-[10px] text-muted-foreground font-medium">Llama 3.1 Neural Engine</div>
+            </div>
+          </div>
+          <span className="text-[11px] text-muted-foreground font-medium">
+            {messages.length} tin nhắn
+          </span>
         </div>
 
-        {/* Chat Area */}
-        <div
-          className="rounded-3xl bg-white/70 dark:bg-gray-800/70 backdrop-blur shadow-kawaii overflow-hidden"
-          style={{ height: "55vh", display: "flex", flexDirection: "column" }}
-        >
-          {/* Chat header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-kawaii-purple/10">
-            <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br ${activeRole.gradient} shadow-lg text-xl`}>
-                {activeRole.emoji}
+        {/* Scrollable Message Feed */}
+        <ScrollArea className="flex-1 p-4 sm:p-5" ref={scrollRef}>
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center py-12 space-y-4">
+              <div
+                className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${activeRole.gradient} flex items-center justify-center text-white shadow-sm`}
+              >
+                <ActiveIcon className="w-6 h-6" />
               </div>
-              <div>
-                <div className="font-semibold text-sm">{activeRole.name}</div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-kawaii-mint animate-pulse" />
-                  <span className="text-xs text-muted-foreground">Online · Llama 3.1</span>
-                </div>
+              <div className="max-w-md">
+                <h4 className="text-base font-bold text-foreground">
+                  Bắt đầu buổi đối thoại với {activeRole.name}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Nhập tin nhắn hoặc bấm vào một trong các câu hỏi gợi ý bên dưới để bắt đầu luyện phản xạ.
+                </p>
+              </div>
+
+              {/* Starter Prompt Chips */}
+              <div className="flex flex-wrap gap-2 justify-center max-w-lg pt-2">
+                {STARTER_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => sendMessage(prompt)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200/60 dark:border-slate-700 text-xs font-medium transition-colors text-left"
+                  >
+                    &ldquo;{prompt}&rdquo;
+                  </button>
+                ))}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setMessages([]); abortRef.current?.abort(); }}
-              className="gap-1.5 rounded-xl"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Reset
-            </Button>
-          </div>
-
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-center py-12">
-                <div>
-                  <motion.div
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="text-5xl mb-4"
-                  >
-                    {activeRole.emoji}
-                  </motion.div>
-                  <p className="font-medium">Hi! I&apos;m your {activeRole.name}.</p>
-                  <p className="text-sm mt-1 text-muted-foreground">
-                    Type or 🎤 speak to start! Earn 5 XP per message.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <AnimatePresence>
-                  {messages.map((message) => (
+          ) : (
+            <div className="space-y-4">
+              <AnimatePresence>
+                {messages.map((message) => {
+                  const isUser = message.role === "user";
+                  return (
                     <motion.div
                       key={message.id}
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      className={cn("flex gap-3", message.role === "user" ? "flex-row-reverse" : "")}
+                      className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}
                     >
-                      <div className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-lg shadow-lg",
-                        message.role === "assistant"
-                          ? `bg-gradient-to-br ${activeRole.gradient}`
-                          : "bg-gradient-kawaii"
-                      )}>
-                        {message.role === "assistant" ? activeRole.emoji : "🙋"}
+                      <div
+                        className={cn(
+                          "w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold shadow-xs",
+                          isUser
+                            ? "bg-indigo-600 text-white"
+                            : `bg-gradient-to-tr ${activeRole.gradient} text-white`
+                        )}
+                      >
+                        {isUser ? "You" : <ActiveIcon className="w-4 h-4" />}
                       </div>
-                      <div className={cn(
-                        "max-w-[75%] rounded-3xl px-4 py-3 text-sm shadow-sm",
-                        message.role === "user"
-                          ? "bg-gradient-kawaii text-white rounded-tr-lg"
-                          : "bg-white dark:bg-gray-700 border border-kawaii-purple/10 rounded-tl-lg"
-                      )}>
-                        {message.content ? (
-                          <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                        ) : (
-                          <div className="flex items-center gap-1.5 py-1">
-                            {[0, 1, 2].map((i) => (
-                              <motion.div
-                                key={i}
-                                className="h-2 w-2 rounded-full bg-kawaii-purple"
-                                animate={{ y: [0, -6, 0], opacity: [0.4, 1, 0.4] }}
-                                transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+
+                      <div
+                        className={cn(
+                          "max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-xs leading-relaxed",
+                          isUser
+                            ? "bg-indigo-600 text-white rounded-tr-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-foreground border border-slate-200/60 dark:border-slate-700 rounded-tl-xs"
+                        )}
+                      >
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+
+                        {/* Assistant message audio playback */}
+                        {!isUser && message.content && (
+                          <div className="mt-2.5 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => playTTS(message.content, message.id)}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:opacity-80 transition-opacity"
+                            >
+                              <Volume2
+                                className={cn(
+                                  "w-3.5 h-3.5",
+                                  ttsPlayingId === message.id && "animate-pulse"
+                                )}
                               />
-                            ))}
+                              {ttsPlayingId === message.id ? "Đang phát âm..." : "Nghe phát âm chuẩn"}
+                            </button>
                           </div>
                         )}
-                        <p className={cn("mt-1 text-[10px] opacity-60", message.role === "user" ? "text-right" : "text-left")}>
-                          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </p>
                       </div>
                     </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </ScrollArea>
+                  );
+                })}
+              </AnimatePresence>
 
-          {/* Input */}
-          <div className="p-4 border-t border-kawaii-purple/10">
-            <AnimatePresence>
-              {(isRecording || isTranscribing) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className="mb-2 flex items-center justify-center"
-                >
-                  <Badge className={cn(
-                    "rounded-full px-3 py-1 text-xs gap-1.5",
-                    isRecording ? "bg-red-100 text-red-600" : "bg-kawaii-purple/20 text-kawaii-purple"
-                  )}>
-                    {isRecording ? (
-                      <>
-                        <motion.div
-                          className="h-2 w-2 rounded-full bg-red-500"
-                          animate={{ opacity: [1, 0.3, 1] }}
-                          transition={{ duration: 0.8, repeat: Infinity }}
-                        />
-                        Recording... Click stop when done
-                      </>
-                    ) : (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Transcribing speech...
-                      </>
-                    )}
-                  </Badge>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="flex gap-2">
-              {isMicSupported && (
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleMicClick}
-                    disabled={isTranscribing || isLoading}
-                    className={cn(
-                      "h-11 w-11 shrink-0 rounded-2xl border-2 transition-all",
-                      isRecording
-                        ? "border-red-400 bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-950"
-                        : "border-kawaii-purple/30 hover:border-kawaii-purple/60"
-                    )}
-                    title={isRecording ? "Stop recording" : "Record voice"}
+              {isLoading && (
+                <div className="flex gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${activeRole.gradient} flex items-center justify-center text-white`}
                   >
-                    {isRecording ? (
-                      <Square className="h-4 w-4 fill-current" />
-                    ) : isTranscribing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Mic className="h-4 w-4" />
-                    )}
-                  </Button>
-                </motion.div>
+                    <ActiveIcon className="w-4 h-4" />
+                  </div>
+                  <div className="rounded-2xl rounded-tl-xs bg-slate-100 dark:bg-slate-800 px-4 py-3 text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                    Đang phân tích và tạo câu trả lời phản xạ...
+                  </div>
+                </div>
               )}
-
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={isRecording ? "🎤 Recording... click stop when done" : "Type or speak in English..."}
-                disabled={isRecording || isTranscribing}
-                className="min-h-[44px] max-h-32 resize-none rounded-2xl border-kawaii-purple/20 bg-white/50 dark:bg-gray-800/50"
-                rows={1}
-              />
-
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || isLoading || isRecording || isTranscribing}
-                  className="h-11 w-11 shrink-0 rounded-2xl bg-gradient-kawaii shadow-kawaii"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-white" />
-                  ) : (
-                    <Send className="h-4 w-4 text-white" />
-                  )}
-                </Button>
-              </motion.div>
             </div>
+          )}
+        </ScrollArea>
 
-            <p className="mt-2 text-[11px] text-muted-foreground text-center">
-              💡 5 XP per message • Bonus coins every 5 messages • 🎤 AI voice input
-            </p>
+        {/* Input Bar */}
+        <div className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200/70 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            {isMicSupported && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleMicClick}
+                className={cn(
+                  "h-10 w-10 shrink-0 rounded-xl transition-all",
+                  isRecording
+                    ? "bg-rose-500 text-white hover:bg-rose-600 border-rose-500 animate-pulse"
+                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+                title={isRecording ? "Dừng ghi âm" : "Ghi âm nói tiếng Anh"}
+              >
+                {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            )}
+
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Nhập phản hồi bằng tiếng Anh (hoặc bấm mic để nói)..."
+              disabled={isLoading}
+              className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-foreground transition-all"
+            />
+
+            <Button
+              type="button"
+              onClick={() => sendMessage()}
+              disabled={!input.trim() || isLoading}
+              className="btn-pro h-10 px-4 rounded-xl shrink-0 gap-1.5 text-xs font-semibold"
+            >
+              <span>Gửi</span>
+              <Send className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

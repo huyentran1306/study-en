@@ -9,33 +9,25 @@ import { XPParticleLayer } from "@/components/fx/xp-particles";
 import { AchievementToast, useAchievementToastManager } from "@/components/achievement-toast";
 import { AuthLoginModal } from "@/components/auth-login-modal";
 import { usePathname } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
-/** Animated gradient blobs that float in the background */
-function KawaiiBackground() {
+/** Ambient mesh background with subtle glow, zero visual distractions */
+function ProBackground() {
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none" aria-hidden>
-      {/* Big blobs */}
-      <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-kawaii-lavender/30 blur-3xl animate-blob" />
-      <div className="absolute -top-20 right-0 w-[400px] h-[400px] rounded-full bg-kawaii-pink/25 blur-3xl animate-blob-2 animation-delay-2000" />
-      <div className="absolute bottom-0 -left-20 w-[450px] h-[450px] rounded-full bg-kawaii-sky/20 blur-3xl animate-blob-3 animation-delay-4000" />
-      <div className="absolute bottom-20 right-10 w-[350px] h-[350px] rounded-full bg-kawaii-mint/20 blur-3xl animate-blob animation-delay-2000" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-kawaii-yellow/15 blur-3xl animate-blob-2" />
-      {/* Floating emoji sparkles */}
-      {["✨","⭐","🌟","💫","🌈","🎀","💜","🌸","🦋","🍭"].map((e, i) => (
-        <div
-          key={i}
-          className="absolute text-2xl animate-float-up"
-          style={{
-            left: `${5 + i * 9}%`,
-            top: `${8 + (i % 4) * 22}%`,
-            animationDelay: `${i * 0.7}s`,
-            animationDuration: `${4 + (i % 3)}s`,
-            opacity: 0.18,
-          }}
-        >
-          {e}
-        </div>
-      ))}
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
+      {/* Subtle background tech grid */}
+      <div 
+        className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+          backgroundSize: "32px 32px",
+        }}
+      />
+      {/* Soft atmospheric gradient highlights */}
+      <div className="absolute -top-32 left-1/4 w-[600px] h-[500px] rounded-full bg-indigo-500/10 dark:bg-indigo-600/15 blur-[120px]" />
+      <div className="absolute top-1/2 -right-20 w-[550px] h-[450px] rounded-full bg-sky-500/10 dark:bg-sky-500/10 blur-[130px]" />
+      <div className="absolute -bottom-32 left-1/3 w-[600px] h-[400px] rounded-full bg-violet-500/5 dark:bg-violet-600/10 blur-[140px]" />
     </div>
   );
 }
@@ -58,9 +50,14 @@ function AppContent({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  // Show auth modal unless authenticated or guest mode
+  // Show modern sleek auth loading spinner
   if (authLoading) {
-    return <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-kawaii-lavender/20 to-kawaii-pink/20"><div className="text-4xl animate-bounce">✨</div></div>;
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-background gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+        <span className="text-sm font-medium text-muted-foreground tracking-wide">Loading workspace...</span>
+      </div>
+    );
   }
 
   if (!isAuthenticated && !guestMode) {
@@ -84,10 +81,11 @@ function AppContent({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <KawaiiBackground />
+      <ProBackground />
       <FloatingDecorations />
       <Navbar />
-      <main className="min-h-[calc(100vh-4rem)] relative z-10">{children}</main>
+      <main className="min-h-[calc(100vh-4rem)] relative z-10 pb-24 md:pb-8">{children}</main>
+      <MobileBottomNav />
       <XPParticleLayer />
       <AchievementToast achievement={currentAchievement} onDismiss={dismiss} />
     </>
@@ -101,4 +99,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </GameProvider>
   );
 }
-

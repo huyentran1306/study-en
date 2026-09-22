@@ -14,6 +14,7 @@ interface UseSTTRecorderReturn {
   isTranscribing: boolean;
   transcript: string;
   error: string | null;
+  audioUrl: string | null;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   resetTranscript: () => void;
@@ -24,14 +25,21 @@ export function useSTTRecorder(): UseSTTRecorderReturn {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const prevAudioUrlRef = useRef<string | null>(null);
   const isSupported = typeof navigator !== "undefined" && !!navigator.mediaDevices;
 
   const startRecording = useCallback(async () => {
     setError(null);
     setTranscript("");
+    if (prevAudioUrlRef.current) {
+      URL.revokeObjectURL(prevAudioUrlRef.current);
+      prevAudioUrlRef.current = null;
+    }
+    setAudioUrl(null);
     chunksRef.current = [];
 
     try {
@@ -46,6 +54,9 @@ export function useSTTRecorder(): UseSTTRecorderReturn {
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        prevAudioUrlRef.current = url;
+        setAudioUrl(url);
         await transcribe(blob);
       };
 
@@ -88,12 +99,18 @@ export function useSTTRecorder(): UseSTTRecorderReturn {
   const resetTranscript = useCallback(() => {
     setTranscript("");
     setError(null);
+    if (prevAudioUrlRef.current) {
+      URL.revokeObjectURL(prevAudioUrlRef.current);
+      prevAudioUrlRef.current = null;
+    }
+    setAudioUrl(null);
   }, []);
 
   return {
     isRecording,
     isTranscribing,
     transcript,
+    audioUrl,
     error,
     startRecording,
     stopRecording,

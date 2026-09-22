@@ -4,16 +4,26 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { VocabWord, SAMPLE_VOCABULARY } from "@/lib/data";
 import { getVocab, addVocab, updateVocabProgress, getStoredUserId, ApiVocab } from "@/lib/api";
 
-// Map API vocab → VocabWord format
+// Map API vocab → VocabWord format with fallback to enriched metadata
 function mapApiVocab(v: ApiVocab): VocabWord {
+  const match = SAMPLE_VOCABULARY.find(
+    (sw) => sw.id === v.id || sw.word.toLowerCase() === v.word.toLowerCase()
+  );
   return {
     id: v.id,
     word: v.word,
     meaning: v.meaning,
-    example: v.example || "",
-    phonetic: v.phonetic || "",
-    emoji: v.emoji || "📖",
-    category: v.category,
+    definition: match?.definition,
+    example: v.example || match?.example || "",
+    phonetic: v.phonetic || match?.phonetic || "",
+    emoji: v.emoji || match?.emoji || "📖",
+    category: v.category || match?.category || match?.topicId || "general",
+    topicId: match?.topicId || (v.category ? v.category : undefined),
+    partOfSpeech: match?.partOfSpeech,
+    level: match?.level || "B2",
+    collocations: match?.collocations,
+    contextTip: match?.contextTip,
+    starred: match?.starred || false,
     learned: v.status === "known",
     createdAt: v.created_at,
   };
@@ -39,9 +49,20 @@ export function useApiVocab(language?: string, hskLevel?: number): [VocabWord[],
     const userId = getStoredUserId();
     getVocab(userId || undefined, { limit: 200, language: language || undefined, hsk_level: (language === 'zh' && hskLevel) ? hskLevel : undefined })
       .then((apiWords) => {
-        const mapped = apiWords.map(mapApiVocab);
-        setWordsLocal(mapped);
-        prevWordsRef.current = mapped;
+        if (!apiWords || apiWords.length === 0) {
+          setWordsLocal(SAMPLE_VOCABULARY);
+          prevWordsRef.current = SAMPLE_VOCABULARY;
+        } else {
+          const mapped = apiWords.map(mapApiVocab);
+          // Merge in any sample topic words not yet in apiWords so user has full catalog
+          const existingWordSet = new Set(mapped.map((w) => w.word.toLowerCase()));
+          const missingSamples = SAMPLE_VOCABULARY.filter(
+            (sw) => !existingWordSet.has(sw.word.toLowerCase())
+          );
+          const combined = [...mapped, ...missingSamples];
+          setWordsLocal(combined);
+          prevWordsRef.current = combined;
+        }
         setLoaded(true);
       })
       .catch(() => {

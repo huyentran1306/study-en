@@ -2,10 +2,23 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Square, Send, Volume2, Loader2, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import {
+  Mic,
+  Square,
+  Send,
+  Volume2,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  ArrowRight,
+  RotateCcw,
+  Wand2,
+  Check,
+  Copy,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { useSTTRecorder } from "@/hooks/use-stt-recorder";
 import { useGame } from "@/contexts/game-context";
 import Link from "next/link";
@@ -26,6 +39,7 @@ export default function FixEnglishPage() {
   const [result, setResult] = useState<FixResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [ttsLoading, setTtsLoading] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { isRecording, isTranscribing, transcript, startRecording, stopRecording, resetTranscript } = useSTTRecorder();
@@ -39,7 +53,6 @@ export default function FixEnglishPage() {
     }
   };
 
-  // When transcript arrives, fill textarea
   if (transcript && !text) {
     setText(transcript);
   }
@@ -86,187 +99,216 @@ export default function FixEnglishPage() {
     }
   };
 
-  const scoreColor = (score: number) => {
-    if (score >= 8) return "text-green-500";
-    if (score >= 5) return "text-yellow-500";
-    return "text-red-500";
+  const copyToClipboard = (val: string) => {
+    navigator.clipboard.writeText(val);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       {/* Header */}
-      <div className="mb-6">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block">← Quay lại</Link>
-        <h1 className="text-2xl font-bold">
-          <span className="bg-gradient-kawaii bg-clip-text text-transparent">🔧 Fix My English</span>
+      <div className="pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center gap-2 mb-1">
+          <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-foreground">
+            Dashboard
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Writing Refiner</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+          <Wand2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          AI Writing & Grammar Refiner
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Nhập câu tiếng Anh bất kỳ — AI sẽ phân tích và gợi ý cách nói tự nhiên hơn như người bản ngữ
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Nhập câu nói hoặc email công việc — AI tự động phân tích ngữ pháp, tinh chỉnh độ tự nhiên và đề xuất cách nói chuẩn bản xứ.
         </p>
       </div>
 
-      {/* Input area */}
-      <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-3xl border border-kawaii-pink/20 p-5 mb-5 shadow-sm">
+      {/* Editor Box */}
+      <div className="pro-card p-6 space-y-4">
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Nhập câu tiếng Anh của bạn... VD: I am very boring in this meeting."
-          className="min-h-[100px] text-base resize-none border-none bg-transparent focus-visible:ring-0 p-0"
+          placeholder="Nhập câu tiếng Anh bạn muốn kiểm tra (ví dụ: I am very boring in this meeting, She said me that she will come...)"
+          className="min-h-[120px] text-sm sm:text-base resize-none border-slate-200/80 dark:border-slate-800 focus-visible:ring-indigo-500 rounded-xl leading-relaxed"
         />
-        <div className="flex items-center gap-3 mt-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleVoiceToggle}
-            className={`rounded-2xl gap-2 ${isRecording ? "bg-red-100 border-red-300 text-red-600" : ""}`}
-          >
-            {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            {isRecording ? "Dừng" : isTranscribing ? "Đang xử lý..." : "Nói"}
-          </Button>
-          <Button
-            onClick={handleAnalyze}
-            disabled={!text.trim() || loading}
-            className="rounded-2xl gap-2 bg-gradient-kawaii text-white ml-auto"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Phân tích
-          </Button>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleVoiceToggle}
+              className={`rounded-xl text-xs font-semibold gap-1.5 ${
+                isRecording ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:border-rose-800" : ""
+              }`}
+            >
+              {isRecording ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5 text-indigo-500" />}
+              {isRecording ? "Dừng ghi âm" : isTranscribing ? "Đang xử lý..." : "Nhập bằng giọng nói"}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleAnalyze}
+              disabled={!text.trim() || loading}
+              className="btn-pro text-xs font-bold gap-2 px-5"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {loading ? "Đang phân tích..." : "Phân Tích & Tối Ưu Hóa"}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Example inputs */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {[
-          "I am very boring in this meeting.",
-          "She said me that she will come.",
-          "I have been to there yesterday.",
-          "Can you explain to me about this?",
-        ].map((ex) => (
-          <button
-            key={ex}
-            onClick={() => setText(ex)}
-            className="text-xs px-3 py-1.5 rounded-full bg-kawaii-lavender/10 hover:bg-kawaii-lavender/20 text-muted-foreground transition-colors"
-          >
-            {ex}
-          </button>
-        ))}
+      {/* Quick Example Chips */}
+      <div className="space-y-2">
+        <span className="text-[11px] font-semibold text-muted-foreground block">
+          Hoặc thử nhanh với các lỗi diễn đạt phổ biến:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {[
+            "I am very boring in this meeting.",
+            "She said me that she will come tomorrow.",
+            "Can you explain to me about this strategy?",
+            "Please revert back to me as soon as possible.",
+          ].map((ex) => (
+            <button
+              key={ex}
+              onClick={() => setText(ex)}
+              className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 transition-colors text-left"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Results */}
+      {/* Feedback & Results */}
       <AnimatePresence>
         {result && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
+            className="space-y-6"
           >
-            {/* Score card */}
-            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-3xl p-5 border border-kawaii-pink/20 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                {result.is_correct
-                  ? <CheckCircle2 className="w-6 h-6 text-green-500" />
-                  : <AlertCircle className="w-6 h-6 text-amber-500" />
-                }
+            {/* Naturalness Score Bar */}
+            <div className="pro-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {result.is_correct ? (
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                )}
                 <div>
-                  <p className="font-bold">{result.is_correct ? "Câu đúng! 🎉" : "Cần cải thiện một chút"}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Độ tự nhiên: <span className={`font-bold ${scoreColor(result.naturalness_score)}`}>{result.naturalness_score}/10</span>
+                  <h3 className="font-bold text-base text-foreground">
+                    {result.is_correct ? "Ngữ pháp chuẩn xác" : "Phát hiện điểm cần cải thiện"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {result.explanation}
                   </p>
                 </div>
               </div>
 
-              {result.good_parts && (
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl px-4 py-2 text-sm text-green-700 dark:text-green-300 mb-3">
-                  ✅ {result.good_parts}
-                </div>
-              )}
-
-              {result.issues.length > 0 && (
-                <div className="space-y-1 mb-3">
-                  {result.issues.map((issue, i) => (
-                    <div key={i} className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
-                      ⚠️ {issue}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <p className="text-sm text-muted-foreground">{result.explanation}</p>
+              <div className="sm:text-right">
+                <span className="text-[11px] font-semibold text-muted-foreground block">Chỉ số tự nhiên (Naturalness)</span>
+                <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums">
+                  {result.naturalness_score} / 10
+                </span>
+              </div>
             </div>
 
-            {/* Side by side comparison */}
+            {/* Side by Side Diff */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-red-50/60 dark:bg-red-900/10 rounded-3xl p-4 border border-red-200/40">
-                <p className="text-xs font-bold text-red-500 mb-2">❌ Bạn nói</p>
-                <p className="text-sm">{text}</p>
+              <div className="pro-card p-5 border-rose-500/30 bg-rose-50/20 dark:bg-rose-950/10 space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 block">
+                  Bản gốc (Original)
+                </span>
+                <p className="text-sm font-medium text-foreground leading-relaxed">{text}</p>
               </div>
-              <div className="bg-green-50/60 dark:bg-green-900/10 rounded-3xl p-4 border border-green-200/40">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold text-green-600">✅ Đã sửa</p>
-                  <button
-                    onClick={() => playTTS(result.corrected)}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    {ttsLoading === result.corrected
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <Volume2 className="w-4 h-4" />}
-                  </button>
+
+              <div className="pro-card p-5 border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                    Bản đã tối ưu (Refined)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => copyToClipboard(result.corrected)}
+                      className="text-slate-400 hover:text-foreground text-xs transition-colors p-1"
+                      title="Sao chép"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => playTTS(result.corrected)}
+                      className="text-indigo-600 dark:text-indigo-400 text-xs transition-colors p-1"
+                      title="Nghe phát âm"
+                    >
+                      {ttsLoading === result.corrected ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Volume2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-sm font-medium">{result.corrected}</p>
+                <p className="text-sm font-bold text-foreground leading-relaxed">{result.corrected}</p>
               </div>
             </div>
 
-            {/* Alternative phrases */}
-            {result.alternatives.length > 0 && (
-              <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-3xl p-5 border border-kawaii-purple/20 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-5 h-5 text-kawaii-purple" />
-                  <p className="font-bold text-sm">Cách người bản ngữ thường nói</p>
-                </div>
-                <div className="space-y-2">
-                  {result.alternatives.map((alt, i) => (
-                    <div key={i} className="flex items-center justify-between bg-kawaii-lavender/10 rounded-2xl px-4 py-3">
-                      <p className="text-sm">{alt}</p>
-                      <button
-                        onClick={() => playTTS(alt)}
-                        className="text-kawaii-purple hover:text-kawaii-pink ml-3 shrink-0"
-                      >
-                        {ttsLoading === alt
-                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : <Volume2 className="w-4 h-4" />}
-                      </button>
+            {/* Issues checklist */}
+            {result.issues && result.issues.length > 0 && (
+              <div className="pro-card p-5 space-y-2.5">
+                <span className="text-xs font-bold text-foreground block">Điểm lưu ý chi tiết:</span>
+                <div className="space-y-1.5">
+                  {result.issues.map((issue, i) => (
+                    <div key={i} className="text-xs flex items-start gap-2 text-slate-600 dark:text-slate-300">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                      <span>{issue}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Try another */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => { setText(""); setResult(null); }}
-                className="rounded-2xl flex-1"
-              >
-                Thử câu khác
-              </Button>
-              <Button
-                onClick={() => playTTS(result.corrected)}
-                variant="outline"
-                className="rounded-2xl gap-2"
-              >
-                <Volume2 className="w-4 h-4" /> Nghe lại
-              </Button>
-            </div>
+            {/* Alternative Phrases */}
+            {result.alternatives && result.alternatives.length > 0 && (
+              <div className="pro-card p-6 space-y-3">
+                <div className="flex items-center gap-2 font-bold text-foreground text-sm">
+                  <Sparkles className="w-4 h-4 text-indigo-500" />
+                  Các Cách Diễn Đạt Tương Đương Chuẩn Bản Xứ
+                </div>
+                <div className="space-y-2">
+                  {result.alternatives.map((alt, i) => (
+                    <div
+                      key={i}
+                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-750 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium"
+                    >
+                      <span className="text-foreground">&ldquo;{alt}&rdquo;</span>
+                      <button
+                        onClick={() => playTTS(alt)}
+                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 p-1 flex-shrink-0"
+                      >
+                        {ttsLoading === alt ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Volume2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Badges info */}
-      <div className="mt-8 flex flex-wrap gap-2">
-        <Badge variant="outline" className="rounded-full">+10 XP mỗi phân tích</Badge>
-        <Badge variant="outline" className="rounded-full">+5 🪙 nếu câu đúng</Badge>
-      </div>
     </div>
   );
 }

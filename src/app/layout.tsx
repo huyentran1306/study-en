@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "@/components/app-shell";
 
-const nunito = Nunito({
+const fontSans = Plus_Jakarta_Sans({
   subsets: ["latin", "vietnamese"],
-  variable: "--font-nunito",
+  variable: "--font-sans",
   weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "LinguaPlay ✨ - Học Ngôn Ngữ Theo Cách Vui Nhộn!",
+  title: "LinguaPro — Nền Tảng Luyện Tiếng Anh & Giao Tiếp Chuyên Nghiệp",
   description:
-    "Ứng dụng học đa ngôn ngữ (Tiếng Anh, Tiếng Trung...) theo phong cách kawaii — AI hội thoại, flashcard từ vựng, luyện phát âm và hơn thế nữa!",
+    "Môi trường học tiếng Anh chuyên nghiệp cho người đi làm: AI Conversation Partner, Speech Lab, Shadowing thực chiến và Spaced Repetition.",
 };
 
 export default function RootLayout({
@@ -25,10 +25,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(nunito.variable, "font-kawaii antialiased")}>
+      <body className={cn(fontSans.variable, "font-sans antialiased selection:bg-indigo-500/20 selection:text-indigo-400")}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >

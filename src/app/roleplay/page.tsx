@@ -3,8 +3,21 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame, useTranslation } from "@/contexts/game-context";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  BookOpen,
+  Briefcase,
+  Layers,
+  Sparkles,
+  User,
+  Bot,
+  Compass,
+  ArrowRight,
+} from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 const WORKER_BASE = process.env.NEXT_PUBLIC_WORKER_URL || "https://d1-template.trann46698.workers.dev";
 
@@ -27,97 +40,118 @@ interface RolePlayScenario {
   vocabulary: string; // JSON
 }
 
-// Built-in real-life scenarios for daily communication
 const BUILTIN_EN_SCENARIOS: RolePlayScenario[] = [
   {
-    id: "builtin-coffee",
+    id: "builtin-interview",
     language: "en",
-    title: "Ordering at a Coffee Shop",
-    title_vi: "Gọi đồ tại quán cà phê",
-    emoji: "☕",
-    gradient: "from-amber-400 to-orange-500",
-    setting: "You're at a busy coffee shop ordering your morning drink",
-    setting_vi: "Bạn đang ở quán cà phê gọi đồ uống buổi sáng",
-    npc_name: "Emma",
-    npc_emoji: "☕",
-    npc_role: "Barista",
-    player_role: "Customer",
-    opening_line: "Good morning! Welcome to Bean & Brew. What can I get started for you today?",
-    opening_line_vi: "Chào buổi sáng! Chào mừng đến Bean & Brew. Tôi có thể phục vụ gì cho bạn?",
-    suggested_responses: JSON.stringify(["I'd like a large latte, please.", "What's your most popular drink?", "Can I get a caramel macchiato to go?", "Do you have any seasonal specials?"]),
-    vocabulary: JSON.stringify([{ word: "latte", meaning: "espresso + steamed milk" }, { word: "to go", meaning: "take away" }, { word: "oat milk", meaning: "plant-based milk" }, { word: "venti", meaning: "large size" }]),
+    title: "Executive Job Interview",
+    title_vi: "Phỏng vấn tuyển dụng vị trí cấp cao",
+    emoji: "💼",
+    gradient: "from-indigo-600 to-sky-600",
+    setting: "In-depth behavioral interview at an international technology firm",
+    setting_vi: "Phỏng vấn năng lực chuyên sâu tại tập đoàn công nghệ đa quốc gia",
+    npc_name: "David Vance",
+    npc_emoji: "👔",
+    npc_role: "VP of Engineering",
+    player_role: "Senior Candidate",
+    opening_line: "Thank you for joining our interview today. To start off, could you walk me through a major engineering leadership challenge you overcame in your recent role?",
+    opening_line_vi: "Cảm ơn bạn đã tham gia buổi phỏng vấn hôm nay. Trước hết, bạn có thể chia sẻ về một thách thức lãnh đạo kỹ thuật mà bạn đã giải quyết gần đây không?",
+    suggested_responses: JSON.stringify([
+      "Certainly. In my last project, we had to re-architect our data pipeline under tight deadlines.",
+      "I led a cross-functional team of eight engineers through a complex cloud migration.",
+      "Our main hurdle was resolving cross-team dependencies while maintaining 99.9% uptime.",
+      "I focused heavily on aligning stakeholders and setting clear weekly milestones.",
+    ]),
+    vocabulary: JSON.stringify([
+      { word: "cross-functional", meaning: "đa phòng ban / liên chức năng" },
+      { word: "stakeholder alignment", meaning: "sự thống nhất từ các bên liên quan" },
+      { word: "scalability", meaning: "khả năng mở rộng hệ thống" },
+      { word: "trade-off", meaning: "sự đánh đổi kỹ thuật" },
+    ]),
   },
   {
     id: "builtin-office",
     language: "en",
-    title: "Workplace Small Talk",
-    title_vi: "Nói chuyện tại văn phòng",
-    emoji: "💼",
-    gradient: "from-green-400 to-emerald-500",
-    setting: "Monday morning by the office coffee machine",
-    setting_vi: "Sáng thứ Hai cạnh máy pha cà phê văn phòng",
-    npc_name: "Mark",
-    npc_emoji: "👔",
-    npc_role: "Colleague",
-    player_role: "Coworker",
-    opening_line: "Hey! How was your weekend? Did you do anything fun?",
-    opening_line_vi: "Này! Cuối tuần của bạn thế nào? Bạn có làm gì vui không?",
-    suggested_responses: JSON.stringify(["It was great, I went hiking!", "Not much, just relaxed at home.", "I had a really busy weekend actually.", "Pretty good! How about yours?"]),
-    vocabulary: JSON.stringify([{ word: "catch up", meaning: "reconnect, talk about recent events" }, { word: "swamped", meaning: "very busy" }, { word: "deadline", meaning: "due date" }, { word: "heading out", meaning: "leaving" }]),
+    title: "Sprint Alignment & Standup",
+    title_vi: "Họp rà soát tiến độ dự án (Sprint Standup)",
+    emoji: "📊",
+    gradient: "from-slate-700 to-slate-900",
+    setting: "Monday morning cross-team sync discussing deliverables and blockers",
+    setting_vi: "Họp đầu tuần trao đổi về các đầu việc quan trọng và tháo gỡ điểm nghẽn",
+    npc_name: "Sarah Jenkins",
+    npc_emoji: "👩‍💼",
+    npc_role: "Product Lead",
+    player_role: "Project Contributor",
+    opening_line: "Good morning team. Let's do a quick alignment. What are your key focus areas for this sprint and are there any blockers?",
+    opening_line_vi: "Chào buổi sáng cả đội. Hãy điểm nhanh tiến độ nhé. Trọng tâm của bạn tuần này là gì và có điểm nghẽn nào không?",
+    suggested_responses: JSON.stringify([
+      "I'm finalizing the API specifications today and anticipate no major blockers.",
+      "We're currently waiting on security sign-off before deploying to staging.",
+      "My main priority is optimizing query latency for the reporting dashboard.",
+      "Everything is on track to meet the Friday release milestone.",
+    ]),
+    vocabulary: JSON.stringify([
+      { word: "blocker", meaning: "rào cản / điểm nghẽn tiến độ" },
+      { word: "deliverable", meaning: "kết quả bàn giao dự án" },
+      { word: "on track", meaning: "đúng tiến độ đề ra" },
+      { word: "sign-off", meaning: "sự phê duyệt chính thức" },
+    ]),
+  },
+  {
+    id: "builtin-coffee",
+    language: "en",
+    title: "Coffee Sync & Networking",
+    title_vi: "Gặp gỡ trao đổi thân mật tại quán cafe",
+    emoji: "☕",
+    gradient: "from-amber-600 to-orange-600",
+    setting: "Informal chat with a colleague or industry peer over morning coffee",
+    setting_vi: "Trò chuyện thân mật với đồng nghiệp hoặc đối tác trong giờ nghỉ",
+    npc_name: "Marcus Cole",
+    npc_emoji: "☕",
+    npc_role: "Industry Peer",
+    player_role: "Professional",
+    opening_line: "Hey! Glad we could catch up before the morning meetings start. How have things been on your side this quarter?",
+    opening_line_vi: "Chào bạn! Rất vui được gặp nhau trước giờ họp sáng. Tình hình bên bạn quý này thế nào rồi?",
+    suggested_responses: JSON.stringify([
+      "It has been a whirlwind, but we recently shipped our new product update.",
+      "Pretty busy! We're expanding into new client accounts across Southeast Asia.",
+      "Keeping up with the new tech stack has been both fun and demanding.",
+      "Things are going well. How is your team handling the current roadmap?",
+    ]),
+    vocabulary: JSON.stringify([
+      { word: "catch up", meaning: "gặp gỡ cập nhật tình hình" },
+      { word: "whirlwind", meaning: "bận rộn dồn dập" },
+      { word: "ship a feature", meaning: "phát hành tính năng mới" },
+      { word: "roadmap", meaning: "lộ trình phát triển" },
+    ]),
   },
   {
     id: "builtin-phone",
     language: "en",
-    title: "Making a Phone Reservation",
-    title_vi: "Đặt bàn qua điện thoại",
-    emoji: "📱",
-    gradient: "from-sky-400 to-blue-500",
-    setting: "Calling a restaurant to make a dinner reservation",
-    setting_vi: "Gọi điện cho nhà hàng để đặt bàn ăn tối",
-    npc_name: "Sophie",
+    title: "Vendor Negotiation Call",
+    title_vi: "Đàm phán hợp đồng nhà cung cấp",
+    emoji: "📞",
+    gradient: "from-emerald-600 to-teal-700",
+    setting: "Negotiating service terms and annual licensing with an enterprise vendor",
+    setting_vi: "Thương lượng điều khoản và chi phí dịch vụ với đối tác cung cấp phần mềm",
+    npc_name: "Elena Rostova",
     npc_emoji: "📞",
-    npc_role: "Restaurant Host",
-    player_role: "Customer",
-    opening_line: "Good afternoon, The Olive Garden, this is Sophie speaking. How may I help you today?",
-    opening_line_vi: "Chiều tốt lành, Nhà hàng The Olive Garden, tôi là Sophie. Tôi có thể giúp gì cho bạn?",
-    suggested_responses: JSON.stringify(["I'd like to make a reservation for tonight.", "Do you have any tables available for two?", "We're a party of four for Saturday evening.", "What time do you close?"]),
-    vocabulary: JSON.stringify([{ word: "reservation", meaning: "booking in advance" }, { word: "party of", meaning: "group of people" }, { word: "available", meaning: "free, open" }, { word: "hold on", meaning: "wait a moment" }]),
-  },
-  {
-    id: "builtin-interview",
-    language: "en",
-    title: "Job Interview Practice",
-    title_vi: "Luyện phỏng vấn xin việc",
-    emoji: "👔",
-    gradient: "from-purple-400 to-violet-500",
-    setting: "A job interview at a tech company",
-    setting_vi: "Phỏng vấn xin việc tại công ty công nghệ",
-    npc_name: "David",
-    npc_emoji: "🎯",
-    npc_role: "Hiring Manager",
-    player_role: "Job Candidate",
-    opening_line: "Thanks for coming in today. Please, have a seat. Can you start by telling me a little about yourself?",
-    opening_line_vi: "Cảm ơn bạn đã đến hôm nay. Mời ngồi. Bạn có thể giới thiệu đôi chút về bản thân không?",
-    suggested_responses: JSON.stringify(["Sure! I'm a software developer with 3 years of experience.", "I've been working in marketing for the past two years.", "I recently graduated and I'm looking for my first role.", "I have a background in data analysis."]),
-    vocabulary: JSON.stringify([{ word: "strengths", meaning: "things you're good at" }, { word: "experience", meaning: "work history" }, { word: "opportunity", meaning: "chance, opening" }, { word: "motivated", meaning: "enthusiastic, driven" }]),
-  },
-  {
-    id: "builtin-doctor",
-    language: "en",
-    title: "At the Doctor's Office",
-    title_vi: "Tại phòng khám bác sĩ",
-    emoji: "🏥",
-    gradient: "from-pink-400 to-rose-500",
-    setting: "Visiting the doctor about not feeling well",
-    setting_vi: "Đến gặp bác sĩ vì không khỏe",
-    npc_name: "Dr. Chen",
-    npc_emoji: "👨‍⚕️",
-    npc_role: "Doctor",
-    player_role: "Patient",
-    opening_line: "Hello, come on in. So what brings you in today? How can I help you?",
-    opening_line_vi: "Xin chào, mời vào. Vậy hôm nay bạn đến vì vấn đề gì? Tôi có thể giúp gì cho bạn?",
-    suggested_responses: JSON.stringify(["I've had a headache for two days.", "I have a sore throat and a fever.", "I've been feeling very tired lately.", "I think I might have caught a cold."]),
-    vocabulary: JSON.stringify([{ word: "symptoms", meaning: "signs of illness" }, { word: "prescription", meaning: "doctor's medicine order" }, { word: "allergic to", meaning: "having a bad reaction to" }, { word: "dosage", meaning: "amount of medicine" }]),
+    npc_role: "Enterprise Account Director",
+    player_role: "Procurement Lead",
+    opening_line: "Hello, this is Elena following up on our enterprise proposal. We'd love to review the contract terms and see where we can align.",
+    opening_line_vi: "Xin chào, tôi là Elena liên hệ theo đề xuất doanh nghiệp. Chúng tôi muốn xem xét các điều khoản và tìm tiếng nói chung.",
+    suggested_responses: JSON.stringify([
+      "We've reviewed the proposal, but the licensing tiers are slightly above our budget.",
+      "Can we explore a volume discount if we commit to a two-year agreement?",
+      "We'd like to understand what dedicated support SLAs are included in tier 1.",
+      "If we can align on net-60 payment terms, we are ready to move forward.",
+    ]),
+    vocabulary: JSON.stringify([
+      { word: "volume discount", meaning: "chiết khấu số lượng lớn" },
+      { word: "commitment", meaning: "cam kết thời hạn hợp đồng" },
+      { word: "SLA", meaning: "cam kết chất lượng dịch vụ (Service Level Agreement)" },
+      { word: "terms", meaning: "điều khoản thanh toán" },
+    ]),
   },
 ];
 
@@ -131,14 +165,14 @@ async function fetchNPCResponse(scenario: RolePlayScenario, history: ChatMessage
       body: JSON.stringify({ scenario, history, userMessage, language }),
     });
     const data = await res.json() as { message: string };
-    return data.message || "That's interesting! Tell me more.";
+    return data.message || "That's a very valid point. Let's explore that further.";
   } catch {
-    return "That's great! Tell me more.";
+    return "Understood. How would you propose addressing the next steps?";
   }
 }
 
 function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack: () => void }) {
-  const { addXP, addCoins, language, username, activeStudyLanguage } = useGame();
+  const { addXP, addCoins, username, activeStudyLanguage } = useGame();
   const isZh = activeStudyLanguage === "zh";
   const suggestedResponses: string[] = JSON.parse(scenario.suggested_responses || "[]");
   const vocabList: { word: string; meaning: string }[] = JSON.parse(scenario.vocabulary || "[]");
@@ -147,7 +181,6 @@ function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack
     { sender: "npc", text: scenario.opening_line },
   ]);
   const [input, setInput] = useState("");
-  const [messageCount, setMessageCount] = useState(0);
   const [showVocab, setShowVocab] = useState(false);
   const [isNPCLoading, setIsNPCLoading] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -162,11 +195,9 @@ function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack
     const currentHistory = [...messages, userMsg];
     setMessages(currentHistory);
     setInput("");
-    setMessageCount((c) => c + 1);
     addXP(5);
-    if ((messageCount + 1) % 3 === 0) addCoins(5);
+    addCoins(1);
 
-    // Show loading indicator
     setIsNPCLoading(true);
     setMessages((prev) => [...prev, { sender: "npc", text: "", isLoading: true }]);
 
@@ -180,70 +211,158 @@ function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-      <motion.button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4" whileHover={{ x: -3 }}>
-        <ArrowLeft className="w-4 h-4" /> Back
-      </motion.button>
-      <div className={`rounded-3xl bg-gradient-to-r ${scenario.gradient} text-white p-4 mb-4 shadow-lg`}>
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{scenario.npc_emoji}</span>
-          <div>
-            <p className="font-bold">{scenario.npc_name} ({scenario.npc_role})</p>
-            <p className="text-xs opacity-80">{language === "vi" && scenario.setting_vi ? scenario.setting_vi : scenario.setting}</p>
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Thoát kịch bản
+        </button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowVocab(!showVocab)}
+          className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold gap-1.5"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+          {showVocab ? "Ẩn thuật ngữ" : "Xem thuật ngữ hữu ích"}
+        </Button>
+      </div>
+
+      {/* Scenario Header HUD */}
+      <div className="pro-card p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/10 text-lg font-bold">
+            {scenario.npc_name[0]}
           </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-base text-white">{scenario.npc_name}</h3>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-indigo-500/30 text-indigo-200 border border-indigo-400/20">
+                {scenario.npc_role}
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              {scenario.title_vi || scenario.title} · Bạn đóng vai: <strong className="text-white">{scenario.player_role}</strong>
+            </p>
+          </div>
+        </div>
+
+        <div className="text-xs text-slate-400 max-w-xs sm:text-right italic">
+          &ldquo;{scenario.setting}&rdquo;
         </div>
       </div>
 
-      <motion.button onClick={() => setShowVocab(!showVocab)} className="mb-3 text-sm font-medium text-kawaii-purple hover:text-kawaii-pink transition-colors">
-        📝 {showVocab ? "Hide" : "Show"} Vocabulary
-      </motion.button>
-
+      {/* Vocabulary Drawer */}
       <AnimatePresence>
         {showVocab && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mb-4 overflow-hidden">
-            <div className="grid grid-cols-2 gap-2">
-              {vocabList.map((v) => (
-                <div key={v.word} className="bg-kawaii-purple/10 rounded-xl px-3 py-2 text-sm">
-                  <span className="font-bold">{v.word}</span> — <span className="text-muted-foreground">{v.meaning}</span>
-                </div>
-              ))}
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="pro-card p-5 bg-slate-50 dark:bg-slate-850/70 border-indigo-500/20">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-3">
+                Thuật ngữ & Thành ngữ ngữ cảnh nên áp dụng:
+              </h4>
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {vocabList.map((v) => (
+                  <div key={v.word} className="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 text-xs">
+                    <span className="font-bold text-foreground">{v.word}</span>
+                    <span className="text-slate-400 mx-1.5">—</span>
+                    <span className="text-muted-foreground">{v.meaning}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div ref={chatRef} className="h-72 overflow-y-auto mb-4 space-y-3 rounded-3xl bg-white/50 dark:bg-gray-800/50 backdrop-blur p-4 border border-kawaii-purple/10">
+      {/* Chat Thread Container */}
+      <div
+        ref={chatRef}
+        className="h-[380px] overflow-y-auto space-y-4 p-5 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 shadow-xs"
+      >
         {messages.map((msg, idx) => (
-          <motion.div key={idx} initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} className={`flex ${msg.sender === "player" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${msg.sender === "player" ? "bg-gradient-kawaii text-white rounded-br-sm" : "bg-white dark:bg-gray-700 shadow-sm rounded-bl-sm"}`}>
-              <p className="text-xs font-bold mb-1 opacity-70">{msg.sender === "npc" ? scenario.npc_name : username}</p>
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`flex items-start gap-2.5 ${msg.sender === "player" ? "justify-end" : "justify-start"}`}
+          >
+            {msg.sender === "npc" && (
+              <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 text-xs font-bold flex-shrink-0 mt-1 border border-slate-200/80 dark:border-slate-700">
+                <Bot className="w-3.5 h-3.5 text-indigo-500" />
+              </div>
+            )}
+
+            <div
+              className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed ${
+                msg.sender === "player"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-foreground border border-slate-200/60 dark:border-slate-700/60"
+              }`}
+            >
               {msg.isLoading ? (
-                <div className="flex gap-1.5 py-1">
-                  {[0,1,2].map((i) => (
-                    <motion.div key={i} className="w-2 h-2 rounded-full bg-kawaii-purple/40" animate={{ y: [0,-4,0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.2 }} />
-                  ))}
+                <div className="flex items-center gap-1.5 py-1">
+                  <span className="text-xs text-muted-foreground">Đang phản hồi...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
                 </div>
               ) : (
-                <p className="text-sm">{msg.text}</p>
+                msg.text
               )}
             </div>
+
+            {msg.sender === "player" && (
+              <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-950/80 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xs font-bold flex-shrink-0 mt-1 border border-indigo-200/60 dark:border-indigo-800/60">
+                <User className="w-3.5 h-3.5" />
+              </div>
+            )}
           </motion.div>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-3">
-        {suggestedResponses.map((resp, idx) => (
-          <motion.button key={idx} onClick={() => sendMessage(resp)} disabled={isNPCLoading} className="text-xs px-3 py-1.5 rounded-full bg-kawaii-purple/10 hover:bg-kawaii-purple/20 font-medium transition-colors disabled:opacity-50" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            {resp}
-          </motion.button>
-        ))}
+      {/* Suggested Quick Responses */}
+      <div className="space-y-2">
+        <span className="text-[11px] font-semibold text-muted-foreground block">Gợi ý phản hồi nhanh (Click để gửi):</span>
+        <div className="flex flex-wrap gap-2">
+          {suggestedResponses.map((resp, idx) => (
+            <button
+              key={idx}
+              onClick={() => sendMessage(resp)}
+              disabled={isNPCLoading}
+              className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 transition-colors disabled:opacity-50 text-left"
+            >
+              {resp}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Input Console */}
       <div className="flex gap-2">
-        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage(input)} disabled={isNPCLoading} placeholder={isZh ? "输入你的回应..." : "Type your response..."} className="flex-1 px-4 py-3 rounded-2xl bg-white/60 dark:bg-gray-800/60 border-2 border-transparent focus:border-kawaii-purple focus:outline-none disabled:opacity-60" />
-        <motion.button onClick={() => sendMessage(input)} disabled={!input.trim() || isNPCLoading} className="p-3 rounded-2xl bg-gradient-kawaii text-white shadow-kawaii disabled:opacity-50" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          {isNPCLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-        </motion.button>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
+          disabled={isNPCLoading}
+          placeholder={isZh ? "输入你的回应..." : "Nhập câu thoại của bạn để tương tác..."}
+          className="flex-1 px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs sm:text-sm"
+        />
+        <Button
+          onClick={() => sendMessage(input)}
+          disabled={!input.trim() || isNPCLoading}
+          className="btn-pro px-5 rounded-xl gap-2"
+        >
+          {isNPCLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          <span>Gửi</span>
+        </Button>
       </div>
     </div>
   );
@@ -257,7 +376,6 @@ export default function RolePlayPage() {
   const [loading, setLoading] = useState(true);
   const [activeScenario, setActiveScenario] = useState<RolePlayScenario | null>(null);
 
-  // Merge built-in + DB scenarios (built-in first for EN, DB for ZH)
   const scenarios = isZh ? dbScenarios : [...BUILTIN_EN_SCENARIOS, ...dbScenarios];
 
   useEffect(() => {
@@ -275,62 +393,84 @@ export default function RolePlayPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-bold mb-2">
-        <span className="bg-gradient-kawaii bg-clip-text text-transparent">
-          🎭 {isZh ? "角色扮演" : t.roleplay}
-        </span>
-      </h1>
-      <p className="text-muted-foreground mb-6 text-sm">
-        {isZh ? "在真实场景中练习中文！" : language === "vi" ? "Luyện tiếng Anh trong các tình huống thực tế!" : "Practice in real-life scenarios!"}
-      </p>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      {/* Header */}
+      <div className="pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center gap-2 mb-1">
+          <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-foreground">
+            Dashboard
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Situational Roleplay</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+          <Layers className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          Situational Roleplay & Negotiation Lab
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Nhập vai hội thoại tình huống thực tế: phỏng vấn tuyển dụng, đàm phán hợp đồng, họp dự án cùng AI.
+        </p>
+      </div>
 
       {loading ? (
-        <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-3xl bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse" />
+            <div key={i} className="h-36 rounded-2xl bg-slate-100 dark:bg-slate-800/60 animate-pulse border border-slate-200/60 dark:border-slate-700" />
           ))}
         </div>
-      ) : scenarios.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p className="text-4xl mb-3">🎭</p>
-          <p>No scenarios yet. Check back soon!</p>
-        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           {scenarios.map((scenario) => {
             const vocabList: { word: string; meaning: string }[] = JSON.parse(scenario.vocabulary || "[]");
             return (
               <motion.button
                 key={scenario.id}
                 onClick={() => setActiveScenario(scenario)}
-                className={`w-full p-6 rounded-3xl bg-gradient-to-r ${scenario.gradient} text-white text-left shadow-lg`}
-                whileHover={{ scale: 1.02, x: 5 }}
-                whileTap={{ scale: 0.98 }}
+                className="pro-card p-6 text-left hover:-translate-y-1 transition-all group flex flex-col justify-between"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
-                <div className="flex items-center gap-4">
-                  <motion.span className="text-4xl" animate={{ y: [0, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>
-                    {scenario.emoji}
-                  </motion.span>
-                  <div>
-                    <h3 className="text-lg font-bold">{language === "vi" && scenario.title_vi ? scenario.title_vi : scenario.title}</h3>
-                    <p className="text-sm opacity-80">{language === "vi" && scenario.setting_vi ? scenario.setting_vi : scenario.setting}</p>
-                    <div className="flex gap-2 mt-2">
-                      {vocabList.slice(0, 3).map((v) => (
-                        <span key={v.word} className="text-xs bg-white/20 rounded-full px-2 py-0.5">{v.word}</span>
-                      ))}
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm border border-indigo-200/60 dark:border-indigo-800/60">
+                        {scenario.npc_name?.[0] || "A"}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">{scenario.npc_name}</div>
+                        <div className="text-[10px] text-muted-foreground">{scenario.npc_role}</div>
+                      </div>
                     </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      Vai: {scenario.player_role}
+                    </span>
                   </div>
+
+                  <h3 className="text-base font-bold text-foreground mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {language === "vi" && scenario.title_vi ? scenario.title_vi : scenario.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {language === "vi" && scenario.setting_vi ? scenario.setting_vi : scenario.setting}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {vocabList.slice(0, 3).map((v) => (
+                      <span key={v.word} className="text-[10px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200/60 dark:border-slate-700/60">
+                        {v.word}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span>Bắt đầu phiên nhập vai</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </motion.button>
             );
           })}
         </div>
       )}
-
-      <div className="mt-8 text-center">
-        <Link href="/"><motion.span className="text-sm text-muted-foreground hover:text-kawaii-purple" whileHover={{ scale: 1.05 }}>← Back to Home</motion.span></Link>
-      </div>
     </div>
   );
 }

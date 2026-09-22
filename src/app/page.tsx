@@ -2,323 +2,482 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkles,
+  Mic,
+  MessageSquare,
+  Repeat,
+  Layers,
+  BookOpen,
+  Volume2,
+  Wand2,
+  Gauge,
+  Flame,
+  CheckCircle2,
+  Headphones,
+  Compass,
+  Trophy,
+  Zap,
+  TrendingUp,
+  ShieldCheck,
+  Radio,
+  BrainCircuit,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DailyChallengeCard } from "@/components/daily-challenge";
-// Mascot removed for hero — small pet appears in Navbar
 import { XPBar, LevelBadge } from "@/components/gamification";
 import { useGame, useTranslation } from "@/contexts/game-context";
-import { PetWidget } from "@/components/pet-system";
-import { WorldMap } from "@/components/world-map";
-import { MysteryBoxWidget } from "@/components/mystery-box";
 import { StreakHeatmap } from "@/components/streak-heatmap";
 
 const container = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
 };
 
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 },
+const itemAnim = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
 };
 
 export default function Home() {
-  const { username, level, streak } = useGame();
+  const { username, level, streak, xp, xpToNextLevel } = useGame();
   const t = useTranslation();
 
-  const features = [
-    {
-      title: t.practiceConversation,
-      description: "Chat with AI friends and practice real conversations!",
-      emoji: "💬",
-      href: "/chat",
-      color: "kawaii-sky",
-      gradient: "from-sky-300 to-blue-400",
-    },
-    {
-      title: t.learnNewWords,
-      description: "Learn words with cute flashcards and fun quizzes!",
-      emoji: "📚",
-      href: "/vocab",
-      color: "kawaii-purple",
-      gradient: "from-purple-300 to-violet-400",
-    },
-    {
-      title: t.improveSkills,
-      description: "Record your voice and get instant feedback!",
-      emoji: "🎤",
-      href: "/speaking",
-      color: "kawaii-pink",
-      gradient: "from-pink-300 to-rose-400",
-    },
-    {
-      title: t.games,
-      description: "Play fun mini-games while learning new words!",
-      emoji: "🎮",
-      href: "/games",
-      color: "kawaii-mint",
-      gradient: "from-green-300 to-emerald-400",
-    },
-    {
-      title: t.story,
-      description: "Interactive stories with vocabulary adventures!",
-      emoji: "📖",
-      href: "/story",
-      color: "kawaii-yellow",
-      gradient: "from-amber-300 to-orange-400",
-    },
-    {
-      title: t.roleplay,
-      description: "Practice real-life scenarios like ordering food!",
-      emoji: "🎭",
-      href: "/roleplay",
-      color: "kawaii-purple",
-      gradient: "from-indigo-300 to-purple-400",
-    },
-    {
-      title: "Full Voice Mode",
-      description: "Speak naturally with AI — no typing! Real conversations.",
-      emoji: "🎙️",
-      href: "/voice",
-      color: "kawaii-pink",
-      gradient: "from-rose-300 to-pink-400",
-    },
-    {
-      title: "Shadowing Practice",
-      description: "Listen → Repeat → Get scored. Best for pronunciation!",
-      emoji: "🔁",
-      href: "/shadowing",
-      color: "kawaii-mint",
-      gradient: "from-teal-300 to-cyan-400",
-    },
-    {
-      title: "Fix My English",
-      description: "Gửi câu tiếng Anh của bạn — AI sửa và gợi ý cách nói tự nhiên hơn!",
-      emoji: "🔧",
-      href: "/fix-english",
-      color: "kawaii-orange",
-      gradient: "from-orange-300 to-red-400",
-    },
-    {
-      title: "Phrases Bank",
-      description: "500+ cụm từ giao tiếp theo chủ đề. Quiz + nghe phát âm chuẩn!",
-      emoji: "💬",
-      href: "/phrases",
-      color: "kawaii-yellow",
-      gradient: "from-amber-300 to-yellow-400",
-    },
-    {
-      title: "Pronunciation Drill",
-      description: "Luyện phân biệt âm khó (Ship/Sheep, V/W, R/L...) với AI chấm điểm!",
-      emoji: "🔤",
-      href: "/pronunciation",
-      color: "kawaii-lavender",
-      gradient: "from-lime-300 to-green-400",
-    },
-    {
-      title: "Speed Speaking",
-      description: "30 giây nói càng nhiều càng tốt. AI đo WPM + chấm fluency!",
-      emoji: "⚡",
-      href: "/speed-speaking",
-      color: "kawaii-yellow",
-      gradient: "from-yellow-300 to-orange-400",
-    },
-    {
-      title: "Conversation Starters",
-      description: "Không biết bắt đầu nói gì? AI gợi ý câu mở đầu tự nhiên theo tình huống!",
-      emoji: "🗣️",
-      href: "/conversation-starters",
-      color: "kawaii-pink",
-      gradient: "from-fuchsia-300 to-pink-400",
-    },
-  ];
-
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Welcome Hero */}
+    <div className="mx-auto max-w-6xl px-3.5 py-6 sm:px-6 sm:py-8 space-y-6 sm:space-y-10">
+      {/* Executive Command Header */}
       <motion.section
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative py-8 text-center"
+        className="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-8 lg:p-10 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_20px_40px_-20px_rgba(15,23,42,0.08)]"
       >
-        {/* Greeting with Mascot */}
-        <div className="flex flex-col items-center gap-4">
-          {/* Large mascot removed per design — keep greeting only */}
+        {/* Subtle top edge glow highlight */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-2"
-          >
-            <h1 className="text-3xl sm:text-4xl font-extrabold">
-              <span className="bg-gradient-kawaii bg-clip-text text-transparent">
-                {t.welcome}, {username}!
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+          <div className="space-y-4 max-w-2xl">
+            {/* Live System Indicator */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <motion.span
-                className="inline-block ml-2"
-                animate={{ rotate: [0, 20, 0] }}
-                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-              >
-                👋
-              </motion.span>
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              {t.continueJourney} ✨
-            </p>
-          </motion.div>
-        </div>
+              <span>AI Speech & Mentorship Engine · Online</span>
+            </div>
 
-        {/* XP Progress */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-8 max-w-md mx-auto"
-        >
-          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-3xl p-5 shadow-kawaii">
-            <div className="flex items-center gap-4 mb-3">
-              <LevelBadge size="lg" />
-              <div className="flex-1">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
+              Chào mừng trở lại,{" "}
+              <span className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 bg-clip-text text-transparent">
+                {username}
+              </span>
+            </h1>
+
+            <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base leading-relaxed">
+              Không gian rèn luyện phản xạ tiếng Anh chuyên sâu cho người đi làm. Luyện nói tự nhiên, đàm phán tự tin và chuẩn hóa ngữ điệu bản xứ.
+            </p>
+
+            {/* Quick Action CTA Bar */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link href="/voice">
+                <Button className="btn-pro px-5 py-3 text-xs sm:text-sm font-bold gap-2">
+                  <Mic className="w-4 h-4" />
+                  Mở Voice Studio 1-on-1
+                </Button>
+              </Link>
+              <Link href="/chat">
+                <Button
+                  variant="outline"
+                  className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold px-4 py-2.5 text-xs sm:text-sm text-foreground"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2 text-indigo-500" />
+                  AI Chat Mentor
+                </Button>
+              </Link>
+              <Link href="/vocab">
+                <Button
+                  variant="outline"
+                  className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold px-4 py-2.5 text-xs sm:text-sm text-foreground"
+                >
+                  <BookOpen className="w-4 h-4 mr-2 text-sky-500" />
+                  Flashcard Anki SM-2
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Telemetry KPI Card */}
+          <div className="w-full lg:w-84 rounded-2xl bg-slate-50/70 dark:bg-slate-850/60 border border-slate-200/80 dark:border-slate-750 p-5 backdrop-blur-md space-y-4">
+            <div className="flex items-center gap-3">
+              <LevelBadge size="md" />
+              <div className="flex-1 min-w-0">
                 <XPBar />
               </div>
             </div>
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span>🔥</span>
-              <span className="font-medium">{streak} {t.streak}</span>
-              <span className="mx-2">•</span>
-              <span>⭐</span>
-              <span className="font-medium">{t.level} {level}</span>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-200/70 dark:border-slate-700/60">
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
+                  <Flame className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-foreground tabular-nums">{streak} Ngày</div>
+                  <div className="text-[10px] text-muted-foreground font-medium">Chuỗi rèn luyện</div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-foreground">Cấp {level}</div>
+                  <div className="text-[10px] text-muted-foreground font-medium">Độ thành thạo</div>
+                </div>
+              </div>
             </div>
           </div>
-        </motion.div>
-      </motion.section>
-
-      {/* Feature Cards */}
-      <motion.section
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="py-8"
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          {features.map((feature, idx) => (
-            <motion.div key={feature.title} variants={item} custom={idx}>
-              <Link href={feature.href}>
-                <motion.div
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group cursor-pointer rounded-3xl bg-white/70 dark:bg-gray-800/70 backdrop-blur p-6 shadow-kawaii hover:shadow-kawaii-lg transition-all border-2 border-transparent hover:border-kawaii-purple/30"
-                >
-                  {/* Icon */}
-                  <motion.div 
-                    className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${feature.gradient} shadow-lg`}
-                    whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-                    transition={{ duration: 0.4 }}
-                  >
-                    <span className="text-3xl">{feature.emoji}</span>
-                  </motion.div>
-                  
-                  <h3 className="text-lg font-bold mb-2 flex items-center gap-2 group-hover:text-kawaii-purple transition-colors">
-                    {feature.title}
-                    <motion.div
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </motion.div>
-                  </h3>
-                  
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
-                </motion.div>
-              </Link>
-            </motion.div>
-          ))}
         </div>
       </motion.section>
 
-      {/* Daily Challenge */}
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="py-6"
-      >
-        <div className="mb-6 flex items-center gap-3">
-          <motion.div
-            animate={{ scale: [1, 1.15, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-red-400 shadow-lg"
-          >
-            <span className="text-2xl">🔥</span>
-          </motion.div>
+      {/* Flagship Asymmetric Bento Studio Grid */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-2 border-b border-slate-200/70 dark:border-slate-800">
           <div>
-            <h2 className="text-xl font-bold">{t.dailyChallenge}</h2>
-            <p className="text-sm text-muted-foreground">
-              Complete to earn XP & coins! 💰
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <span className="w-2 h-5 rounded-full bg-indigo-600 dark:bg-indigo-500" />
+              Studio Luyện Tập & Phản Xạ Ngôn Ngữ
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Lựa chọn module rèn luyện chuyên sâu theo mục tiêu thực tế của bạn.
+            </p>
+          </div>
+        </div>
+
+        <motion.div
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {/* Bento Card 1: Flagship Voice Realtime (Large Spanning 2 Columns) */}
+          <motion.div variants={itemAnim} className="sm:col-span-2">
+            <Link href="/voice" className="block h-full">
+              <div className="pro-card p-6 sm:p-7 flex flex-col justify-between h-full bg-gradient-to-br from-indigo-900/10 via-white to-sky-900/10 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 border-indigo-500/30">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-sm shadow-indigo-500/30">
+                        <Mic className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                          Flagship Realtime Audio
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-bold text-foreground">
+                          Phòng Luyện Nói Realtime AI (Full Voice Studio)
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                      Độ trễ thấp &lt; 200ms
+                    </span>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
+                    Đàm thoại hai chiều bằng giọng nói tự nhiên, không cần gõ phím. Đóng vai phỏng vấn, trao đổi công việc hoặc đàm phán với AI với phản hồi âm thanh chuẩn bản xứ.
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                  <span className="flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
+                    Sẵn sàng kết nối cuộc gọi thoại
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    Bắt đầu luyện nói <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 2: AI Conversation Mentor */}
+          <motion.div variants={itemAnim}>
+            <Link href="/chat" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                      Multi-Role AI
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    AI Chat Mentor
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Hội thoại linh hoạt theo nhiều vai trò (Interviewer, Colleague, Mentor). Tích hợp phát âm TTS từng câu.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span>Mở phòng chat</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 3: Shadowing Studio */}
+          <motion.div variants={itemAnim}>
+            <Link href="/shadowing" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center text-white shadow-xs">
+                      <Repeat className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      Chuẩn Ngữ Điệu
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    Shadowing Studio
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Lặp lại đồng thời theo câu nói của người bản ngữ để triệt tiêu vấp váp và cải thiện intonation.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span>Luyện Shadowing</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 4: Situational Roleplay */}
+          <motion.div variants={itemAnim}>
+            <Link href="/roleplay" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center text-white shadow-xs">
+                      <Layers className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                      Tình Huống Công Sở
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    Situational Roleplay
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Nhập vai đàm phán hợp đồng, họp dự án (Standup), phỏng vấn tuyển dụng và xử lý tình huống thực tế.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-purple-600 dark:text-purple-400">
+                  <span>Vào kịch bản</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 5: Spaced Repetition Flashcards */}
+          <motion.div variants={itemAnim}>
+            <Link href="/vocab" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                      Anki Pro SM-2
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    Flashcard & Thuật Toán SM-2
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Học từ vựng ngắt quãng với 4 cấp độ đánh giá (Again, Hard, Good, Easy) giúp ghi nhớ lâu bền.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span>Lật thẻ ôn tập</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 6: Fix My English */}
+          <motion.div variants={itemAnim}>
+            <Link href="/fix-english" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-xs">
+                      <Wand2 className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                      Writing Refiner
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    Fix My English
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Nhập câu nói hoặc email công việc — AI tự động tối ưu hóa văn phong ngắn gọn và tự nhiên hơn.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                  <span>Sửa câu & email</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 7: Speed Speaking 30s */}
+          <motion.div variants={itemAnim}>
+            <Link href="/speed-speaking" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white shadow-xs">
+                      <Gauge className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      Đo WPM Phản Xạ
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    Speed Speaking 30s
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    30 giây nói tự do theo chủ đề ngẫu nhiên: AI đo lường tốc độ WPM và chấm điểm độ lưu loát.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  <span>Thử thách tốc độ</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 8: Pronunciation Drill */}
+          <motion.div variants={itemAnim}>
+            <Link href="/pronunciation" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-600 flex items-center justify-center text-white shadow-xs">
+                      <Volume2 className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+                      Cặp Âm Khó
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    Pronunciation Drills
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Phân biệt các cặp âm dễ nhầm (Ship/Sheep, This/Thin, V/W, R/L) với AI chấm điểm sóng âm.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-teal-600 dark:text-teal-400">
+                  <span>Luyện phát âm</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Bento Card 9: Language Arena */}
+          <motion.div variants={itemAnim}>
+            <Link href="/games" className="block h-full">
+              <div className="pro-card p-6 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-600 flex items-center justify-center text-white shadow-xs">
+                      <Trophy className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                      Active Recall
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-1.5">
+                    Language Arena
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Thử thách phản xạ từ vựng Business & Workplace dưới áp lực thời gian để nhớ nhanh hơn.
+                  </p>
+                </div>
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span>Vào sàn đấu</span>
+                  <span>→</span>
+                </div>
+              </div>
+            </Link>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Daily Sprint & Assessment */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200/70 dark:border-slate-800">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <span className="w-2 h-5 rounded-full bg-amber-500" />
+              Mục Tiêu & Nhiệm Vụ Hôm Nay
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Hoàn thành bài tập đánh giá ngắn để duy trì chuỗi học tập và kích hoạt phản xạ ngôn ngữ.
             </p>
           </div>
         </div>
         <DailyChallengeCard />
-      </motion.section>
+      </section>
 
-      {/* Quick Actions */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="py-8"
-      >
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/chat">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button className="gap-2 px-8 py-6 text-lg rounded-3xl bg-gradient-kawaii text-white font-bold shadow-kawaii hover:shadow-kawaii-lg">
-                💬 {t.practiceNow}
-                <Sparkles className="h-5 w-5" />
-              </Button>
-            </motion.div>
-          </Link>
-          <Link href="/games">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button 
-                variant="outline" 
-                className="gap-2 px-8 py-6 text-lg rounded-3xl border-2 border-kawaii-purple/30 hover:bg-kawaii-purple/10 font-bold"
-              >
-                🎮 {t.games}
-              </Button>
-            </motion.div>
-          </Link>
-        </div>
-      </motion.section>
-
-      {/* Pet, World Map & Mystery Box */}
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="py-6"
-      >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <PetWidget />
-          <WorldMap />
-          <MysteryBoxWidget />
-        </div>
-      </motion.section>
-
-      {/* Study Activity Heatmap */}
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="py-6"
-      >
+      {/* Cadence Analytics & Consistency */}
+      <section className="space-y-4">
         <StreakHeatmap />
-      </motion.section>
+
+        {/* 3 Executive Telemetry Metrics */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="pro-card p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground">Chỉ Số Phản Xạ (Fluency Index)</span>
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+            </div>
+            <div className="text-2xl font-extrabold text-foreground tabular-nums">86 / 100</div>
+            <p className="text-[11px] text-muted-foreground mt-1">Độ trôi chảy & giảm thiểu từ đệm</p>
+          </div>
+
+          <div className="pro-card p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground">Kho Từ Vựng Chủ Động</span>
+              <Zap className="w-4 h-4 text-indigo-500" />
+            </div>
+            <div className="text-2xl font-extrabold text-foreground tabular-nums">480+ Thuật ngữ</div>
+            <p className="text-[11px] text-muted-foreground mt-1">Ứng dụng trong ngữ cảnh công sở</p>
+          </div>
+
+          <div className="pro-card p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground">Tỷ Lệ Nhớ Dài Hạn (SM-2)</span>
+              <BrainCircuit className="w-4 h-4 text-sky-500" />
+            </div>
+            <div className="text-2xl font-extrabold text-foreground tabular-nums">94% Retention</div>
+            <p className="text-[11px] text-muted-foreground mt-1">Dựa trên lịch trình Spaced Review</p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

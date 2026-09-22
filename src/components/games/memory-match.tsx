@@ -209,15 +209,14 @@ export function MemoryMatchGame({ words: externalWords }: { words?: { word: stri
               <motion.button
                 key={d}
                 onClick={() => startGame(d)}
-                className="p-4 rounded-2xl bg-gradient-kawaii text-white shadow-kawaii"
-                whileHover={{ scale: 1.05, y: -3 }}
-                whileTap={{ scale: 0.95 }}
+                className="p-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700 text-foreground transition-all"
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <div className="text-3xl">{c.emoji}</div>
-                <div className="font-bold text-sm mt-1">
+                <div className="font-bold text-sm">
                   {language === "vi" ? c.labelVi : c.label}
                 </div>
-                <div className="text-xs opacity-80">{c.pairs} pairs</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{c.pairs} pairs</div>
               </motion.button>
             );
           })}
@@ -255,26 +254,26 @@ export function MemoryMatchGame({ words: externalWords }: { words?: { word: stri
             </div>
           </div>
         </div>
-        <p className="text-3xl font-bold text-kawaii-purple mb-2">{finalScore} pts</p>
-        <p className="text-sm text-muted-foreground mb-6">
-          +{Math.floor(finalScore / 4)} XP • +{Math.floor(finalScore / 10)} 🪙
+        <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-2">{finalScore} pts</p>
+        <p className="text-xs text-muted-foreground mb-6">
+          +{Math.floor(finalScore / 4)} XP • +{Math.floor(finalScore / 10)} Coins
         </p>
         <div className="flex gap-3 justify-center flex-wrap">
           <motion.button
             onClick={() => startGame(difficulty)}
-            className="px-6 py-3 bg-gradient-kawaii text-white font-bold rounded-2xl shadow-kawaii"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="btn-pro px-6 py-3 text-xs font-bold"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            🔄 {language === "vi" ? "Chơi lại" : "Play Again"}
+            {language === "vi" ? "Chơi lại" : "Play Again"}
           </motion.button>
           <motion.button
             onClick={() => setDifficulty(null)}
-            className="px-6 py-3 bg-muted font-bold rounded-2xl"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 bg-muted hover:bg-slate-200 dark:hover:bg-slate-700 font-bold rounded-xl text-xs"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            ⚙️ {language === "vi" ? "Đổi cấp" : "Change Level"}
+            {language === "vi" ? "Đổi độ khó" : "Change Level"}
           </motion.button>
         </div>
       </div>
@@ -346,30 +345,21 @@ function MemoryCard({ card, flipped, matched, onClick }: MemoryCardProps) {
       >
         {/* Back (hidden side) */}
         <div
-          className="absolute inset-0 rounded-2xl flex items-center justify-center bg-gradient-kawaii shadow-kawaii text-white"
+          className="absolute inset-0 rounded-xl flex items-center justify-center bg-indigo-600 text-white shadow-sm border border-indigo-500"
           style={{ backfaceVisibility: "hidden" }}
         >
-          <motion.span
-            className="text-3xl"
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            ✨
-          </motion.span>
+          <span className="font-extrabold text-sm opacity-80">LINGUA</span>
         </div>
         {/* Front (revealed side) */}
         <div
-          className={`absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-1.5 text-center ${
+          className={`absolute inset-0 rounded-xl flex flex-col items-center justify-center p-2 text-center ${
             matched
-              ? "bg-gradient-mint shadow-kawaii-mint ring-2 ring-emerald-300"
-              : card.side === "word"
-              ? "bg-gradient-sky shadow-kawaii-sky"
-              : "bg-gradient-pink shadow-kawaii-pink"
-          } text-white`}
+              ? "bg-emerald-600 ring-2 ring-emerald-400"
+              : "bg-slate-900 border border-slate-700"
+          } text-white shadow-sm`}
           style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
-          <span className="text-xl sm:text-2xl mb-0.5">{card.emoji}</span>
-          <span className="font-bold text-[11px] sm:text-sm leading-tight break-words">
+          <span className="font-bold text-xs sm:text-sm leading-tight break-words">
             {card.display}
           </span>
         </div>

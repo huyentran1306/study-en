@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Features — Study English User Manual</title>
+  <meta name="description" content="AI-powered features: conversation teacher, pronunciation analyzer, vocabulary generator, grammar correction." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+  <style>
+    .models-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .model-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--bg-code);
+      border: 1px solid var(--border-color);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-secondary);
+    }
+    .model-tag .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+    }
+    .prompt-meta {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+    .prompt-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .prompt-meta-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .prompt-meta-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .ai-section {
+      margin-bottom: 64px;
+    }
+    .ai-section-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .ai-section-desc {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">🎓</div>
+      <span class="nav-logo-text">Study<span>EN</span></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="features.html">Features</a></li>
+      <li><a href="ai-features.html">AI Features</a></li>
+      <li><a href="ai-flow.html">AI Flow</a></li>
+      <li><a href="tech-stack.html">Tech Stack</a></li>
+      <li><a href="https://github.com" target="_blank">GitHub ↗</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-toggle" title="Toggle Theme">🌙</button>
+      <a href="ai-flow.html" class="nav-cta">AI Flow →</a>
+      <button class="menu-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+
+    <!-- PAGE HERO -->
+    <div class="page-hero">
+      <div class="page-hero-bg"></div>
+      <div class="page-hero-glow"></div>
+      <div class="container">
+        <div class="page-hero-label">🤖 AI Features</div>
+        <h1 class="page-hero-title">
+          Powered by the<br>
+          <span class="gradient-text">Best AI Models</span>
+        </h1>
+        <p class="page-hero-subtitle">
+          GPT-4.1, Claude, Gemini, Whisper, Azure Speech — each feature uses the optimal AI model for maximum learning impact.
+        </p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="container">
+
+        <!-- AI Conversation Teacher -->
+        <div class="ai-section animate-on-scroll">
+          <div class="ai-section-title">🗣️ AI Conversation Teacher</div>
+          <div class="ai-section-desc">
+            An AI-powered English conversation coach that adapts to your level, corrects gently, and encourages confidence. Supports multiple LLM models for different conversation styles.
+          </div>
+
+          <div class="prompt-card">
+            <div class="prompt-header">
+              <div class="prompt-header-left">
+                <div class="prompt-icon">🗣️</div>
+                <div>
+                  <div class="prompt-title">Conversation Teacher Prompt</div>
+                  <div class="prompt-subtitle">System prompt used for AI speaking sessions</div>
+                </div>
+              </div>
+              <div class="prompt-badges">
+                <span class="badge badge-indigo">System Prompt</span>
+                <span class="badge badge-emerald">GPT-4.1</span>
+              </div>
+            </div>
+            <div class="prompt-body">
+              <div class="prompt-code">You are an English speaking coach.
+Help the user practice naturally.
+Correct grammar softly.
+Explain mistakes clearly.
+Encourage confidence.
+Keep responses concise.
+Be friendly, supportive, and educational.
+Never shame the user.
+Always explain mistakes with examples.</div>
+
+              <div class="models-row">
+                <div class="model-tag"><span class="dot" style="background:#10a37f;"></span>GPT-4.1</div>
+                <div class="model-tag"><span class="dot" style="background:#cc785c;"></span>Claude Sonnet</div>
+                <div class="model-tag"><span class="dot" style="background:#4285f4;"></span>Gemini Pro</div>
+              </div>
+
+              <div class="prompt-meta">
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Temperature</span>
+                  <span class="prompt-meta-value">0.7</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Max Tokens</span>
+                  <span class="prompt-meta-value">800</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Response Style</span>
+                  <span class="prompt-meta-value">Conversational</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Language</span>
+                  <span class="prompt-meta-value">English + Vietnamese</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Pronunciation Analyzer -->
+        <div class="ai-section animate-on-scroll">
+          <div class="ai-section-title">🎯 AI Pronunciation Analyzer</div>
+          <div class="ai-section-desc">
+            Multi-service pronunciation analysis pipeline. Records speech, processes it through Whisper for transcription, then Azure Speech for detailed phoneme analysis and scoring.
+          </div>
+
+          <div class="prompt-card">
+            <div class="prompt-header">
+              <div class="prompt-header-left">
+                <div class="prompt-icon">🎯</div>
+                <div>
+                  <div class="prompt-title">Pronunciation Analysis Prompt</div>
+                  <div class="prompt-subtitle">Detailed phoneme-level feedback generation</div>
+                </div>
+              </div>
+              <div class="prompt-badges">
+                <span class="badge badge-violet">Analysis Prompt</span>
+                <span class="badge badge-cyan">Azure Speech</span>
+              </div>
+            </div>
+            <div class="prompt-body">
+              <div class="prompt-code">Analyze pronunciation from speech input.
+Compare with native pronunciation patterns.
+
+Return structured feedback:
+- Overall pronunciation score (0-100)
+- Incorrect phonemes with corrections
+- Stress pattern issues
+- Intonation feedback
+- Fluency score
+- Top 3 improvement suggestions
+- Example words to practice
+
+Be specific, encouraging, and actionable.</div>
+
+              <div class="models-row">
+                <div class="model-tag"><span class="dot" style="background:#10a37f;"></span>Whisper STT</div>
+                <div class="model-tag"><span class="dot" style="background:#0078d4;"></span>Azure Speech</div>
+                <div class="model-tag"><span class="dot" style="background:#ff6b35;"></span>Deepgram</div>
+              </div>
+
+              <div class="prompt-meta">
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Output Format</span>
+                  <span class="prompt-meta-value">JSON + Text</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Score Range</span>
+                  <span class="prompt-meta-value">0 – 100</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Analysis Depth</span>
+                  <span class="prompt-meta-value">Phoneme Level</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Vocabulary Generator -->
+        <div class="ai-section animate-on-scroll">
+          <div class="ai-section-title">📚 AI Vocabulary Generator</div>
+          <div class="ai-section-desc">
+            Generates rich, contextual example sentences for vocabulary learning. Adapts difficulty and topic to match your current learning level and interests.
+          </div>
+
+          <div class="prompt-card">
+            <div class="prompt-header">
+              <div class="prompt-header-left">
+                <div class="prompt-icon">📚</div>
+                <div>
+                  <div class="prompt-title">Vocabulary Generation Prompt</div>
+                  <div class="prompt-subtitle">Contextual example sentence generation</div>
+                </div>
+              </div>
+              <div class="prompt-badges">
+                <span class="badge badge-amber">Generation</span>
+                <span class="badge badge-indigo">GPT-4.1</span>
+              </div>
+            </div>
+            <div class="prompt-body">
+              <div class="prompt-code">Generate 5 example sentences for vocabulary learning.
+
+Parameters:
+- Difficulty: Intermediate
+- Topic: Travel
+- Word: Adventure
+
+For each sentence include:
+- Natural usage in real context
+- Grammar explanation (simple)
+- Vietnamese translation
+- Pronunciation note if needed
+
+Make sentences interesting and memorable.</div>
+
+              <div class="models-row">
+                <div class="model-tag"><span class="dot" style="background:#10a37f;"></span>GPT-4.1</div>
+                <div class="model-tag"><span class="dot" style="background:#4285f4;"></span>Gemini Flash</div>
+              </div>
+
+              <div class="prompt-meta">
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Sentences</span>
+                  <span class="prompt-meta-value">5 per word</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Difficulty</span>
+                  <span class="prompt-meta-value">Adaptive</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Languages</span>
+                  <span class="prompt-meta-value">EN + VI</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Grammar Correction -->
+        <div class="ai-section animate-on-scroll">
+          <div class="ai-section-title">✏️ AI Grammar Correction</div>
+          <div class="ai-section-desc">
+            Soft, natural grammar correction that preserves your meaning while improving accuracy. Explains each correction clearly so you learn, not just get corrected.
+          </div>
+
+          <div class="prompt-card">
+            <div class="prompt-header">
+              <div class="prompt-header-left">
+                <div class="prompt-icon">✏️</div>
+                <div>
+                  <div class="prompt-title">Grammar Correction Prompt</div>
+                  <div class="prompt-subtitle">Natural, educational grammar feedback</div>
+                </div>
+              </div>
+              <div class="prompt-badges">
+                <span class="badge badge-emerald">Correction</span>
+                <span class="badge badge-indigo">GPT-4.1</span>
+              </div>
+            </div>
+            <div class="prompt-body">
+              <div class="prompt-code">Correct grammar naturally and gently.
+
+Rules:
+- Preserve the user's original meaning
+- Explain each error simply and clearly
+- Suggest native phrasing alternatives
+- Keep corrections concise
+- Be encouraging, never condescending
+- Show the corrected version clearly
+- Provide the Vietnamese explanation
+
+Format: Original → Corrected + Why</div>
+
+              <div class="models-row">
+                <div class="model-tag"><span class="dot" style="background:#10a37f;"></span>GPT-4.1</div>
+                <div class="model-tag"><span class="dot" style="background:#cc785c;"></span>Claude Haiku</div>
+              </div>
+
+              <div class="prompt-meta">
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Style</span>
+                  <span class="prompt-meta-value">Soft Correction</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Format</span>
+                  <span class="prompt-meta-value">Before / After</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- AI Recommendation Engine -->
+        <div class="ai-section animate-on-scroll">
+          <div class="ai-section-title">🧠 AI Recommendation Engine</div>
+          <div class="ai-section-desc">
+            Analyzes your learning history using embedding models to identify knowledge gaps and recommend the most impactful next lessons for efficient skill growth.
+          </div>
+
+          <div class="prompt-card">
+            <div class="prompt-header">
+              <div class="prompt-header-left">
+                <div class="prompt-icon">🧠</div>
+                <div>
+                  <div class="prompt-title">Recommendation Engine Prompt</div>
+                  <div class="prompt-subtitle">Personalized learning path generation</div>
+                </div>
+              </div>
+              <div class="prompt-badges">
+                <span class="badge badge-violet">ML</span>
+                <span class="badge badge-cyan">Embeddings</span>
+              </div>
+            </div>
+            <div class="prompt-body">
+              <div class="prompt-code">Analyze user learning history and performance data.
+
+Based on:
+- Completed lessons and scores
+- Weak skill areas (pronunciation, grammar, vocab)
+- Learning pace and patterns
+- Time since last practice
+
+Recommend:
+- Next 3 most impactful lessons
+- Focus areas for this week
+- Optimal daily practice time
+- Specific exercises to address weaknesses
+
+Optimize for learning efficiency and motivation.</div>
+
+              <div class="models-row">
+                <div class="model-tag"><span class="dot" style="background:#f97316;"></span>Embedding Model</div>
+                <div class="model-tag"><span class="dot" style="background:#10a37f;"></span>GPT-4.1</div>
+                <div class="model-tag"><span class="dot" style="background:#f59e0b;"></span>Cloudflare AI</div>
+              </div>
+
+              <div class="prompt-meta">
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Data Input</span>
+                  <span class="prompt-meta-value">Learning History</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Recommendations</span>
+                  <span class="prompt-meta-value">Top 3</span>
+                </div>
+                <div class="prompt-meta-item">
+                  <span class="prompt-meta-label">Update Frequency</span>
+                  <span class="prompt-meta-value">Daily</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-inner">
+          <a href="index.html" class="footer-logo">
+            <div class="footer-logo-icon">🎓</div>
+            <span class="footer-logo-text">Study English</span>
+          </a>
+          <ul class="footer-links">
+            <li><a href="features.html">Features</a></li>
+            <li><a href="ai-features.html">AI Features</a></li>
+            <li><a href="ai-flow.html">AI Flow</a></li>
+            <li><a href="tech-stack.html">Tech Stack</a></li>
+          </ul>
+          <div class="footer-meta">
+            <span class="footer-version">v2.0.0</span>
+          </div>
+        </div>
+        <div class="footer-copy">
+          Built with ❤️ for English learners — Powered by AI · 2026
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <a href="ai-flow.html" class="floating-btn" title="See AI Architecture">⚡</a>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

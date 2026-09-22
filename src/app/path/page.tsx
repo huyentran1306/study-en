@@ -3,18 +3,31 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/contexts/game-context";
-import { Lock, Star, CheckCircle, Trophy, BookOpen, MessageSquare, Gamepad2, Mic, Sword } from "lucide-react";
+import {
+  Lock,
+  CheckCircle2,
+  Trophy,
+  BookOpen,
+  MessageSquare,
+  Gamepad2,
+  Mic,
+  Compass,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  RotateCcw,
+} from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface Level {
   id: number;
   theme: string;
   themeZh: string;
   emoji: string;
-  gradient: string;
   xpRequired: number;
+  gateXP: number;
   lessons: Lesson[];
-  gateXP: number; // XP to pass the gate
 }
 
 interface Lesson {
@@ -28,149 +41,133 @@ interface Lesson {
 
 const LEVELS: Level[] = [
   {
-    id: 1, theme: "Family & Home", themeZh: "家庭与家", emoji: "🏡", gradient: "from-pink-400 to-rose-500",
+    id: 1, theme: "Professional Foundations & Workplace Intro", themeZh: "职场基础与自我介绍", emoji: "🏢",
     xpRequired: 0, gateXP: 100,
     lessons: [
-      { id: "l1-vocab", type: "vocab", title: "Family Words", titleZh: "家庭词汇", xpReward: 20, href: "/vocab" },
-      { id: "l1-story", type: "story", title: "My Family Story", titleZh: "我的家庭故事", xpReward: 30, href: "/story" },
-      { id: "l1-role", type: "roleplay", title: "Meeting Family", titleZh: "认识家人", xpReward: 25, href: "/roleplay" },
-      { id: "l1-speak", type: "speaking", title: "Describe Your Home", titleZh: "描述你的家", xpReward: 25, href: "/speaking" },
+      { id: "l1-vocab", type: "vocab", title: "Core Workplace Terms", titleZh: "核心职场词汇", xpReward: 20, href: "/vocab" },
+      { id: "l1-story", type: "story", title: "First Week Onboarding", titleZh: "入职第一周", xpReward: 30, href: "/story" },
+      { id: "l1-role", type: "roleplay", title: "Meeting Team Members", titleZh: "认识团队成员", xpReward: 25, href: "/roleplay" },
+      { id: "l1-speak", type: "speaking", title: "Introduce Your Background", titleZh: "介绍你的专业背景", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 2, theme: "School & Learning", themeZh: "学校与学习", emoji: "🏫", gradient: "from-blue-400 to-indigo-500",
+    id: 2, theme: "Project Alignment & Agile Communication", themeZh: "项目协作与敏捷沟通", emoji: "📊",
     xpRequired: 100, gateXP: 250,
     lessons: [
-      { id: "l2-vocab", type: "vocab", title: "School Vocabulary", titleZh: "学校词汇", xpReward: 20, href: "/vocab" },
-      { id: "l2-game", type: "game", title: "Word Scramble Challenge", titleZh: "单词拼写挑战", xpReward: 30, href: "/games" },
-      { id: "l2-story", type: "story", title: "A Day at School", titleZh: "在学校的一天", xpReward: 30, href: "/story" },
-      { id: "l2-role", type: "roleplay", title: "Classroom Conversation", titleZh: "课堂对话", xpReward: 25, href: "/roleplay" },
+      { id: "l2-vocab", type: "vocab", title: "Agile & Project Lexicon", titleZh: "敏捷项目词汇", xpReward: 20, href: "/vocab" },
+      { id: "l2-game", type: "game", title: "Business Term Recall", titleZh: "商业术语快速回忆", xpReward: 30, href: "/games" },
+      { id: "l2-story", type: "story", title: "The Critical Sprint Deadline", titleZh: "关键迭代冲刺", xpReward: 30, href: "/story" },
+      { id: "l2-role", type: "roleplay", title: "Sprint Standup Update", titleZh: "每日站会汇报", xpReward: 25, href: "/roleplay" },
     ],
   },
   {
-    id: 3, theme: "Food & Dining", themeZh: "饮食与餐饮", emoji: "🍜", gradient: "from-orange-400 to-amber-500",
+    id: 3, theme: "Client Relations & Networking Protocol", themeZh: "商务接待与人脉拓展", emoji: "🤝",
     xpRequired: 250, gateXP: 450,
     lessons: [
-      { id: "l3-vocab", type: "vocab", title: "Food & Drinks", titleZh: "食物与饮料", xpReward: 20, href: "/vocab" },
-      { id: "l3-story", type: "story", title: "The Magic Restaurant", titleZh: "神奇的餐厅", xpReward: 30, href: "/story" },
-      { id: "l3-role", type: "roleplay", title: "Ordering Food", titleZh: "点餐", xpReward: 30, href: "/roleplay" },
-      { id: "l3-speak", type: "speaking", title: "Talk About Your Favorite Food", titleZh: "谈论你最喜欢的食物", xpReward: 25, href: "/speaking" },
+      { id: "l3-vocab", type: "vocab", title: "Networking & Dining Terms", titleZh: "商务社交词汇", xpReward: 20, href: "/vocab" },
+      { id: "l3-story", type: "story", title: "The Client Dinner Dialogue", titleZh: "客户晚宴对话", xpReward: 30, href: "/story" },
+      { id: "l3-role", type: "roleplay", title: "Coffee Sync & Small Talk", titleZh: "咖啡交流会", xpReward: 30, href: "/roleplay" },
+      { id: "l3-speak", type: "speaking", title: "Pitch Your Division's Value", titleZh: "介绍团队核心价值", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 4, theme: "Work & Business", themeZh: "工作与商务", emoji: "💼", gradient: "from-violet-400 to-purple-500",
+    id: 4, theme: "Strategic Negotiation & Contract Terms", themeZh: "商务谈判与合同条款", emoji: "📑",
     xpRequired: 450, gateXP: 700,
     lessons: [
-      { id: "l4-vocab", type: "vocab", title: "Work Vocabulary", titleZh: "工作词汇", xpReward: 20, href: "/vocab" },
-      { id: "l4-game", type: "game", title: "Matching Game", titleZh: "配对游戏", xpReward: 30, href: "/games" },
-      { id: "l4-role", type: "roleplay", title: "Job Interview", titleZh: "工作面试", xpReward: 35, href: "/roleplay" },
-      { id: "l4-speak", type: "speaking", title: "Present Your Ideas", titleZh: "介绍你的想法", xpReward: 25, href: "/speaking" },
+      { id: "l4-vocab", type: "vocab", title: "Contract & Agreement Vocab", titleZh: "合同条款词汇", xpReward: 20, href: "/vocab" },
+      { id: "l4-game", type: "game", title: "Negotiation Pair Match", titleZh: "谈判词汇配对", xpReward: 30, href: "/games" },
+      { id: "l4-role", type: "roleplay", title: "Vendor Pricing Negotiation", titleZh: "供应商价格谈判", xpReward: 35, href: "/roleplay" },
+      { id: "l4-speak", type: "speaking", title: "Argue for SLA Expansion", titleZh: "争取服务等级协议", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 5, theme: "Travel & Adventure", themeZh: "旅游与冒险", emoji: "✈️", gradient: "from-teal-400 to-cyan-500",
+    id: 5, theme: "Global Operations & International Travel", themeZh: "跨国业务与差旅沟通", emoji: "✈️",
     xpRequired: 700, gateXP: 1000,
     lessons: [
-      { id: "l5-vocab", type: "vocab", title: "Travel Words", titleZh: "旅行词汇", xpReward: 20, href: "/vocab" },
-      { id: "l5-story", type: "story", title: "The Great Journey", titleZh: "伟大的旅程", xpReward: 30, href: "/story" },
-      { id: "l5-role", type: "roleplay", title: "At the Airport", titleZh: "在机场", xpReward: 35, href: "/roleplay" },
-      { id: "l5-speak", type: "speaking", title: "Describe a Trip", titleZh: "描述一次旅行", xpReward: 25, href: "/speaking" },
+      { id: "l5-vocab", type: "vocab", title: "Global Logistics Lexicon", titleZh: "国际商务与出行", xpReward: 20, href: "/vocab" },
+      { id: "l5-story", type: "story", title: "Overseas Expansion Mission", titleZh: "海外拓展任务", xpReward: 30, href: "/story" },
+      { id: "l5-role", type: "roleplay", title: "At the Overseas Branch Office", titleZh: "在海外分部", xpReward: 35, href: "/roleplay" },
+      { id: "l5-speak", type: "speaking", title: "Cross-cultural Collaboration", titleZh: "跨文化协作经验", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 6, theme: "Health & Wellness", themeZh: "健康与养生", emoji: "🏃", gradient: "from-green-400 to-emerald-500",
+    id: 6, theme: "Executive Leadership & Board Presentations", themeZh: "高管领导力与董事会汇报", emoji: "🏆",
     xpRequired: 1000, gateXP: 1400,
     lessons: [
-      { id: "l6-vocab", type: "vocab", title: "Health Vocabulary", titleZh: "健康词汇", xpReward: 20, href: "/vocab" },
-      { id: "l6-game", type: "game", title: "Memory Match", titleZh: "记忆配对", xpReward: 30, href: "/games" },
-      { id: "l6-story", type: "story", title: "The Healthy Chef", titleZh: "健康的厨师", xpReward: 30, href: "/story" },
-      { id: "l6-role", type: "roleplay", title: "At the Doctor", titleZh: "在医院", xpReward: 35, href: "/roleplay" },
+      { id: "l6-vocab", type: "vocab", title: "Executive Strategic Terms", titleZh: "战略领导力术语", xpReward: 20, href: "/vocab" },
+      { id: "l6-game", type: "game", title: "Executive Decision Drill", titleZh: "高管决策演练", xpReward: 30, href: "/games" },
+      { id: "l6-story", type: "story", title: "The Annual Shareholder Meeting", titleZh: "年度股东大会", xpReward: 30, href: "/story" },
+      { id: "l6-role", type: "roleplay", title: "Presenting to the Board", titleZh: "董事会战略报告", xpReward: 35, href: "/roleplay" },
     ],
   },
 ];
 
 const LESSON_ICONS = { vocab: BookOpen, story: BookOpen, roleplay: MessageSquare, speaking: Mic, game: Gamepad2 };
-const LESSON_COLORS = { vocab: "from-kawaii-purple to-violet-500", story: "from-kawaii-pink to-rose-400", roleplay: "from-kawaii-sky to-blue-400", speaking: "from-orange-400 to-amber-400", game: "from-green-400 to-emerald-400" };
 
-// Boss battle questions per level
 const BOSS_QUESTIONS: Record<number, { q: string; options: string[]; answer: number }[]> = {
   1: [
-    { q: "What is a 'sibling'?", options: ["A parent", "A brother or sister", "A cousin", "A neighbor"], answer: 1 },
-    { q: "Which word means the place where you live?", options: ["Office", "School", "Home", "Market"], answer: 2 },
-    { q: "Fill in: 'My mother is my father's ___'", options: ["daughter", "sister", "wife", "aunt"], answer: 2 },
-    { q: "What does 'domestic' mean?", options: ["Foreign", "Related to the home", "Expensive", "Wild"], answer: 1 },
-    { q: "Which is NOT a family member?", options: ["Uncle", "Colleague", "Grandparent", "Nephew"], answer: 1 },
+    { q: "What does 'deliverable' mean in a professional context?", options: ["An email attachment", "A tangible result or product committed to a client", "A physical parcel delivery", "A casual conversation"], answer: 1 },
+    { q: "Which term describes a project constraint preventing forward progress?", options: ["Milestone", "Blocker", "Deliverable", "Backlog"], answer: 1 },
+    { q: "Fill in: 'Let's schedule a brief ___ to review the contract terms'", options: ["vacation", "alignment", "cancellation", "dispute"], answer: 1 },
+    { q: "What does 'onboarding' refer to?", options: ["Boarding an airplane", "The process of integrating a new employee", "Writing a report", "Terminating an account"], answer: 1 },
+    { q: "Which word means mutually agreeing on expectations?", options: ["Alignment", "Deviation", "Disconnection", "Stagnation"], answer: 0 },
   ],
   2: [
-    { q: "What is a 'curriculum'?", options: ["A type of food", "A school subjects plan", "A sports event", "A classroom"], answer: 1 },
-    { q: "What does 'graduate' mean?", options: ["To fail a test", "To complete a degree", "To enroll", "To skip class"], answer: 1 },
-    { q: "Which word means to study hard?", options: ["Slack", "Revise", "Ignore", "Skip"], answer: 1 },
-    { q: "What is a 'thesis'?", options: ["A short quiz", "A long research paper", "A classroom exercise", "A textbook"], answer: 1 },
-    { q: "Fill in: 'She ___ her exam with flying colors'", options: ["failed", "skipped", "passed", "avoided"], answer: 2 },
+    { q: "What is an 'agile sprint'?", options: ["A fast athletic race", "A fixed timebox where team completes set tasks", "An annual review", "An unexpected meeting"], answer: 1 },
+    { q: "What does 'stakeholder' mean?", options: ["A shareholder only", "Any person with an interest in the project outcome", "An external competitor", "A temporary contractor"], answer: 1 },
+    { q: "What does 'to flag an issue' mean?", options: ["To ignore it", "To highlight and bring attention to a problem", "To delete the ticket", "To celebrate success"], answer: 1 },
+    { q: "Fill in: 'We need to ___ our queries to minimize server latency.'", options: ["slow down", "optimize", "disable", "postpone"], answer: 1 },
+    { q: "What does 'trade-off' imply?", options: ["A fair gift", "Sacrificing one quality in return for another benefit", "An illegal transaction", "A complete error"], answer: 1 },
   ],
   3: [
-    { q: "What does 'cuisine' refer to?", options: ["A type of music", "A style of cooking", "A restaurant name", "A kitchen tool"], answer: 1 },
-    { q: "Which word means very tasty?", options: ["Bland", "Delicious", "Sour", "Frozen"], answer: 1 },
-    { q: "What is a 'menu'?", options: ["A chef", "A table", "A list of dishes", "A cooking method"], answer: 2 },
-    { q: "What does 'appetizer' mean?", options: ["Dessert", "A small dish before main meal", "A drink", "A snack"], answer: 1 },
-    { q: "Fill in: 'Can I have the ___ please?' (to see dishes)", options: ["receipt", "menu", "bill", "napkin"], answer: 1 },
+    { q: "What is 'SLA' an abbreviation for?", options: ["Service Level Agreement", "Standard Legal Action", "System Load Analysis", "Secure Logistics Asset"], answer: 0 },
+    { q: "What does 'volume discount' indicate?", options: ["A louder speaker", "Price reduction based on higher purchasing quantity", "A loss in quality", "An inflation rate"], answer: 1 },
+    { q: "Fill in: 'Let's connect over coffee to ___ on recent industry trends.'", options: ["catch up", "break down", "fall out", "run away"], answer: 0 },
+    { q: "What does 'prospective client' mean?", options: ["A former client", "A potential future customer", "A competitor", "A disgruntled user"], answer: 1 },
+    { q: "Which word denotes professional mutual agreement?", options: ["Consensus", "Conflict", "Ambiguity", "Hesitation"], answer: 0 },
   ],
   4: [
-    { q: "What is a 'colleague'?", options: ["A boss", "A coworker", "A client", "An enemy"], answer: 1 },
-    { q: "What does 'deadline' mean?", options: ["A salary", "The end time for a task", "A promotion", "A meeting"], answer: 1 },
-    { q: "What is a 'resume'?", options: ["A business plan", "A document listing your experience", "A work contract", "A job offer"], answer: 1 },
-    { q: "Fill in: 'She got a ___ for her hard work'", options: ["deadline", "promotion", "resignation", "complaint"], answer: 1 },
-    { q: "What does 'negotiate' mean?", options: ["To argue", "To discuss to reach agreement", "To quit", "To ignore"], answer: 1 },
+    { q: "What does 'procurement' involve in business?", options: ["Selling goods", "The act of purchasing services or materials for a firm", "Filing taxes", "Interviewing staff"], answer: 1 },
+    { q: "What does 'binding agreement' mean?", options: ["A physical book", "A legally enforceable contract", "An informal suggestion", "A draft document"], answer: 1 },
+    { q: "Fill in: 'The vendor proposed net-30 ___ terms.'", options: ["payment", "holiday", "cancellation", "storage"], answer: 0 },
+    { q: "What does 'leverage' in negotiation mean?", options: ["A physical tool", "The power or advantage to influence results", "A severe penalty", "An apology"], answer: 1 },
+    { q: "Which term means an agreement clause specifying penalties?", options: ["Breach clause", "Introduction", "Signature", "Font styling"], answer: 0 },
   ],
   5: [
-    { q: "What is an 'itinerary'?", options: ["A type of ticket", "A travel plan", "A hotel room", "A passport"], answer: 1 },
-    { q: "What does 'departure' mean?", options: ["Arrival", "Leaving a place", "Landing", "Boarding"], answer: 1 },
-    { q: "What is 'jet lag'?", options: ["A type of plane", "Tiredness from flying across time zones", "A travel bag", "A flight delay"], answer: 1 },
-    { q: "What does 'souvenir' mean?", options: ["A travel guide", "A keepsake from a trip", "A local food", "A currency"], answer: 1 },
-    { q: "Fill in: 'We need to ___ the flight early'", options: ["miss", "board", "cancel", "forget"], answer: 1 },
+    { q: "What is 'APAC' in corporate geographical planning?", options: ["Asia-Pacific Region", "Atlantic Partnership Asset", "American Policy Action", "Audit Program Council"], answer: 0 },
+    { q: "What does 'logistics' refer to in enterprise ops?", options: ["Mathematical theory", "The management of flow of goods and resources", "Website design", "Legal complaints"], answer: 1 },
+    { q: "Fill in: 'We are expanding our market ___ into EMEA this quarter.'", options: ["presence", "absence", "farewell", "retreat"], answer: 0 },
+    { q: "What does 'compliance' mean in global operations?", options: ["Breaking laws", "Adhering to rules, regulations, and standards", "Complaining loudly", "Marketing products"], answer: 1 },
+    { q: "Which term means adapting a product for a foreign region?", options: ["Localization", "Isolation", "Demolition", "Fabrication"], answer: 0 },
   ],
   6: [
-    { q: "What does 'nutritious' mean?", options: ["Very expensive", "Good for health", "Very sweet", "Quick to cook"], answer: 1 },
-    { q: "What is 'aerobic exercise'?", options: ["Swimming only", "Exercise that increases heart rate", "Stretching", "Weightlifting"], answer: 1 },
-    { q: "What does 'hydrated' mean?", options: ["Tired", "Having enough water in body", "Hungry", "Energetic"], answer: 1 },
-    { q: "What is a 'symptom'?", options: ["A medicine", "A sign of illness", "A doctor", "A hospital"], answer: 1 },
-    { q: "Fill in: 'Regular exercise ___ your health'", options: ["harms", "improves", "ignores", "complicates"], answer: 1 },
+    { q: "What is 'governance' at the board level?", options: ["Direct political control", "System by which corporations are directed and controlled", "Advertising campaigns", "Customer support"], answer: 1 },
+    { q: "What does 'EBITDA' measure?", options: ["Company employee count", "Operating performance and cash profit metrics", "Marketing clicks", "Patent count"], answer: 1 },
+    { q: "Fill in: 'The CEO emphasized long-term shareholder ___.'", options: ["value", "cost", "confusion", "debt"], answer: 0 },
+    { q: "What does 'fiduciary duty' mean?", options: ["Legal obligation to act in best interest of another party", "Personal friendship", "Casual advice", "Secret negotiation"], answer: 0 },
+    { q: "Which denotes a fundamental shift in company direction?", options: ["Strategic pivot", "Minor typo", "Daily routine", "Coffee break"], answer: 0 },
   ],
 };
 
 const XP_MILESTONES = [
-  { xp: 100, reward: "🎁 Unlocked: School Level!", emoji: "🏫" },
-  { xp: 250, reward: "�� Unlocked: Food Level!", emoji: "🍜" },
-  { xp: 450, reward: "🎁 Unlocked: Work Level!", emoji: "💼" },
-  { xp: 700, reward: "🎁 Unlocked: Travel Level!", emoji: "✈️" },
-  { xp: 1000, reward: "🎁 Unlocked: Health Level!", emoji: "🏃" },
-  { xp: 1400, reward: "🏆 All Levels Complete! You're a Master!", emoji: "🏆" },
+  { xp: 100, reward: "Mở khóa Cột mốc 2: Agile Project Communication", level: 2 },
+  { xp: 250, reward: "Mở khóa Cột mốc 3: Client Relations & Networking", level: 3 },
+  { xp: 450, reward: "Mở khóa Cột mốc 4: Strategic Negotiation", level: 4 },
+  { xp: 700, reward: "Mở khóa Cột mốc 5: Global Operations", level: 5 },
+  { xp: 1000, reward: "Mở khóa Cột mốc 6: Executive Leadership", level: 6 },
+  { xp: 1400, reward: "Hoàn tất Toàn Bộ Lộ Trình Năng Lực Quốc Tế!", level: 6 },
 ];
 
 export default function PathPage() {
-  const { xp, activeStudyLanguage, addXP, addCoins, unlockAchievement, achievements } = useGame();
+  const { xp, activeStudyLanguage, addXP, addCoins, unlockAchievement } = useGame();
   const isZh = activeStudyLanguage === "zh";
-  const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
-  const [celebrateMilestone, setCelebrateMilestone] = useState<string | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(LEVELS[0]);
   const [bossLevel, setBossLevel] = useState<Level | null>(null);
   const [bossQ, setBossQ] = useState(0);
   const [bossScore, setBossScore] = useState(0);
   const [bossSelected, setBossSelected] = useState<number | null>(null);
   const [bossResult, setBossResult] = useState<"win" | "lose" | null>(null);
   const [bossAnswered, setBossAnswered] = useState(false);
-
-  // Check milestone when XP changes
-  useEffect(() => {
-    const lastMilestone = XP_MILESTONES.filter((m) => xp >= m.xp).pop();
-    if (lastMilestone) {
-      const key = `milestone_${lastMilestone.xp}_seen`;
-      if (typeof window !== "undefined" && !sessionStorage.getItem(key)) {
-        setCelebrateMilestone(lastMilestone.reward);
-        sessionStorage.setItem(key, "1");
-        setTimeout(() => setCelebrateMilestone(null), 4000);
-      }
-    }
-  }, [xp]);
 
   const getProgress = () => {
     const nextMilestone = XP_MILESTONES.find((m) => xp < m.xp);
@@ -183,7 +180,7 @@ export default function PathPage() {
 
   const { pct, target } = getProgress();
 
-  const startBoss = (level: Level) => {
+  const startAssessment = (level: Level) => {
     setBossLevel(level);
     setBossQ(0);
     setBossScore(0);
@@ -192,7 +189,7 @@ export default function PathPage() {
     setBossAnswered(false);
   };
 
-  const answerBoss = (i: number) => {
+  const answerAssessment = (i: number) => {
     if (bossAnswered || !bossLevel) return;
     setBossSelected(i);
     setBossAnswered(true);
@@ -200,67 +197,85 @@ export default function PathPage() {
     const correct = i === questions[bossQ].answer;
     const newScore = bossScore + (correct ? 1 : 0);
     setBossScore(newScore);
+
     setTimeout(() => {
       if (bossQ + 1 >= questions.length) {
         const win = newScore >= 3;
         setBossResult(win ? "win" : "lose");
         if (win) {
-          addXP(100); addCoins(50);
-          const bossKey = `boss_${bossLevel.id}_defeated`;
-          if (typeof window !== "undefined" && !sessionStorage.getItem(bossKey)) {
-            sessionStorage.setItem(bossKey, "1");
-            unlockAchievement("boss_first");
-            // Check if all 6 bosses defeated
-            const allDefeated = [1,2,3,4,5,6].every(id => sessionStorage.getItem(`boss_${id}_defeated`));
-            if (allDefeated) unlockAchievement("boss_all");
-          }
+          addXP(100);
+          addCoins(50);
+          unlockAchievement("boss_first");
         }
       } else {
-        setBossQ(q => q + 1);
+        setBossQ((q) => q + 1);
         setBossSelected(null);
         setBossAnswered(false);
       }
-    }, 1000);
+    }, 900);
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Boss Battle Modal */}
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      {/* Assessment Modal */}
       <AnimatePresence>
         {bossLevel && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
           >
             <motion.div
-              initial={{ scale: 0.8, y: 40 }}
+              initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.8, y: 40 }}
-              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+              exit={{ scale: 0.95, y: 20 }}
+              className="pro-card bg-white dark:bg-slate-900 w-full max-w-md overflow-hidden shadow-2xl border-slate-800"
             >
-              <div className={`bg-gradient-to-r ${bossLevel.gradient} p-6 text-white text-center`}>
-                <div className="text-5xl mb-2">⚔️</div>
-                <h2 className="text-xl font-extrabold">Boss Battle!</h2>
-                <p className="text-white/80 text-sm">{isZh ? bossLevel.themeZh : bossLevel.theme} — Level {bossLevel.id}</p>
+              <div className="bg-slate-900 p-6 text-white text-center border-b border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Đánh Giá Năng Lực Cột Mốc {bossLevel.id}
+                </span>
+                <h3 className="text-lg font-extrabold mt-2">{bossLevel.theme}</h3>
               </div>
+
               <div className="p-6">
                 {bossResult ? (
                   <div className="text-center py-4 space-y-4">
-                    <div className="text-6xl">{bossResult === "win" ? "🏆" : "💀"}</div>
-                    <h3 className="text-xl font-bold">{bossResult === "win" ? (isZh ? "胜利！" : "You won!") : (isZh ? "失败..." : "Defeated...")}</h3>
-                    <p className="text-muted-foreground text-sm">{bossScore}/5 {isZh ? "答对" : "correct"}</p>
-                    {bossResult === "win" && <p className="text-yellow-500 font-bold">+100 XP · +50 🪙</p>}
-                    <div className="flex gap-3">
+                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto border border-indigo-200/60 dark:border-indigo-800/60">
+                      <Trophy className="w-7 h-7" />
+                    </div>
+
+                    <h4 className="text-xl font-bold text-foreground">
+                      {bossResult === "win" ? "Đạt Chuẩn Năng Lực!" : "Cần Ôn Tập Thêm"}
+                    </h4>
+
+                    <p className="text-xs text-muted-foreground">
+                      Bạn đã hoàn thành chính xác <strong className="text-foreground">{bossScore} / 5 câu hỏi</strong>.
+                    </p>
+
+                    {bossResult === "win" && (
+                      <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 p-2.5 rounded-xl">
+                        +100 XP thưởng cột mốc &amp; +50 Coins
+                      </div>
+                    )}
+
+                    <div className="flex gap-2.5 pt-2">
                       {bossResult === "lose" && (
-                        <button onClick={() => startBoss(bossLevel)} className="flex-1 py-2.5 rounded-2xl bg-gradient-kawaii text-white font-bold text-sm">
-                          {isZh ? "再试一次" : "Try Again"}
-                        </button>
+                        <Button
+                          onClick={() => startAssessment(bossLevel)}
+                          className="btn-pro flex-1 text-xs font-bold"
+                        >
+                          Làm lại bài đánh giá
+                        </Button>
                       )}
-                      <button onClick={() => setBossLevel(null)} className="flex-1 py-2.5 rounded-2xl border-2 border-gray-200 font-bold text-sm">
-                        {isZh ? "关闭" : "Close"}
-                      </button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setBossLevel(null)}
+                        className="flex-1 rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold"
+                      >
+                        Đóng
+                      </Button>
                     </div>
                   </div>
                 ) : (() => {
@@ -268,26 +283,34 @@ export default function PathPage() {
                   const q = questions[bossQ];
                   return (
                     <div className="space-y-4">
-                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                        <span>{isZh ? "问题" : "Question"} {bossQ + 1}/{questions.length}</span>
-                        <span>⚔️ {bossScore} {isZh ? "分" : "pts"}</span>
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <span>Câu hỏi {bossQ + 1} / {questions.length}</span>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">Điểm: {bossScore}</span>
                       </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-kawaii rounded-full transition-all" style={{ width: `${(bossQ / questions.length) * 100}%` }} />
+
+                      <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-600 rounded-full transition-all"
+                          style={{ width: `${(bossQ / questions.length) * 100}%` }}
+                        />
                       </div>
-                      <p className="font-bold text-base">{q.q}</p>
-                      <div className="grid grid-cols-1 gap-2">
+
+                      <p className="font-bold text-sm text-foreground leading-relaxed">{q.q}</p>
+
+                      <div className="space-y-2">
                         {q.options.map((opt, i) => (
                           <button
                             key={i}
-                            onClick={() => answerBoss(i)}
+                            onClick={() => answerAssessment(i)}
                             disabled={bossAnswered}
-                            className={`py-2.5 px-4 rounded-2xl text-sm font-semibold border-2 text-left transition-all ${
+                            className={`w-full p-3 rounded-xl text-xs font-semibold border text-left transition-all ${
                               bossAnswered
-                                ? i === q.answer ? "border-green-400 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                                  : i === bossSelected ? "border-red-400 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                                  : "border-gray-200 opacity-50"
-                                : "border-gray-200 hover:border-kawaii-purple hover:bg-kawaii-purple/5"
+                                ? i === q.answer
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold"
+                                  : i === bossSelected
+                                  ? "border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+                                  : "border-slate-200 dark:border-slate-800 opacity-40"
+                                : "border-slate-200/80 dark:border-slate-800 hover:border-indigo-500/50 bg-slate-50/50 dark:bg-slate-850/50"
                             }`}
                           >
                             {opt}
@@ -302,184 +325,150 @@ export default function PathPage() {
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Milestone celebration */}
-      <AnimatePresence>
-        {celebrateMilestone && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -30, scale: 0.8 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-gradient-kawaii text-white px-6 py-4 rounded-3xl shadow-kawaii text-center font-bold text-sm"
-          >
-            🎉 {celebrateMilestone}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">
-          <span className="bg-gradient-kawaii bg-clip-text text-transparent">
-            🗺️ {isZh ? "学习路径" : "Learning Path"}
-          </span>
+      {/* Header */}
+      <div className="pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center gap-2 mb-1">
+          <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-foreground">
+            Dashboard
+          </Link>
+          <span className="text-slate-400">/</span>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Learning Roadmap</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+          <Compass className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          Professional Competency Roadmap
         </h1>
-        {/* XP Progress bar */}
-        <div className="mt-3 space-y-1.5">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>⭐ {xp} XP</span>
-            <span>Next unlock: {target} XP</span>
-          </div>
-          <div className="h-3 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-gradient-kawaii"
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
-            />
-          </div>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Lộ trình năng lực giao tiếp kinh doanh quốc tế từ sơ cấp đến điều hành chiến lược.
+        </p>
+      </div>
+
+      {/* Level XP Progress HUD */}
+      <div className="pro-card p-6 bg-slate-50/70 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800 space-y-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-bold text-foreground flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-indigo-500" />
+            Tiến Trình Tích Lũy Điểm Năng Lực
+          </span>
+          <span className="font-semibold text-muted-foreground">
+            <strong className="text-foreground">{xp} XP</strong> / Mục tiêu tiếp theo: {target} XP
+          </span>
+        </div>
+        <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-indigo-600 rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.8 }}
+          />
         </div>
       </div>
 
-      {/* Level Path */}
-      <div className="relative space-y-0">
-        {LEVELS.map((level, idx) => {
+      {/* Vertical Competency Track */}
+      <div className="space-y-4">
+        {LEVELS.map((level) => {
           const isUnlocked = xp >= level.xpRequired;
           const isComplete = xp >= level.gateXP;
-          const isCurrent = isUnlocked && !isComplete;
+          const isSelected = selectedLevel?.id === level.id;
 
           return (
-            <div key={level.id} className="relative">
-              {/* Connector line */}
-              {idx < LEVELS.length - 1 && (
-                <div className={`absolute left-1/2 -translate-x-1/2 top-full w-1 h-8 z-0 ${isComplete ? "bg-gradient-kawaii" : "bg-gray-200 dark:bg-gray-700"}`} />
-              )}
-
+            <div key={level.id} className="space-y-2">
               <motion.button
-                onClick={() => isUnlocked && setSelectedLevel(selectedLevel?.id === level.id ? null : level)}
+                onClick={() => isUnlocked && setSelectedLevel(isSelected ? null : level)}
                 disabled={!isUnlocked}
-                className={`relative z-10 w-full text-left rounded-3xl p-5 shadow-lg transition-all ${
-                  isUnlocked
-                    ? `bg-gradient-to-br ${level.gradient} text-white cursor-pointer`
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                className={`pro-card w-full p-5 text-left transition-all flex items-center justify-between gap-4 ${
+                  !isUnlocked
+                    ? "opacity-50 grayscale cursor-not-allowed"
+                    : isSelected
+                    ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/10 dark:bg-indigo-950/20"
+                    : ""
                 }`}
-                whileHover={isUnlocked ? { scale: 1.02, y: -2 } : {}}
-                whileTap={isUnlocked ? { scale: 0.98 } : {}}
+                whileHover={isUnlocked ? { scale: 1.005 } : {}}
               >
                 <div className="flex items-center gap-4">
-                  <motion.span
-                    className="text-4xl"
-                    animate={isCurrent ? { scale: [1, 1.1, 1] } : {}}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    {isComplete ? "✅" : !isUnlocked ? "🔒" : level.emoji}
-                  </motion.span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs opacity-70">Level {level.id}</span>
-                      {isComplete && <span className="text-xs bg-white/20 rounded-full px-2 py-0.5">Complete!</span>}
-                      {isCurrent && <span className="text-xs bg-white/30 rounded-full px-2 py-0.5 animate-pulse">Current</span>}
-                    </div>
-                    <p className="font-bold text-base">{isZh ? level.themeZh : level.theme}</p>
-                    <p className="text-xs opacity-70">{level.lessons.length} lessons · {level.gateXP} XP to unlock next</p>
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base flex-shrink-0 ${
+                    isComplete
+                      ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60"
+                      : isUnlocked
+                      ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                  }`}>
+                    {isComplete ? <CheckCircle2 className="w-5 h-5" /> : !isUnlocked ? <Lock className="w-5 h-5" /> : level.id}
                   </div>
-                  {isUnlocked && (
-                    <span className="text-xl">{selectedLevel?.id === level.id ? "▲" : "▼"}</span>
-                  )}
-                  {!isUnlocked && <Lock className="w-5 h-5" />}
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Cột mốc {level.id} · {level.gateXP} XP
+                      </span>
+                      {isComplete && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
+                          Đạt chuẩn
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-base font-bold text-foreground mt-0.5">{level.theme}</h3>
+                  </div>
                 </div>
 
-                {/* XP progress within level */}
-                {isUnlocked && !isComplete && (
-                  <div className="mt-3">
-                    <div className="h-2 rounded-full bg-white/30 overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full bg-white"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(100, Math.round(((xp - level.xpRequired) / (level.gateXP - level.xpRequired)) * 100))}%` }}
-                        transition={{ duration: 0.8 }}
-                      />
-                    </div>
-                    <p className="text-xs mt-1 opacity-70">{Math.min(100, Math.round(((xp - level.xpRequired) / (level.gateXP - level.xpRequired)) * 100))}% complete</p>
-                  </div>
-                )}
+                <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  {isUnlocked ? (isSelected ? "Thu gọn" : "Chi tiết") : "Đang khóa"}
+                </div>
               </motion.button>
 
-              {/* Lessons dropdown */}
+              {/* Expanded Lessons & Assessment Drawer */}
               <AnimatePresence>
-                {selectedLevel?.id === level.id && isUnlocked && (
+                {isSelected && isUnlocked && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden mx-2"
+                    className="overflow-hidden pl-4 sm:pl-8 space-y-2.5"
                   >
-                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-b-3xl p-4 space-y-2 border border-t-0 border-kawaii-purple/10">
-                      {level.lessons.map((lesson) => {
-                        const Icon = LESSON_ICONS[lesson.type];
-                        return (
-                          <Link key={lesson.id} href={lesson.href}>
-                            <motion.div
-                              className={`flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r ${LESSON_COLORS[lesson.type]} text-white cursor-pointer`}
-                              whileHover={{ scale: 1.02, x: 3 }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              <div className="p-2 bg-white/20 rounded-xl">
-                                <Icon className="w-4 h-4" />
+                    <div className="pro-card p-4 space-y-2 bg-slate-50/50 dark:bg-slate-850/50 border-slate-200/80 dark:border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+                        Các bài tập thực hành trong cột mốc này:
+                      </span>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {level.lessons.map((lesson) => {
+                          const Icon = LESSON_ICONS[lesson.type];
+                          return (
+                            <Link key={lesson.id} href={lesson.href}>
+                              <div className="p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 hover:border-indigo-500/50 transition-all flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                  <Icon className="w-4 h-4 text-indigo-500" />
+                                  <div>
+                                    <h4 className="text-xs font-bold text-foreground">{lesson.title}</h4>
+                                    <span className="text-[10px] text-muted-foreground capitalize">{lesson.type}</span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                                  +{lesson.xpReward} XP
+                                </span>
                               </div>
-                              <div className="flex-1">
-                                <p className="font-bold text-sm">{isZh ? lesson.titleZh : lesson.title}</p>
-                                <p className="text-xs opacity-80 capitalize">{lesson.type}</p>
-                              </div>
-                              <span className="text-xs font-bold bg-white/20 rounded-full px-2 py-0.5">+{lesson.xpReward} XP</span>
-                            </motion.div>
-                          </Link>
-                        );
-                      })}
-                      {/* Boss Battle Button */}
-                      <motion.button
-                        onClick={() => startBoss(level)}
-                        whileHover={{ scale: 1.02, x: 3 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-red-500 to-orange-500 text-white cursor-pointer"
-                      >
-                        <div className="p-2 bg-white/20 rounded-xl">
-                          <Sword className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <p className="font-bold text-sm">{isZh ? "⚔️ Boss Battle！" : "⚔️ Boss Battle!"}</p>
-                          <p className="text-xs opacity-80">{isZh ? "答对3/5题获胜" : "Answer 3/5 to win"}</p>
-                        </div>
-                        <span className="text-xs font-bold bg-white/20 rounded-full px-2 py-0.5">+100 XP</span>
-                      </motion.button>
+                            </Link>
+                          );
+                        })}
+                      </div>
+
+                      {/* Milestone Assessment Button */}
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => startAssessment(level)}
+                          className="btn-pro w-full text-xs font-bold gap-2 py-2.5"
+                        >
+                          <Trophy className="w-3.5 h-3.5" />
+                          <span>Làm bài đánh giá vượt cột mốc (Milestone Assessment)</span>
+                        </Button>
+                      </div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Gate reward badge */}
-              {idx < LEVELS.length - 1 && (
-                <div className={`relative z-10 mx-auto w-fit mt-0 mb-0 py-1 px-4 rounded-full text-xs font-bold mt-8 mb-0 ${isComplete ? "bg-gradient-kawaii text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-400"}`}>
-                  {isComplete ? "🔓 Gate Passed!" : `🔒 Gate: ${level.gateXP} XP`}
-                </div>
-              )}
             </div>
           );
         })}
-
-        {/* Final achievement */}
-        <motion.div
-          className={`rounded-3xl p-6 text-center shadow-lg ${xp >= 1400 ? "bg-gradient-to-br from-amber-300 to-yellow-400 text-white" : "bg-gray-100 dark:bg-gray-800 text-muted-foreground"}`}
-          animate={xp >= 1400 ? { scale: [1, 1.02, 1] } : {}}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <Trophy className={`w-10 h-10 mx-auto mb-2 ${xp >= 1400 ? "text-white" : "text-gray-400"}`} />
-          <p className="font-bold text-lg">{isZh ? "大师级别！" : "Master Level!"}</p>
-          <p className="text-sm opacity-80">{xp >= 1400 ? "You've completed all levels! 🎉" : `${1400 - xp} XP to unlock`}</p>
-        </motion.div>
-      </div>
-
-      <div className="mt-8 text-center">
-        <Link href="/"><motion.span className="text-sm text-muted-foreground hover:text-kawaii-purple" whileHover={{ scale: 1.05 }}>← Back to Home</motion.span></Link>
       </div>
     </div>
   );

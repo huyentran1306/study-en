@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Flow — Study English User Manual</title>
+  <meta name="description" content="AI architecture, model selection, speaking flow, and prompt engineering." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+  <style>
+    .flow-section {
+      margin-bottom: 72px;
+    }
+    .flow-section-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    .flow-section-desc {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      line-height: 1.7;
+      max-width: 640px;
+    }
+    .flow-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .flow-grid { grid-template-columns: 1fr; }
+    }
+    .flow-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .prompt-engineering-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      margin-bottom: 24px;
+    }
+    .prompt-engineering-section:hover {
+      border-color: rgba(99,102,241,0.3);
+      box-shadow: var(--shadow-glow);
+    }
+    .pe-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 6px;
+    }
+    .pe-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .node-glow {
+      position: relative;
+    }
+    .node-glow::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: var(--gradient-accent);
+      opacity: 0;
+      z-index: -1;
+      filter: blur(8px);
+      transition: opacity 0.3s ease;
+    }
+    .node-glow:hover::after {
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">🎓</div>
+      <span class="nav-logo-text">Study<span>EN</span></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="features.html">Features</a></li>
+      <li><a href="ai-features.html">AI Features</a></li>
+      <li><a href="ai-flow.html">AI Flow</a></li>
+      <li><a href="tech-stack.html">Tech Stack</a></li>
+      <li><a href="https://github.com" target="_blank">GitHub ↗</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="theme-toggle" title="Toggle Theme">🌙</button>
+      <a href="tech-stack.html" class="nav-cta">Tech Stack →</a>
+      <button class="menu-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+
+    <!-- PAGE HERO -->
+    <div class="page-hero">
+      <div class="page-hero-bg"></div>
+      <div class="page-hero-glow"></div>
+      <div class="container">
+        <div class="page-hero-label">⚡ AI Architecture</div>
+        <h1 class="page-hero-title">
+          How the AI<br>
+          <span class="gradient-text">Works Behind the Scenes</span>
+        </h1>
+        <p class="page-hero-subtitle">
+          From user input to AI response — explore the complete pipeline, model selection strategy, and prompt engineering patterns.
+        </p>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="container">
+
+        <!-- Main AI Architecture -->
+        <div class="flow-section animate-on-scroll">
+          <div class="section-header" style="text-align:left;margin-bottom:28px;">
+            <div class="section-label">🏗️ Main Architecture</div>
+            <div class="flow-section-title">AI Orchestration Pipeline</div>
+            <div class="flow-section-desc">Every user request flows through a carefully designed pipeline that routes to the most appropriate AI service for optimal results.</div>
+          </div>
+
+          <div class="flow-grid">
+            <div>
+              <div class="flow-label">Main Flow</div>
+              <div class="flow-diagram">
+                <div class="flow-nodes">
+                  <div class="flow-node highlight node-glow">👤 User Input</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node node-glow">🖥️ Frontend App</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node node-glow">🔀 API Gateway</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node highlight node-glow">🧠 AI Orchestration Layer</div>
+                  <div class="flow-arrow">↓</div>
+
+                  <div class="flow-branch">
+                    <div class="flow-branch-node">🎤 Speech-to-Text</div>
+                    <div class="flow-branch-node">💬 LLM Chat</div>
+                    <div class="flow-branch-node">🎯 Pronunciation</div>
+                  </div>
+                  <div class="flow-branch" style="margin-top:8px;">
+                    <div class="flow-branch-node">🔮 Recommendations</div>
+                    <div class="flow-branch-node">🔊 Text-to-Speech</div>
+                  </div>
+
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node node-glow">📋 Response Formatter</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node highlight node-glow">🖥️ Frontend UI</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flow-label">Speaking Practice Flow</div>
+              <div class="flow-diagram">
+                <div class="flow-nodes">
+                  <div class="flow-node highlight node-glow">🗣️ User Speaks</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node node-glow">🎤 Speech-to-Text (Whisper)</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node node-glow">✏️ Grammar Analysis</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node node-glow">🎯 Pronunciation Analysis</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node highlight node-glow">🤖 AI Feedback Generator</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node node-glow">🔊 Text-to-Speech (ElevenLabs)</div>
+                  <div class="flow-arrow">↓</div>
+                  <div class="flow-node highlight node-glow">▶️ Frontend Playback</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- AI Models Table -->
+        <div class="flow-section animate-on-scroll">
+          <div class="section-label" style="margin-bottom:12px;">🤖 Model Selection</div>
+          <div class="flow-section-title">AI Models by Feature</div>
+          <div class="flow-section-desc">Each feature uses the optimal AI model to balance quality, speed, and cost efficiency.</div>
+
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Primary Model</th>
+                  <th>Fallback</th>
+                  <th>Latency</th>
+                  <th>Quality</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>💬 AI Chat</td>
+                  <td><span class="badge badge-indigo">GPT-4.1</span></td>
+                  <td><span class="badge badge-violet">Claude Sonnet</span></td>
+                  <td>~1.2s</td>
+                  <td>⭐⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                  <td>🎤 Speech to Text</td>
+                  <td><span class="badge badge-emerald">Whisper</span></td>
+                  <td><span class="badge badge-cyan">Deepgram</span></td>
+                  <td>~0.8s</td>
+                  <td>⭐⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                  <td>🎯 Pronunciation</td>
+                  <td><span class="badge badge-cyan">Azure Speech</span></td>
+                  <td><span class="badge badge-emerald">Whisper</span></td>
+                  <td>~1.5s</td>
+                  <td>⭐⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                  <td>🔊 Text to Speech</td>
+                  <td><span class="badge badge-amber">ElevenLabs</span></td>
+                  <td><span class="badge badge-indigo">OpenAI TTS</span></td>
+                  <td>~0.6s</td>
+                  <td>⭐⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                  <td>🔮 Recommendations</td>
+                  <td><span class="badge badge-violet">Embedding Model</span></td>
+                  <td><span class="badge badge-amber">Cloudflare AI</span></td>
+                  <td>~0.3s</td>
+                  <td>⭐⭐⭐⭐</td>
+                </tr>
+                <tr>
+                  <td>🌐 Translation</td>
+                  <td><span class="badge badge-indigo">Gemini Pro</span></td>
+                  <td><span class="badge badge-indigo">GPT-4.1</span></td>
+                  <td>~0.9s</td>
+                  <td>⭐⭐⭐⭐⭐</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Prompt Engineering -->
+        <div class="flow-section animate-on-scroll">
+          <div class="section-label" style="margin-bottom:12px;">🔧 Prompt Engineering</div>
+          <div class="flow-section-title">Crafted System Prompts</div>
+          <div class="flow-section-desc">Every prompt is carefully engineered to maximize AI teaching effectiveness, consistency, and safety.</div>
+
+          <div class="prompt-engineering-section">
+            <div class="pe-title">🎓 Core System Prompt</div>
+            <div class="pe-desc">The foundational prompt establishing the AI's personality, role, and behavioral guidelines across all interactions.</div>
+            <div class="prompt-code">You are a professional English tutor and language coach.
+
+Your primary goals:
+- Help users improve English speaking confidence
+- Provide accurate, educational corrections
+- Build vocabulary in natural context
+- Encourage consistent practice
+
+Communication style:
+- Friendly, warm, and supportive
+- Concise and clear explanations
+- Never shame or discourage the user
+- Celebrate progress, no matter how small
+- Use examples from everyday situations
+
+When correcting:
+- Be gentle but clear
+- Show the correct version first
+- Explain WHY it's wrong simply
+- Give a Vietnamese explanation if complex</div>
+          </div>
+
+          <div class="prompt-engineering-section">
+            <div class="pe-title">🎨 UI Design Prompt</div>
+            <div class="pe-desc">The prompt used with AI to generate feature ideas, UI components, and UX flows for the application.</div>
+            <div class="prompt-code">Create an ultra modern AI SaaS dashboard UI.
+
+Design style:
+- Futuristic glassmorphism aesthetic
+- Modern typography (Inter + JetBrains Mono)
+- Smooth micro-animations
+- Neon accent glows
+- Responsive mobile-first
+- Premium light/dark mode
+- Accessible and inclusive
+
+Components to include:
+- Floating sidebar navigation
+- Real-time analytics charts
+- AI chat section with streaming
+- Speaking practice card with waveform
+- Vocabulary widget with flip animation
+- Progress tracker with skill radar
+- Floating AI assistant button
+
+Technical stack: Next.js + Tailwind CSS + Framer Motion
+
+Inspiration: OpenAI · Linear · Vercel · Notion AI · Raycast</div>
+          </div>
+
+          <div class="prompt-engineering-section">
+            <div class="pe-title">⚙️ Feature Generation Prompt</div>
+            <div class="pe-desc">Template prompt for generating new feature specifications complete with UX, technical architecture, and AI integration details.</div>
+            <div class="prompt-code">Generate a modern English learning application feature.
+
+Feature scope:
+- UX flow with user journey map
+- UI layout with component hierarchy
+- AI integration points and model selection
+- API architecture and endpoint design
+- Database schema and data structure
+- Responsive design breakpoints
+- Accessibility requirements (WCAG 2.1)
+- Animation and micro-interaction specs
+- Premium component design patterns
+- Error states and loading states
+
+Output format:
+- Feature overview (2-3 sentences)
+- User story
+- Technical spec
+- Implementation steps</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Screenshot Prompt -->
+        <div class="flow-section animate-on-scroll">
+          <div class="section-label" style="margin-bottom:12px;">📸 Playwright MCP</div>
+          <div class="flow-section-title">Screenshot Capture Automation</div>
+          <div class="flow-section-desc">Using Playwright MCP to automatically capture high-quality screenshots of all app pages for documentation.</div>
+
+          <div class="prompt-code" style="background: var(--bg-code); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8; color: var(--text-secondary);">Open the Study English app at localhost:3000.
+
+Navigate through all main pages sequentially.
+
+Capture high quality screenshots.
+
+Save screenshots into:
+/Users/pro/Coding/study-en/user-manual/assets/images/
+
+Pages to capture:
+- / → dashboard.png
+- /chat → ai-chat.png
+- /speed-speaking → speaking-mode.png
+- /pronunciation → pronunciation.png
+- /vocabulary → vocabulary.png
+- /analytics → analytics.png
+
+Settings:
+- Desktop viewport: 1440×900
+- High DPI (retina)
+- Capture both light and dark mode
+- Wait for all animations to complete
+- Ensure no loading spinners visible</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-inner">
+          <a href="index.html" class="footer-logo">
+            <div class="footer-logo-icon">🎓</div>
+            <span class="footer-logo-text">Study English</span>
+          </a>
+          <ul class="footer-links">
+            <li><a href="features.html">Features</a></li>
+            <li><a href="ai-features.html">AI Features</a></li>
+            <li><a href="ai-flow.html">AI Flow</a></li>
+            <li><a href="tech-stack.html">Tech Stack</a></li>
+          </ul>
+          <div class="footer-meta">
+            <span class="footer-version">v2.0.0</span>
+          </div>
+        </div>
+        <div class="footer-copy">
+          Built with ❤️ for English learners — Powered by AI · 2026
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <a href="tech-stack.html" class="floating-btn" title="View Tech Stack">🛠️</a>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

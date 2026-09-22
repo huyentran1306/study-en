@@ -2,17 +2,28 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, Loader2, CheckCircle2, XCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import {
+  Volume2,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Mic,
+  ArrowRight,
+  RotateCcw,
+  Sparkles,
+  Radio,
+  VolumeX,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useGame } from "@/contexts/game-context";
 import { useSTTRecorder } from "@/hooks/use-stt-recorder";
 import Link from "next/link";
 
 const MINIMAL_PAIRS = [
   {
-    category: "Ship / Sheep",
-    emoji: "🚢🐑",
-    description: "Âm /ɪ/ ngắn vs /iː/ dài",
+    category: "Ship vs Sheep",
+    phonetics: "/ɪ/ ngắn vs /iː/ dài",
+    description: "Khẩu hình miệng kéo ngang và độ dài hơi thở",
     pairs: [
       { a: "ship", b: "sheep" },
       { a: "bit", b: "beat" },
@@ -22,9 +33,9 @@ const MINIMAL_PAIRS = [
     ],
   },
   {
-    category: "This / Thin",
-    emoji: "👆",
-    description: "Âm /ð/ vs /θ/",
+    category: "This vs Thin",
+    phonetics: "/ð/ rung vs /θ/ không rung",
+    description: "Vị trí đặt đầu lưỡi giữa hai hàm răng",
     pairs: [
       { a: "this", b: "thin" },
       { a: "then", b: "ten" },
@@ -34,9 +45,9 @@ const MINIMAL_PAIRS = [
     ],
   },
   {
-    category: "V / W",
-    emoji: "✌️",
-    description: "Âm /v/ vs /w/",
+    category: "V vs W",
+    phonetics: "/v/ răng cắn môi vs /w/ chu môi",
+    description: "Khác biệt cơ bản giữa âm cọ xát và âm lướt môi",
     pairs: [
       { a: "vine", b: "wine" },
       { a: "very", b: "wary" },
@@ -46,9 +57,9 @@ const MINIMAL_PAIRS = [
     ],
   },
   {
-    category: "P / B",
-    emoji: "💋",
-    description: "Âm /p/ không rung vs /b/ rung",
+    category: "P vs B",
+    phonetics: "/p/ bật hơi vs /b/ rung thanh quản",
+    description: "Cặp âm môi-môi bật hơi có và không có rung",
     pairs: [
       { a: "pat", b: "bat" },
       { a: "pen", b: "ben" },
@@ -58,9 +69,9 @@ const MINIMAL_PAIRS = [
     ],
   },
   {
-    category: "R / L",
-    emoji: "🔤",
-    description: "Âm /r/ vs /l/ (khó với người Việt)",
+    category: "R vs L",
+    phonetics: "/r/ cong lưỡi vs /l/ đầu lưỡi chạm nướu",
+    description: "Cặp âm gây vấp phổ biến nhất của người Việt",
     pairs: [
       { a: "right", b: "light" },
       { a: "road", b: "load" },
@@ -126,7 +137,6 @@ export default function PronunciationPage() {
     setDrillState("result");
   };
 
-  // Calculate score when transcript arrives
   if (drillState === "recording" && transcript && targetWord) {
     const similarity = transcript.toLowerCase().trim() === targetWord.toLowerCase() ? 100
       : transcript.toLowerCase().includes(targetWord.toLowerCase()) ? 80
@@ -146,130 +156,178 @@ export default function PronunciationPage() {
     resetTranscript();
   };
 
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-      <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block">← Quay lại</Link>
-      <h1 className="text-2xl font-bold mb-1">
-        <span className="bg-gradient-kawaii bg-clip-text text-transparent">🔤 Pronunciation Drill</span>
-      </h1>
-      <p className="text-muted-foreground text-sm mb-4">Luyện phân biệt các cặp âm khó — nghe, lặp lại và nhận điểm</p>
+  const accuracy = totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
 
-      {/* Stats */}
-      <div className="flex gap-3 mb-5">
-        <Badge variant="outline" className="rounded-full">{totalCorrect}/{totalAttempts} đúng</Badge>
-        <Badge variant="outline" className="rounded-full">
-          {totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0}% accuracy
-        </Badge>
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-foreground">
+              Dashboard
+            </Link>
+            <span className="text-slate-400">/</span>
+            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Pronunciation Lab</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
+            <Radio className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            Minimal Pairs Pronunciation Lab
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Luyện phân biệt và chuẩn hóa các cặp âm dễ nhầm lẫn trong giao tiếp tiếng Anh quốc tế.
+          </p>
+        </div>
+
+        {/* Telemetry Accuracy Meter */}
+        <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-2.5 rounded-xl text-xs">
+          <div>
+            <span className="text-muted-foreground block text-[10px]">Độ chính xác</span>
+            <span className="text-sm font-bold text-foreground tabular-nums">{accuracy}%</span>
+          </div>
+          <div className="h-6 w-px bg-slate-300 dark:bg-slate-700" />
+          <div>
+            <span className="text-muted-foreground block text-[10px]">Đã hoàn thành</span>
+            <span className="text-sm font-bold text-foreground tabular-nums">{totalCorrect}/{totalAttempts}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Category selector */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+      {/* Category Segmented Selector */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {MINIMAL_PAIRS.map((cat, i) => (
           <button
             key={cat.category}
             onClick={() => { setSelectedCat(i); setPairIndex(0); setDrillState("idle"); setScore(null); }}
-            className={`px-4 py-2 rounded-2xl text-sm font-semibold whitespace-nowrap transition-all ${
-              selectedCat === i ? "bg-gradient-kawaii text-white shadow-md" : "bg-white/60 dark:bg-gray-800/60 border border-gray-200/50 text-muted-foreground"
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+              selectedCat === i
+                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-500/20"
+                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 hover:text-foreground"
             }`}
           >
-            {cat.emoji} {cat.category}
+            <span>{cat.category}</span>
           </button>
         ))}
       </div>
 
-      {/* Category info */}
-      <div className="bg-kawaii-lavender/10 rounded-2xl px-4 py-3 mb-5 text-sm text-center text-muted-foreground">
-        💡 {category.description}
+      {/* Category Phonetics Info */}
+      <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs">
+        <div>
+          <strong className="text-foreground">{category.category}</strong>
+          <span className="text-slate-400 mx-2">·</span>
+          <span className="text-indigo-600 dark:text-indigo-400 font-mono font-bold">{category.phonetics}</span>
+        </div>
+        <span className="text-muted-foreground hidden sm:inline">{category.description}</span>
       </div>
 
-      {/* Pair cards */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      {/* Contrast Word Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {currentPair && [currentPair.a, currentPair.b].map((word) => (
-          <motion.div
+          <div
             key={word}
-            className="bg-white/60 dark:bg-gray-800/60 backdrop-blur rounded-3xl p-6 border border-gray-200/40 text-center shadow-sm"
-            whileHover={{ scale: 1.02 }}
+            className={`pro-card p-6 sm:p-8 text-center space-y-4 transition-all ${
+              targetWord === word ? "border-indigo-500 ring-2 ring-indigo-500/20" : ""
+            }`}
           >
-            <p className="text-3xl font-bold mb-3">{word}</p>
-            <div className="flex gap-2 justify-center">
-              <button
+            <h3 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
+              {word}
+            </h3>
+
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => playTTS(word)}
-                className="p-2 rounded-xl bg-kawaii-sky/20 hover:bg-kawaii-sky/30 transition-colors"
+                className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold gap-1.5"
               >
-                {ttsLoading === word ? <Loader2 className="w-5 h-5 animate-spin" /> : <Volume2 className="w-5 h-5 text-kawaii-sky" />}
-              </button>
-              <button
+                {ttsLoading === word ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Volume2 className="w-3.5 h-3.5 text-indigo-500" />
+                )}
+                <span>Nghe mẫu</span>
+              </Button>
+
+              <Button
+                size="sm"
                 onClick={() => startDrill(word)}
                 disabled={drillState === "recording"}
-                className="px-4 py-2 rounded-xl bg-kawaii-pink text-white text-sm font-semibold hover:bg-kawaii-pink/80 transition-colors disabled:opacity-50"
+                className="btn-pro text-xs font-bold gap-1.5 px-4"
               >
-                🎙️ Lặp lại
-              </button>
+                <Mic className="w-3.5 h-3.5" />
+                <span>Luyện phát âm từ này</span>
+              </Button>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
-      {/* Drill UI */}
+      {/* Drill Feedback State */}
       <AnimatePresence>
-        {drillState === "listening" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-6 text-muted-foreground">
-            <div className="text-4xl mb-2 animate-pulse">🔊</div>
-            <p>Nghe kỹ rồi lặp lại...</p>
-          </motion.div>
-        )}
         {drillState === "recording" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-6">
-            <div className="text-4xl mb-3 animate-pulse text-red-500">🎙️</div>
-            <p className="text-muted-foreground mb-4">Đang ghi âm... hãy nói <strong className="text-foreground">{targetWord}</strong></p>
-            <button
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pro-card p-6 text-center space-y-3 border-rose-500/30"
+          >
+            <div className="w-12 h-12 rounded-full bg-rose-600 flex items-center justify-center text-white mx-auto animate-pulse">
+              <Mic className="w-6 h-6" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Đang ghi âm... Hãy phát âm to rõ từ: <strong className="text-foreground text-sm">{targetWord}</strong>
+            </p>
+            <Button
               onClick={stopDrill}
-              className="px-6 py-3 bg-red-500 text-white font-bold rounded-2xl hover:bg-red-600 transition-colors"
+              className="rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs"
             >
-              ■ Dừng ghi âm
-            </button>
+              Hoàn tất ghi âm
+            </Button>
           </motion.div>
         )}
+
         {drillState === "result" && score !== null && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center py-6">
-            {score >= 70
-              ? <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              : <XCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-            }
-            <p className="text-2xl font-bold mb-1">{score}%</p>
-            <p className="text-muted-foreground mb-1">Bạn nói: &ldquo;{transcript}&rdquo;</p>
-            <p className={`text-sm font-semibold mb-4 ${score >= 70 ? "text-green-600" : "text-amber-600"}`}>
-              {score >= 90 ? "Xuất sắc! 🌟" : score >= 70 ? "Tốt lắm! 👍" : "Thử lại nhé! 💪"}
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pro-card p-6 text-center space-y-4"
+          >
+            {score >= 70 ? (
+              <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
+            ) : (
+              <XCircle className="w-10 h-10 text-rose-500 mx-auto" />
+            )}
+
+            <div>
+              <div className="text-3xl font-extrabold text-foreground tabular-nums">{score}%</div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                AI ghi nhận bạn nói: &ldquo;<strong className="text-foreground">{transcript}</strong>&rdquo;
+              </p>
+              <p className={`text-xs font-bold mt-1 ${score >= 70 ? "text-emerald-600" : "text-amber-600"}`}>
+                {score >= 90 ? "Phát âm chuẩn bản ngữ!" : score >= 70 ? "Rất tốt, tiếp tục duy trì!" : "Chưa hoàn toàn chuẩn, hãy thử lại nhé!"}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => { setDrillState("idle"); setScore(null); resetTranscript(); }}
-                className="px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 rounded-2xl text-sm font-semibold"
+                className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold"
               >
-                Thử lại
-              </button>
-              <button
+                <RotateCcw className="w-3.5 h-3.5 mr-1" /> Thử lại
+              </Button>
+              <Button
+                size="sm"
                 onClick={nextPair}
-                className="px-5 py-2.5 bg-gradient-kawaii text-white rounded-2xl text-sm font-semibold"
+                className="btn-pro text-xs font-bold gap-1"
               >
-                Cặp tiếp theo →
-              </button>
+                <span>Cặp tiếp theo</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Pair navigation */}
-      <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-        <span>Cặp {pairIndex + 1}/{category.pairs.length}</span>
-        <div className="flex gap-1">
-          {category.pairs.map((_, i) => (
-            <button key={i} onClick={() => { setPairIndex(i); setDrillState("idle"); setScore(null); }}
-              className={`w-2 h-2 rounded-full transition-all ${i === pairIndex ? "bg-kawaii-purple w-4" : "bg-gray-300 dark:bg-gray-600"}`}
-            />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

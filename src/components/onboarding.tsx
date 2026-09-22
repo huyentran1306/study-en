@@ -3,215 +3,325 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame, translations } from "@/contexts/game-context";
-import { Sparkles } from "@/components/floating-decorations";
-import { PetType } from "@/contexts/game-context";
+import { Sparkles, Briefcase, MessageSquare, GraduationCap, Clock, Flame, Zap, ArrowRight, Check } from "lucide-react";
 
-type OnboardingStep = "name" | "target_language" | "pet" | "complete";
+type OnboardingStep = "name" | "goal" | "cadence" | "complete";
 
-const PET_OPTIONS: { type: PetType; emoji: string; name: string; nameVi: string }[] = [
-  { type: "cat", emoji: "🐱", name: "Cat", nameVi: "Mèo" },
-  { type: "bunny", emoji: "🐰", name: "Bunny", nameVi: "Thỏ" },
-  { type: "dog", emoji: "🐶", name: "Dog", nameVi: "Chó" },
-  { type: "dragon", emoji: "🐲", name: "Dragon", nameVi: "Rồng" },
+const GOAL_OPTIONS = [
+  {
+    id: "career",
+    icon: Briefcase,
+    title: "Sự nghiệp & Công sở",
+    desc: "Phỏng vấn xin việc, họp dự án, đàm phán và viết email chuyên nghiệp.",
+  },
+  {
+    id: "fluency",
+    icon: MessageSquare,
+    title: "Giao tiếp đời sống & Du lịch",
+    desc: "Phản xạ nhanh, nói không khựng, tự tin trò chuyện với người bản xứ.",
+  },
+  {
+    id: "academic",
+    icon: GraduationCap,
+    title: "Học thuật & Chứng chỉ",
+    desc: "Nâng cao vốn từ vựng B2-C1, chuẩn hóa phát âm và ngữ pháp chuyên sâu.",
+  },
 ];
 
-const PET_MASCOT: Record<PetType, string> = {
-  cat: "🐱", bunny: "🐰", dog: "🐶", dragon: "🐲",
-};
+const CADENCE_OPTIONS = [
+  { id: "15", time: "15 phút", label: "Tiêu chuẩn", desc: "Duy trì phản xạ đều đặn mỗi ngày", icon: Clock },
+  { id: "25", time: "25 phút", label: "Tập trung", desc: "Tăng tốc độ lưu loát và vốn từ", icon: Zap, popular: true },
+  { id: "40", time: "40 phút", label: "Chuyên sâu", desc: "Đột phá khả năng đàm thoại thực chiến", icon: Flame },
+];
 
 export function OnboardingFlow() {
   const { setLanguage, setUsername, completeOnboarding, language, setPetType } = useGame();
-  // Default UI language to Vietnamese
   const [step, setStep] = useState<OnboardingStep>("name");
   const [name, setName] = useState("");
-  const [selectedTargetLangs, setSelectedTargetLangs] = useState<string[]>(["en"]);
-  const [selectedPet, setSelectedPet] = useState<PetType>("cat");
-  const t = translations[language] || translations["vi"];
+  const [selectedGoal, setSelectedGoal] = useState("career");
+  const [selectedCadence, setSelectedCadence] = useState("25");
 
   const handleNameSubmit = () => {
     if (name.trim()) {
       setUsername(name.trim());
-      setStep("target_language");
+      setStep("goal");
     }
   };
 
-  const toggleTargetLang = (lang: string) => {
-    setSelectedTargetLangs((prev) =>
-      prev.includes(lang) ? (prev.length > 1 ? prev.filter((l) => l !== lang) : prev) : [...prev, lang]
-    );
+  const handleGoalSubmit = () => {
+    setStep("cadence");
   };
 
-  const handleTargetLanguageSubmit = () => {
-    setStep("pet");
-  };
-
-  const handlePetSubmit = () => {
-    setPetType(selectedPet);
+  const handleCadenceSubmit = () => {
+    setPetType("cat"); // Default companion backend
     setStep("complete");
     setTimeout(() => {
-      completeOnboarding(name.trim(), selectedTargetLangs);
-    }, 2000);
+      completeOnboarding(name.trim(), ["en"]);
+    }, 1800);
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-purple-100 via-pink-50 to-sky-100 dark:from-purple-950 dark:via-pink-950 dark:to-sky-950 flex items-center justify-center p-4 z-50 overflow-hidden">
-      {/* Floating decorations */}
-      <div className="absolute inset-0 pointer-events-none">
-        {["⭐","☁️","🌸","🌈","✨","📚"].map((e, i) => (
-          <motion.div key={i} className="absolute text-4xl opacity-25"
-            style={{ left: `${[5,85,8,92,96,3][i]}%`, top: `${[10,15,75,70,40,60][i]}%` }}
-            animate={{ y: [0, -15, 0], rotate: [0, 10, 0] }}
-            transition={{ duration: 4 + i, repeat: Infinity, delay: i * 0.5 }}
-          >
-            {e}
-          </motion.div>
-        ))}
-      </div>
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 z-50 overflow-hidden">
+      {/* Subtle ambient lighting */}
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/3 w-96 h-96 rounded-full bg-sky-600/10 blur-[120px] pointer-events-none" />
 
-      <AnimatePresence mode="wait">
-        {/* Name Input */}
-        {step === "name" && (
-          <motion.div key="name" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9, y: -50 }}
-            className="flex flex-col items-center text-center max-w-md w-full"
-          >
-            <motion.div className="text-7xl mb-4" animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }} transition={{ duration: 2, repeat: Infinity }}>
-              🌟
-            </motion.div>
-            <h1 className="text-3xl font-extrabold mb-2 bg-gradient-kawaii bg-clip-text text-transparent">LinguaPlay ✨</h1>
-            <p className="text-muted-foreground mb-6 text-base">
-              {language === "en" ? "What's your name?" : "Tên bạn là gì?"}
-            </p>
-
-            {/* UI Language quick toggle */}
-            <div className="flex gap-2 mb-6">
-              {(["vi", "en"] as const).map(lang => (
-                <button key={lang} onClick={() => setLanguage(lang)}
-                  className={`px-4 py-1.5 rounded-2xl text-sm font-bold transition-all border-2 ${language === lang ? "bg-gradient-kawaii text-white border-transparent" : "border-gray-200 text-muted-foreground"}`}>
-                  {lang === "vi" ? "🇻🇳 Tiếng Việt" : "🇬🇧 English"}
-                </button>
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 relative z-10">
+        {/* Step indicator */}
+        {step !== "complete" && (
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Thiết lập mục tiêu · Bước {step === "name" ? "1" : step === "goal" ? "2" : "3"}/3
+              </span>
+            </div>
+            <div className="flex gap-1.5">
+              {(["name", "goal", "cadence"] as const).map((s, idx) => (
+                <div
+                  key={s}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    step === s
+                      ? "w-6 bg-indigo-600"
+                      : (s === "name" && (step === "goal" || step === "cadence")) ||
+                        (s === "goal" && step === "cadence")
+                      ? "w-3 bg-indigo-400 dark:bg-indigo-700"
+                      : "w-3 bg-slate-200 dark:bg-slate-700"
+                  }`}
+                />
               ))}
             </div>
-
-            <input
-              type="text" value={name} onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleNameSubmit()}
-              placeholder={language === "en" ? "Your name..." : "Tên của bạn..."}
-              maxLength={20}
-              className="w-full max-w-xs px-6 py-4 text-xl text-center bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-3xl shadow-kawaii border-2 border-transparent focus:border-kawaii-purple focus:outline-none transition-all"
-              autoFocus
-            />
-            <motion.button onClick={handleNameSubmit} disabled={!name.trim()}
-              className="mt-6 px-8 py-4 bg-gradient-kawaii text-white font-bold text-lg rounded-3xl shadow-kawaii disabled:opacity-50"
-              whileHover={{ scale: name.trim() ? 1.05 : 1 }} whileTap={{ scale: name.trim() ? 0.95 : 1 }}
-            >
-              {language === "en" ? "Continue 🚀" : "Tiếp tục 🚀"}
-            </motion.button>
-          </motion.div>
+          </div>
         )}
 
-        {/* Target Language Selection */}
-        {step === "target_language" && (
-          <motion.div key="target_language" initial={{ opacity: 0, scale: 0.9, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: -50 }}
-            className="flex flex-col items-center text-center max-w-md w-full"
-          >
-            <motion.div className="text-6xl mb-4" animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>🌍</motion.div>
-            <h2 className="text-2xl font-extrabold mb-2">
-              {language === "en" ? `Hi ${name}! What will you study?` : `Chào ${name}! Bạn muốn học gì?`}
-            </h2>
-            <p className="text-muted-foreground mb-6 text-sm">
-              {language === "vi" ? "Có thể chọn nhiều ngôn ngữ" : "You can select multiple languages"}
-            </p>
+        <AnimatePresence mode="wait">
+          {/* Step 1: Name & Language */}
+          {step === "name" && (
+            <motion.div
+              key="name"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                  Chào mừng bạn đến với LinguaPro
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  Để cá nhân hóa lộ trình và các phản hồi AI, xin vui lòng cho biết tên của bạn.
+                </p>
+              </div>
 
-            <div className="flex flex-col gap-3 w-full max-w-xs">
-              {[
-                { code: "en", label: language === "vi" ? "Tiếng Anh 🇬🇧" : "English 🇬🇧" },
-                { code: "zh", label: language === "vi" ? "Tiếng Trung 🇨🇳" : "Chinese 🇨🇳" },
-              ].map(({ code, label }) => {
-                const sel = selectedTargetLangs.includes(code);
-                return (
-                  <motion.button key={code} onClick={() => toggleTargetLang(code)}
-                    className={`flex items-center gap-4 px-6 py-4 rounded-3xl shadow-kawaii border-2 transition-all ${sel ? "bg-gradient-kawaii text-white border-transparent" : "bg-white/80 dark:bg-gray-800/80 border-transparent hover:border-kawaii-purple"}`}
-                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              {/* Language toggle */}
+              <div className="flex gap-2">
+                {(["vi", "en"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setLanguage(lang)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                      language === lang
+                        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800"
+                        : "border-slate-200 dark:border-slate-700 text-slate-500 hover:text-foreground"
+                    }`}
                   >
-                    <span className="font-bold text-lg flex-1 text-left">{label}</span>
-                    {sel && <span className="text-xl">✓</span>}
-                  </motion.button>
-                );
-              })}
-            </div>
+                    {lang === "vi" ? "🇻🇳 Tiếng Việt" : "🇬🇧 English"}
+                  </button>
+                ))}
+              </div>
 
-            <motion.button onClick={handleTargetLanguageSubmit}
-              className="mt-6 px-8 py-4 bg-gradient-kawaii text-white font-bold text-lg rounded-3xl shadow-kawaii"
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            >
-              {language === "en" ? "Next ➡️" : "Tiếp theo ➡️"}
-            </motion.button>
-          </motion.div>
-        )}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                  Tên của bạn
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleNameSubmit()}
+                  placeholder="Ví dụ: Hoàng Long, Minh Thư..."
+                  maxLength={25}
+                  className="w-full px-4 py-3 text-base bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-foreground"
+                  autoFocus
+                />
+              </div>
 
-        {/* Pet Selection */}
-        {step === "pet" && (
-          <motion.div key="pet" initial={{ opacity: 0, scale: 0.9, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: -50 }}
-            className="flex flex-col items-center text-center max-w-md w-full"
-          >
-            <motion.div className="text-6xl mb-3" animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
-              {PET_MASCOT[selectedPet]}
+              <button
+                type="button"
+                onClick={handleNameSubmit}
+                disabled={!name.trim()}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm hover:shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                Tiếp tục
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </motion.div>
-            <h2 className="text-2xl font-extrabold mb-1">
-              {language === "en" ? "Choose your companion!" : "Chọn bạn đồng hành!"}
-            </h2>
-            <p className="text-muted-foreground mb-6 text-sm">
-              {language === "vi" ? "Bạn sẽ chăm sóc bạn đồng hành này trong suốt hành trình học tập" : "Your companion will grow with you as you learn!"}
-            </p>
+          )}
 
-            <div className="grid grid-cols-2 gap-3 w-full max-w-xs mb-6">
-              {PET_OPTIONS.map(pet => (
-                <motion.button key={pet.type} onClick={() => setSelectedPet(pet.type)}
-                  className={`flex flex-col items-center gap-2 py-5 rounded-3xl shadow-kawaii border-2 transition-all ${selectedPet === pet.type ? "bg-gradient-kawaii text-white border-transparent" : "bg-white/80 dark:bg-gray-800/80 border-transparent hover:border-kawaii-purple"}`}
-                  whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }}
-                >
-                  <span className="text-4xl">{pet.emoji}</span>
-                  <span className="font-bold text-sm">{language === "vi" ? pet.nameVi : pet.name}</span>
-                  {selectedPet === pet.type && <span className="text-xs opacity-80">✓ Selected</span>}
-                </motion.button>
-              ))}
-            </div>
-
-            <motion.button onClick={handlePetSubmit}
-              className="px-8 py-4 bg-gradient-kawaii text-white font-bold text-lg rounded-3xl shadow-kawaii"
-              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+          {/* Step 2: Goal Selection */}
+          {step === "goal" && (
+            <motion.div
+              key="goal"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
             >
-              {language === "en" ? "Let's Go! 🚀" : "Bắt đầu thôi! 🚀"}
-            </motion.button>
-          </motion.div>
-        )}
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                  Mục tiêu trọng tâm của bạn?
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  LinguaPro sẽ ưu tiên các tình huống và từ vựng phù hợp với nhu cầu của bạn.
+                </p>
+              </div>
 
-        {/* Welcome Complete */}
-        {step === "complete" && (
-          <motion.div key="complete" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center text-center"
-          >
-            <motion.div className="text-8xl mb-4" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 0.5, repeat: 3 }}>
-              {PET_MASCOT[selectedPet]}
+              <div className="space-y-3">
+                {GOAL_OPTIONS.map((g) => {
+                  const Icon = g.icon;
+                  const isSel = selectedGoal === g.id;
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setSelectedGoal(g.id)}
+                      className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-3.5 ${
+                        isSel
+                          ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500/60 shadow-xs"
+                          : "bg-white dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
+                    >
+                      <div
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                          isSel
+                            ? "bg-indigo-600 text-white"
+                            : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-bold text-foreground">{g.title}</h4>
+                          {isSel && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{g.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoalSubmit}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm hover:shadow-indigo-500/20 flex items-center justify-center gap-2"
+              >
+                Tiếp tục
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </motion.div>
-            <h2 className="text-3xl font-extrabold bg-gradient-kawaii bg-clip-text text-transparent">
-              {language === "en" ? `Welcome, ${name}! 🎉` : `Chào mừng, ${name}! 🎉`}
-            </h2>
+          )}
 
-            <div className="fixed inset-0 pointer-events-none">
-              {Array.from({ length: 30 }).map((_, i) => (
-                <motion.div key={i} className="absolute text-2xl" style={{ left: `${Math.random() * 100}%` }}
-                  initial={{ y: -50, opacity: 1 }} animate={{ y: "100vh", opacity: 0 }}
-                  transition={{ duration: 3 + Math.random() * 2, delay: i * 0.1 }}
-                >
-                  {["🎊","🎉","⭐","✨","💫","🌟"][Math.floor(Math.random() * 6)]}
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* Step 3: Daily Target Cadence */}
+          {step === "cadence" && (
+            <motion.div
+              key="cadence"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-6"
+            >
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                  Cam kết thời lượng hàng ngày
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  Duy trì nhịp độ ngắn nhưng đều đặn là bí quyết giúp người đi làm làm chủ phản xạ tiếng Anh.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {CADENCE_OPTIONS.map((c) => {
+                  const Icon = c.icon;
+                  const isSel = selectedCadence === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedCadence(c.id)}
+                      className={`w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between ${
+                        isSel
+                          ? "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500/60 shadow-xs"
+                          : "bg-white dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            isSel
+                              ? "bg-indigo-600 text-white"
+                              : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-foreground">{c.time} / ngày</h4>
+                            {c.popular && (
+                              <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                Đề xuất
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{c.desc}</p>
+                        </div>
+                      </div>
+                      {isSel && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCadenceSubmit}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm hover:shadow-indigo-500/20 flex items-center justify-center gap-2"
+              >
+                Hoàn tất & Bước vào Studio
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {/* Step 4: Initializing Complete */}
+          {step === "complete" && (
+            <motion.div
+              key="complete"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="py-8 text-center space-y-4"
+            >
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 animate-pulse">
+                <Sparkles className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">
+                  Không gian học tập đã sẵn sàng, {name}!
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Đang khởi tạo bài học cá nhân hóa và bảng điều khiển phản xạ...
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
-
+export default OnboardingFlow;

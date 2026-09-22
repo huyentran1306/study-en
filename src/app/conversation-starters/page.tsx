@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Volume2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 const SITUATIONS = [
@@ -82,27 +83,29 @@ export default function ConversationStartersPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
       <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block">← Quay lại</Link>
-      <h1 className="text-2xl font-bold mb-1">
-        <span className="bg-gradient-kawaii bg-clip-text text-transparent">🗣️ Conversation Starters</span>
-      </h1>
-      <p className="text-muted-foreground text-sm mb-6">Không biết bắt đầu nói gì? AI gợi ý những câu mở đầu tự nhiên nhất!</p>
+      <div className="pb-4 border-b border-slate-200/80 dark:border-slate-800 mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Conversation Starters & Networking Openers
+        </h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+          Không biết bắt đầu thế nào? AI gợi ý những câu mở đầu tự nhiên, tinh tế cho từng bối cảnh.
+        </p>
+      </div>
 
       {/* Situation picker */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         {SITUATIONS.map((s) => (
-          <motion.button
+          <button
             key={s.id}
             onClick={() => { setSelected(s); setResult(null); }}
-            className={`text-left p-3 rounded-2xl border-2 transition-all ${
+            className={`text-left p-3.5 rounded-xl border text-xs font-semibold transition-all ${
               selected.id === s.id
-                ? "border-kawaii-purple bg-kawaii-lavender/10"
-                : "border-gray-200/50 bg-white/60 dark:bg-gray-800/60 hover:border-kawaii-purple/40"
+                ? "border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-foreground hover:border-indigo-500/50"
             }`}
-            whileHover={{ scale: 1.02 }}
           >
-            <span className="text-xl mr-2">{s.emoji}</span>
-            <span className="text-xs font-medium">{s.label}</span>
-          </motion.button>
+            <span>{s.label}</span>
+          </button>
         ))}
       </div>
 
@@ -112,19 +115,19 @@ export default function ConversationStartersPage() {
         <textarea
           value={context}
           onChange={(e) => setContext(e.target.value)}
-          placeholder="VD: Tôi đang ở sự kiện tech startup, đối phương đang đứng một mình..."
+          placeholder="VD: Tôi đang ở sự kiện networking của công ty, đối phương là đối tác tiềm năng..."
           rows={2}
-          className="w-full rounded-2xl border border-gray-200/60 bg-white/60 dark:bg-gray-800/60 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-kawaii-purple/40"
+          className="w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-xs sm:text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
       </div>
 
-      <button
+      <Button
         onClick={generate}
         disabled={loading}
-        className="w-full py-4 bg-gradient-kawaii text-white font-bold rounded-2xl text-base mb-6 disabled:opacity-60 flex items-center justify-center gap-2"
+        className="btn-pro w-full py-3.5 text-xs sm:text-sm font-bold mb-6 gap-2"
       >
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tạo...</> : "✨ Gợi ý câu mở đầu"}
-      </button>
+        {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang tổng hợp...</> : "Gợi ý câu mở đầu phù hợp"}
+      </Button>
 
       <AnimatePresence>
         {result && (
@@ -139,27 +142,27 @@ export default function ConversationStartersPage() {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className={`rounded-2xl border-2 overflow-hidden transition-all ${
+                    className={`pro-card overflow-hidden transition-all ${
                       activeOpener === opener.text
-                        ? "border-kawaii-purple"
-                        : "border-gray-200/50"
+                        ? "border-indigo-600 ring-2 ring-indigo-500/20"
+                        : "border-slate-200/80 dark:border-slate-800"
                     }`}
                   >
                     <div
-                      className="p-4 bg-white/60 dark:bg-gray-800/60 cursor-pointer"
+                      className="p-4 cursor-pointer"
                       onClick={() => setActiveOpener(activeOpener === opener.text ? null : opener.text)}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-medium flex-1">&ldquo;{opener.text}&rdquo;</p>
+                        <p className="text-sm font-medium flex-1 text-foreground">&ldquo;{opener.text}&rdquo;</p>
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge className={`text-xs rounded-full ${TONE_COLORS[opener.tone] || "bg-gray-100 text-gray-600"}`}>
+                          <Badge className={`text-[10px] rounded-md ${TONE_COLORS[opener.tone] || "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}>
                             {opener.tone}
                           </Badge>
                           <button
                             onClick={(e) => { e.stopPropagation(); speak(opener.text); }}
-                            className="p-1.5 rounded-full bg-kawaii-lavender/20 hover:bg-kawaii-lavender/40"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400"
                           >
-                            <Volume2 className={`w-3.5 h-3.5 ${playingText === opener.text ? "text-kawaii-purple animate-pulse" : ""}`} />
+                            <Volume2 className={`w-3.5 h-3.5 ${playingText === opener.text ? "animate-pulse" : ""}`} />
                           </button>
                         </div>
                       </div>
@@ -172,7 +175,7 @@ export default function ConversationStartersPage() {
                           exit={{ height: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-4 pb-3 pt-1 bg-kawaii-lavender/5 text-sm text-muted-foreground italic">
+                          <div className="px-4 pb-3 pt-1 bg-slate-50 dark:bg-slate-850 text-xs text-muted-foreground italic border-t border-slate-100 dark:border-slate-800">
                             💡 {opener.why}
                           </div>
                         </motion.div>
@@ -184,18 +187,18 @@ export default function ConversationStartersPage() {
             </div>
 
             {/* Follow-ups */}
-            <div className="bg-white/60 dark:bg-gray-800/60 rounded-2xl p-4 border border-gray-200/40">
-              <h2 className="font-bold text-sm mb-3">🔄 Câu tiếp theo để duy trì cuộc trò chuyện</h2>
+            <div className="pro-card p-5 space-y-3">
+              <h2 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Câu tiếp theo để duy trì cuộc trò chuyện</h2>
               <ul className="space-y-2">
                 {result.follow_ups.map((q, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
+                  <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm">
                     <button
                       onClick={() => speak(q)}
-                      className="mt-0.5 p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-kawaii-lavender/30 shrink-0"
+                      className="mt-0.5 p-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 shrink-0"
                     >
-                      <Volume2 className={`w-3 h-3 ${playingText === q ? "text-kawaii-purple animate-pulse" : ""}`} />
+                      <Volume2 className={`w-3 h-3 ${playingText === q ? "animate-pulse" : ""}`} />
                     </button>
-                    <span>&ldquo;{q}&rdquo;</span>
+                    <span className="text-foreground">&ldquo;{q}&rdquo;</span>
                   </li>
                 ))}
               </ul>
@@ -203,23 +206,24 @@ export default function ConversationStartersPage() {
 
             {/* Common responses */}
             {result.common_responses.length > 0 && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4">
-                <h2 className="font-bold text-sm mb-2 text-blue-700 dark:text-blue-300">🗨️ Đối phương thường trả lời:</h2>
-                <ul className="space-y-1">
+              <div className="pro-card p-5 space-y-2 border-indigo-500/20">
+                <h2 className="font-bold text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Đối phương thường phản hồi:</h2>
+                <ul className="space-y-1.5">
                   {result.common_responses.map((r, i) => (
-                    <li key={i} className="text-sm text-blue-700 dark:text-blue-200">&ldquo;{r}&rdquo;</li>
+                    <li key={i} className="text-xs sm:text-sm text-foreground italic">&ldquo;{r}&rdquo;</li>
                   ))}
                 </ul>
               </div>
             )}
 
             {/* Tips */}
-            <div className="bg-gradient-to-br from-kawaii-yellow/20 to-kawaii-pink/10 rounded-2xl p-4">
-              <h2 className="font-bold text-sm mb-2">📌 Tips</h2>
-              <ul className="space-y-1">
+            <div className="pro-card p-5 space-y-2">
+              <h2 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">Chiến lược ghi điểm:</h2>
+              <ul className="space-y-1.5">
                 {result.tips.map((tip, i) => (
-                  <li key={i} className="text-sm flex gap-2">
-                    <span className="text-kawaii-yellow">•</span> {tip}
+                  <li key={i} className="text-xs text-slate-600 dark:text-slate-300 flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0" />
+                    <span>{tip}</span>
                   </li>
                 ))}
               </ul>

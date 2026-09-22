@@ -1,3 +1,5 @@
+import { getAllTopicWords } from "./vocab-topics";
+
 export interface VocabWord {
   id: string;
   word: string;
@@ -6,6 +8,13 @@ export interface VocabWord {
   phonetic?: string;
   emoji?: string;
   category?: string;
+  topicId?: string;
+  partOfSpeech?: "noun" | "verb" | "adjective" | "adverb" | "phrase";
+  level?: "B1" | "B2" | "C1" | "C2";
+  collocations?: string[];
+  definition?: string;
+  contextTip?: string;
+  starred?: boolean;
   learned: boolean;
   createdAt: string;
 }
@@ -21,7 +30,7 @@ export interface DailyChallenge {
   language?: string;
 }
 
-export const SAMPLE_VOCABULARY: VocabWord[] = [
+const INITIAL_BASE_VOCABULARY: VocabWord[] = [
   {
     id: "1",
     word: "Eloquent",
@@ -132,6 +141,30 @@ export const SAMPLE_VOCABULARY: VocabWord[] = [
     learned: false,
     createdAt: new Date().toISOString(),
   },
+];
+
+const mappedTopicWords: VocabWord[] = getAllTopicWords().map((tw) => ({
+  id: tw.id,
+  word: tw.word,
+  meaning: tw.meaning,
+  definition: tw.definition,
+  example: tw.example,
+  phonetic: tw.phonetic,
+  emoji: tw.emoji || "📖",
+  category: tw.topicId,
+  topicId: tw.topicId,
+  partOfSpeech: tw.partOfSpeech,
+  level: tw.level,
+  collocations: tw.collocations,
+  contextTip: tw.contextTip,
+  starred: false,
+  learned: false,
+  createdAt: new Date().toISOString(),
+}));
+
+export const SAMPLE_VOCABULARY: VocabWord[] = [
+  ...INITIAL_BASE_VOCABULARY,
+  ...mappedTopicWords,
 ];
 
 export const CATEGORY_COLORS: Record<string, string> = {

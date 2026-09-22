@@ -245,11 +245,11 @@ export function WordScrambleGame({ words: externalWords }: { words?: { word: str
         </p>
         <motion.button
           onClick={startSession}
-          className="px-8 py-4 bg-gradient-kawaii text-white font-bold rounded-3xl shadow-kawaii"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          className="btn-pro px-8 py-3.5 text-sm font-bold"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          🎮 Start Game
+          Bắt đầu thử thách từ vựng
         </motion.button>
       </div>
     );
@@ -262,17 +262,17 @@ export function WordScrambleGame({ words: externalWords }: { words?: { word: str
         <h3 className="text-2xl font-bold mt-4 mb-2">
           {score > 40 ? "Amazing! 🎉" : "Nice work! 👏"}
         </h3>
-        <p className="text-3xl font-bold text-kawaii-purple mb-2">{score} pts</p>
-        <p className="text-sm text-muted-foreground mb-6">
-          +{score} XP • +{Math.floor(score / 3)} 🪙
+        <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-2">{score} pts</p>
+        <p className="text-xs text-muted-foreground mb-6">
+          +{score} XP • +{Math.floor(score / 3)} Coins
         </p>
         <motion.button
           onClick={startSession}
-          className="px-6 py-3 bg-gradient-kawaii text-white font-bold rounded-2xl shadow-kawaii"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          className="btn-pro px-6 py-3 text-xs font-bold"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
-          🔄 Play Again
+          Thử thách lượt mới
         </motion.button>
       </div>
     );
@@ -300,22 +300,15 @@ export function WordScrambleGame({ words: externalWords }: { words?: { word: str
       </div>
 
       {/* Hint card */}
-      <div className="text-center mb-4 py-4 px-6 rounded-3xl bg-gradient-candy text-white shadow-kawaii">
-        <motion.div
-          className="text-5xl mb-1"
-          animate={{ y: [0, -5, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          {current.emoji}
-        </motion.div>
+      <div className="pro-card text-center mb-4 py-5 px-6 border-indigo-500/30 bg-slate-900 text-white">
         <p className="font-bold text-lg">&ldquo;{current.meaning}&rdquo;</p>
-        <p className="text-xs opacity-75 mt-1">
+        <p className="text-xs text-slate-400 mt-1">
           {current.word.length} {language === "vi" ? "chữ cái" : "letters"}
         </p>
       </div>
 
       {/* Answer slots */}
-      <div className="flex flex-wrap justify-center gap-2 min-h-[4rem] mb-4 px-2 py-3 rounded-2xl bg-white/50 dark:bg-gray-800/50 border-2 border-dashed border-kawaii-purple/30">
+      <div className="flex flex-wrap justify-center gap-2 min-h-[4rem] mb-4 px-2 py-3 rounded-2xl bg-slate-50 dark:bg-slate-850/60 border-2 border-dashed border-indigo-500/30">
         {Array.from({ length: current.word.length }).map((_, i) => {
           const tile = placed[i];
           return (
@@ -326,10 +319,10 @@ export function WordScrambleGame({ words: externalWords }: { words?: { word: str
               className={`w-12 h-12 rounded-xl font-extrabold text-xl flex items-center justify-center transition-colors ${
                 tile
                   ? feedback === "correct"
-                    ? "bg-green-400 text-white shadow-lg"
+                    ? "bg-emerald-600 text-white shadow-lg"
                     : feedback === "wrong"
-                    ? "bg-red-400 text-white shadow-lg"
-                    : "bg-gradient-kawaii text-white shadow-kawaii hover:brightness-110"
+                    ? "bg-rose-600 text-white shadow-lg"
+                    : "bg-indigo-600 text-white shadow-sm hover:brightness-110"
                   : "bg-muted/50 text-muted-foreground"
               }`}
               whileTap={tile && !feedback ? { scale: 0.9 } : {}}
@@ -358,7 +351,7 @@ export function WordScrambleGame({ words: externalWords }: { words?: { word: str
               exit={{ scale: 0, opacity: 0 }}
               onClick={(e) => handleTileClick(tile, e)}
               disabled={feedback !== null}
-              className="w-12 h-12 rounded-xl font-extrabold text-xl flex items-center justify-center bg-white dark:bg-gray-700 shadow-kawaii border-2 border-kawaii-purple/20 hover:bg-kawaii-purple/10 hover:border-kawaii-purple/50 transition-colors disabled:opacity-50"
+              className="w-12 h-12 rounded-xl font-extrabold text-xl flex items-center justify-center bg-white dark:bg-slate-800 shadow-sm border border-slate-200/80 dark:border-slate-700 hover:border-indigo-500 transition-colors disabled:opacity-50 text-foreground"
               whileHover={{ scale: 1.1, y: -4 }}
               whileTap={{ scale: 0.9 }}
             >

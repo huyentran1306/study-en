@@ -40,11 +40,18 @@ function Dialog({ open: controlledOpen, onOpenChange, children }: DialogProps) {
 interface DialogTriggerProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   render?: React.ReactElement;
+  asChild?: boolean;
 }
 
 const DialogTrigger = React.forwardRef<HTMLButtonElement, DialogTriggerProps>(
-  ({ render, children, ...props }, ref) => {
+  ({ render, asChild, children, ...props }, ref) => {
     const { onOpenChange } = useDialog();
+
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children as React.ReactElement<{ onClick?: () => void }>, {
+        onClick: () => onOpenChange(true),
+      });
+    }
 
     if (render) {
       return React.cloneElement(render, {
