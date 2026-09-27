@@ -31,6 +31,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useSTTRecorder } from "@/hooks/use-stt-recorder";
 import { useGame } from "@/contexts/game-context";
+import { ShadowingDialoguesView } from "@/components/shadowing-dialogues-view";
 
 interface ShadowingItem {
   id: string;
@@ -247,6 +248,118 @@ const CATEGORIES: ShadowingCategory[] = [
         linkingPairs: [["incident", "post-mortem"], ["by", "tomorrow"]],
         intonation: "falling",
         intonationNote: "Hạ giọng trang trọng ở 'morning' ↘ thể hiện sự chu đáo và chuyên nghiệp.",
+      },
+    ],
+  },
+  {
+    id: "it-system-design",
+    name: "System Design & Distributed Data Sharding",
+    desc: "Bảo vệ giải pháp phân tán, phân vùng dữ liệu sharding, CAP Theorem và cơ chế khóa Redlock",
+    icon: Cpu,
+    accent: "text-purple-600 dark:text-purple-400",
+    border: "border-purple-500/40",
+    badge: "System Design Pro (C1-C2)",
+    domain: "it",
+    items: [
+      {
+        id: "sd-1",
+        text: "We partitioned the order database by customer ID hash to prevent hotspotting and ensure even shard distribution.",
+        vietnamese: "Chúng tôi đã phân vùng cơ sở dữ liệu đơn hàng theo hàm băm ID khách hàng để ngăn chặn hiện tượng điểm nóng (hotspotting) và đảm bảo phân bổ đều giữa các shard.",
+        context: "Giải thích kỹ thuật phân vùng cơ sở dữ liệu (database sharding) khi xử lý hàng chục triệu bản ghi.",
+        level: "C1",
+        stressWords: ["partitioned", "customer", "hash", "prevent", "hotspotting", "shard", "distribution"],
+        linkingPairs: [["partitioned", "the"], ["shard", "distribution"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh các thuật ngữ 'customer ID hash' và hạ giọng ở 'shard distribution' ↘.",
+      },
+      {
+        id: "sd-2",
+        text: "Under the CAP theorem constraints, we prioritized high availability and partition tolerance over strict immediate consistency.",
+        vietnamese: "Dưới các ràng buộc của định lý CAP, chúng tôi ưu tiên tính sẵn sàng cao và khả năng chịu phân vùng mạng hơn là tính nhất quán tức thì nghiêm ngặt.",
+        context: "Bảo vệ lựa chọn mô hình dữ liệu NoSQL / Eventual Consistency trước ban thẩm định kiến trúc.",
+        level: "C1",
+        stressWords: ["CAP theorem", "constraints", "prioritized", "availability", "partition", "tolerance"],
+        linkingPairs: [["under", "the"], ["partition", "tolerance"]],
+        intonation: "falling",
+        intonationNote: "Phát âm dõng dạc 'CAP theorem', ngắt nhịp sau 'constraints,', hạ giọng ở 'consistency' ↘.",
+      },
+      {
+        id: "sd-3",
+        text: "To prevent race conditions during concurrent seat bookings, we implemented distributed locking with Redlock on Redis.",
+        vietnamese: "Để ngăn chặn tranh chấp dữ liệu (race conditions) khi hàng nghìn người cùng đặt vé, chúng tôi đã triển khai cơ chế khóa phân tán Redlock trên Redis.",
+        context: "Giải quyết bài toán xử lý đồng thời (concurrency control) trong hệ thống vé máy bay / rạp phim.",
+        level: "C1",
+        stressWords: ["prevent", "race conditions", "concurrent", "distributed", "locking", "Redlock", "Redis"],
+        linkingPairs: [["race", "conditions"], ["locking", "with"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh 'race conditions' và 'distributed locking with Redlock'.",
+      },
+      {
+        id: "sd-4",
+        text: "Our rate-limiting middleware leverages a token bucket algorithm to gracefully throttle abusive client traffic.",
+        vietnamese: "Middleware giới hạn tốc độ của chúng tôi tận dụng thuật toán thùng chứa token (token bucket) để bóp nghẽn các lưu lượng độc hại một cách êm ái.",
+        context: "Mô tả cơ chế tự vệ của API trước nguy cơ bị spam hoặc tấn công từ chối dịch vụ DDoS.",
+        level: "B2",
+        stressWords: ["rate-limiting", "middleware", "token bucket", "algorithm", "throttle", "traffic"],
+        linkingPairs: [["rate-limiting", "middleware"], ["token", "bucket"]],
+        intonation: "falling",
+        intonationNote: "Hạ giọng dứt khoát ở 'abusive client traffic' ↘.",
+      },
+    ],
+  },
+  {
+    id: "it-daily-agile",
+    name: "Senior Tech Lead Standup & Code Review",
+    desc: "Báo cáo tiến độ daily standup, phản biện pull request và chiến lược xử lý nợ kỹ thuật",
+    icon: Terminal,
+    accent: "text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/40",
+    badge: "Agile Leadership (B2-C1)",
+    domain: "it",
+    items: [
+      {
+        id: "ag-1",
+        text: "Yesterday I decoupled the authentication middleware, and today I am unblocking the frontend team on the webhook contract.",
+        vietnamese: "Hôm qua tôi đã hoàn thành việc tách rời middleware xác thực, và hôm nay tôi sẽ tháo gỡ vướng mắc cho đội frontend về hợp đồng webhook.",
+        context: "Báo cáo standup chuẩn phong thái Senior Engineer: súc tích, hướng tới tháo gỡ khó khăn cho đồng nghiệp.",
+        level: "B2",
+        stressWords: ["Yesterday", "decoupled", "authentication", "unblocking", "webhook", "contract"],
+        linkingPairs: [["Yesterday", "I"], ["unblocking", "the"]],
+        intonation: "falling",
+        intonationNote: "Nhịp nói nhanh vừa phải, ngắt nhịp tự nhiên sau dấu phẩy ',', hạ giọng ở 'contract' ↘.",
+      },
+      {
+        id: "ag-2",
+        text: "I flagged a critical memory leak in the pull request where unclosed database connections were starving the pool.",
+        vietnamese: "Tôi đã gắn cờ cảnh báo một lỗi rò rỉ bộ nhớ nghiêm trọng trong pull request khi các kết nối database không được đóng làm cạn kiệt connection pool.",
+        context: "Phản hồi code review kiến trúc chuyên nghiệp và mang tính xây dựng cao.",
+        level: "C1",
+        stressWords: ["flagged", "critical", "memory leak", "pull request", "unclosed", "starving"],
+        linkingPairs: [["flagged", "a"], ["pull", "request"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh 'critical memory leak' để nêu bật tầm quan trọng của lỗi kiến trúc.",
+      },
+      {
+        id: "ag-3",
+        text: "We should allocate twenty percent of our sprint capacity toward refactoring this legacy technical debt before it bites us.",
+        vietnamese: "Chúng ta nên dành ra 20% dung lượng của sprint này để tái cấu trúc khoản nợ kỹ thuật cũ này trước khi nó gây họa cho hệ thống.",
+        context: "Đề xuất chiến lược bảo dưỡng mã nguồn với Product Owner và Scrum Master.",
+        level: "B2",
+        stressWords: ["allocate", "twenty percent", "capacity", "refactoring", "technical debt"],
+        linkingPairs: [["allocate", "twenty"], ["twenty", "percent"]],
+        intonation: "falling",
+        intonationNote: "Giọng điệu thuyết phục, hạ giọng chắc chắn ở 'before it bites us' ↘.",
+      },
+      {
+        id: "ag-4",
+        text: "Let us synchronize with the DevOps squad right after standup to align on the staging cluster deployment timeline.",
+        vietnamese: "Chúng ta hãy đồng bộ nhanh với đội ngũ DevOps ngay sau buổi standup để thống nhất về lịch trình triển khai cụm máy chủ staging.",
+        context: "Kêu gọi hành động điều phối liên chức năng (cross-team alignment).",
+        level: "B2",
+        stressWords: ["synchronize", "DevOps squad", "standup", "align", "deployment timeline"],
+        linkingPairs: [["Let", "us"], ["after", "standup"]],
+        intonation: "falling",
+        intonationNote: "Tông giọng hợp tác, hạ giọng dứt khoát ở 'timeline' ↘.",
       },
     ],
   },
@@ -492,6 +605,7 @@ function playBeep(freq: number = 440, duration: number = 0.15) {
 
 export default function ShadowingPage() {
   const { addXP, addCoins } = useGame();
+  const [studioMode, setStudioMode] = useState<"dialogues" | "sentences">("dialogues");
   const [domainFilter, setDomainFilter] = useState<"all" | "it" | "business">("all");
   const [selectedCategory, setSelectedCategory] = useState<ShadowingCategory | null>(null);
   const [itemIdx, setItemIdx] = useState(0);
@@ -753,7 +867,47 @@ export default function ShadowingPage() {
           </div>
         </div>
 
-        {/* 3-Step Guided Workflow Banner */}
+        {/* Mode Switcher Tabs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+          <button
+            onClick={() => {
+              stopAllAudio();
+              setStudioMode("dialogues");
+            }}
+            className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+              studioMode === "dialogues"
+                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-slate-700"
+                : "text-slate-600 dark:text-slate-400 hover:text-foreground"
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 text-indigo-500" />
+            <span>Hội Thoại Dài Thực Chiến (6 Kịch Bản Call Solution)</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-extrabold animate-pulse">
+              HOT
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              stopAllAudio();
+              setStudioMode("sentences");
+            }}
+            className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+              studioMode === "sentences"
+                ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-slate-700"
+                : "text-slate-600 dark:text-slate-400 hover:text-foreground"
+            }`}
+          >
+            <Radio className="w-4 h-4 text-sky-500" />
+            <span>Câu Luyện Chuyên Sâu ({CATEGORIES.reduce((acc, c) => acc + c.items.length, 0)} Câu Mẫu)</span>
+          </button>
+        </div>
+
+        {studioMode === "dialogues" ? (
+          <ShadowingDialoguesView />
+        ) : (
+          <>
+            {/* 3-Step Guided Workflow Banner */}
         <div className="pro-card p-6 bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
             Quy Trình Rèn Luyện 3 Bước Chuẩn Executive
@@ -912,8 +1066,10 @@ export default function ShadowingPage() {
             })}
           </div>
         </div>
-      </div>
-    );
+      </>
+    )}
+  </div>
+);
   }
 
   // ─────────────────────────────────────────────────────────────
