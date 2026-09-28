@@ -19,6 +19,7 @@ import {
   Repeat,
   Layers,
   Activity,
+  ShieldCheck,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -143,6 +144,7 @@ export function Navbar() {
 
   const primaryLinks = [
     { href: "/", label: t.home, icon: Compass },
+    { href: "/tech-lead", label: "Tech Lead 90D", icon: ShieldCheck, isPro: true },
     { href: "/chat", label: "AI Mentor", icon: MessageSquare },
     { href: "/vocab", label: "Vocabulary", icon: BookOpen },
     { href: "/speaking", label: "Speech Lab", icon: Mic },
@@ -150,6 +152,7 @@ export function Navbar() {
   ];
 
   const practiceLinks: DropdownItem[] = [
+    { href: "/tech-lead", label: "Tech Lead 90D Mastery", desc: "Solution calls & architecture defense", icon: ShieldCheck },
     { href: "/voice", label: "Voice Realtime", desc: "Hands-free AI speaking", icon: Mic },
     { href: "/shadowing", label: "Shadowing Studio", desc: "Accent & intonation drill", icon: Repeat },
     { href: "/roleplay", label: "Situational Roleplay", desc: "Workplace & life scenarios", icon: Layers },
@@ -181,11 +184,18 @@ export function Navbar() {
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all",
                     isActive
                       ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs"
+                      : link.isPro
+                      ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20 border border-indigo-200/60 dark:border-indigo-800/60"
                       : "text-slate-600 dark:text-slate-400 hover:text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
                   )}
                 >
-                  <IconComponent className="w-3.5 h-3.5" />
+                  <IconComponent className={cn("w-3.5 h-3.5", link.isPro && "text-indigo-500")} />
                   {link.label}
+                  {link.isPro && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-600 text-white font-bold ml-0.5">
+                      PRO
+                    </span>
+                  )}
                 </button>
               </Link>
             );

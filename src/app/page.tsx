@@ -79,28 +79,25 @@ export default function Home() {
 
             {/* Quick Action CTA Bar */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link href="/tech-lead">
+                <Button className="bg-gradient-to-r from-indigo-600 via-sky-600 to-indigo-700 hover:from-indigo-700 hover:to-sky-700 text-white px-5 py-3 text-xs sm:text-sm font-bold gap-2 shadow-md shadow-indigo-500/20">
+                  <ShieldCheck className="w-4 h-4 text-sky-200" />
+                  Lộ trình 90 Ngày Tech Lead
+                </Button>
+              </Link>
               <Link href="/voice">
-                <Button className="btn-pro px-5 py-3 text-xs sm:text-sm font-bold gap-2">
-                  <Mic className="w-4 h-4" />
-                  Mở Voice Studio 1-on-1
+                <Button variant="outline" className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold px-4 py-2.5 text-xs sm:text-sm text-foreground gap-2">
+                  <Mic className="w-4 h-4 text-indigo-500" />
+                  Voice Studio 1-on-1
                 </Button>
               </Link>
-              <Link href="/chat">
+              <Link href="/shadowing?tab=dialogues">
                 <Button
                   variant="outline"
                   className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold px-4 py-2.5 text-xs sm:text-sm text-foreground"
                 >
-                  <MessageSquare className="w-4 h-4 mr-2 text-indigo-500" />
-                  AI Chat Mentor
-                </Button>
-              </Link>
-              <Link href="/vocab">
-                <Button
-                  variant="outline"
-                  className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold px-4 py-2.5 text-xs sm:text-sm text-foreground"
-                >
-                  <BookOpen className="w-4 h-4 mr-2 text-sky-500" />
-                  Flashcard Anki SM-2
+                  <Repeat className="w-4 h-4 mr-2 text-sky-500" />
+                  Call Shadowing
                 </Button>
               </Link>
             </div>
@@ -136,6 +133,36 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Tech Lead 90-Day High-Impact Banner */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-700/40 p-5 sm:p-6 shadow-xl text-white relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/25 border border-indigo-400/30 text-[11px] font-bold text-indigo-300">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Chương trình 3 Tháng · Tech Lead Solution Calls</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold tracking-tight">
+              Lộ trình 90 Ngày Cho Developer Leader & Solution Architect
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Cải thiện khả năng phản xạ khi call với khách hàng nước ngoài: giải thích kiến trúc (System Design), đàm phán từ chối yêu cầu (Pushback) và ứng phó sự cố (Incident Triage).
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <Link href="/tech-lead">
+              <Button className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm gap-1.5 shadow-md">
+                Khám phá lộ trình 12 tuần <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </motion.section>

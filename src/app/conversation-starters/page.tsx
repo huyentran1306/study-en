@@ -8,14 +8,15 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 const SITUATIONS = [
-  { emoji: "☕", id: "coffee_shop", label: "Gặp người lạ ở quán cafe", en: "Meeting a stranger at a coffee shop" },
-  { emoji: "💼", id: "networking", label: "Networking sự kiện chuyên nghiệp", en: "Professional networking event" },
+  { emoji: "🖥️", id: "it_solution_call", label: "Call Solution & Khai thác kiến trúc", en: "Client IT solution architecture discovery call" },
+  { emoji: "🚨", id: "it_incident_sync", label: "Họp khẩn cấp sự cố hệ thống", en: "Emergency production outage triage bridge" },
+  { emoji: "📊", id: "it_standup_blocker", label: "Sprint Standup & Báo cáo Blocker", en: "Technical standup reporting blockers and PR feedback" },
+  { emoji: "⚖️", id: "it_tradeoff_defense", label: "Bảo vệ kiến trúc & Đánh đổi TCO", en: "Architecture trade-offs and cloud cost defense" },
+  { emoji: "💼", id: "networking", label: "Networking sự kiện công nghệ", en: "Professional tech networking event" },
   { emoji: "🤝", id: "new_colleague", label: "Đồng nghiệp mới đầu tiên", en: "First day with a new colleague" },
+  { emoji: "👔", id: "interview", label: "Phỏng vấn Tech Lead / C-Level", en: "Job interview small talk for Tech Lead" },
+  { emoji: "☕", id: "coffee_shop", label: "Gặp đối tác ở quán cafe", en: "Meeting a client or colleague at a coffee shop" },
   { emoji: "✈️", id: "travel", label: "Gặp người nước ngoài khi du lịch", en: "Meeting a foreigner while traveling" },
-  { emoji: "🎓", id: "class", label: "Bạn cùng lớp đầu tiên", en: "First-time classmate" },
-  { emoji: "👔", id: "interview", label: "Phỏng vấn xin việc", en: "Job interview small talk" },
-  { emoji: "🎉", id: "party", label: "Gặp bạn bè của bạn bè", en: "Friend of a friend at a party" },
-  { emoji: "🏠", id: "neighbor", label: "Hàng xóm mới chuyển đến", en: "New neighbor moving in" },
 ];
 
 interface StarterResult {
