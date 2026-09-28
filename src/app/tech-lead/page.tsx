@@ -552,7 +552,7 @@ export default function TechLeadPage() {
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 max-w-full -mx-1 px-1 touch-pan-x scrollbar-none">
             {[
               { id: "all", label: "Tất cả" },
               { id: "thinking-time", label: "⏳ Mua thời gian" },
@@ -758,7 +758,7 @@ export default function TechLeadPage() {
                       </div>
 
                       {/* Launch Practice Button */}
-                      <div className="pt-3 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
+                      <div className="pt-3 border-t border-slate-200/60 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <span className="text-[11px] text-muted-foreground font-medium">Bài tập thực hành:</span>
                         <Link href={weekItem.practiceLink.href}>
                           <Button

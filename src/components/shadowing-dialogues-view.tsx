@@ -553,7 +553,7 @@ export function ShadowingDialoguesView() {
               {selectedDialogue.context}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
             <button
               onClick={() => setShowVietnamese(!showVietnamese)}
               className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-foreground flex items-center gap-1.5"
@@ -572,7 +572,7 @@ export function ShadowingDialoguesView() {
         </div>
 
         {/* Role Filtering Tabs */}
-        <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center gap-2">
+        <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
             <Filter className="w-3 h-3" /> Lọc lượt thoại:
           </span>

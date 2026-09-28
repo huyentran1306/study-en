@@ -24,6 +24,7 @@ import {
   RotateCcw,
   LogOut,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/contexts/game-context";
@@ -68,6 +69,13 @@ export function MobileBottomNav() {
       isActive: pathname === "/",
     },
     {
+      href: "/tech-lead",
+      label: "Tech Lead",
+      badge: "90D",
+      icon: ShieldCheck,
+      isActive: pathname === "/tech-lead",
+    },
+    {
       href: "/shadowing",
       label: "Shadowing",
       badge: "IT",
@@ -80,15 +88,21 @@ export function MobileBottomNav() {
       icon: BookOpen,
       isActive: pathname === "/vocab",
     },
-    {
-      href: "/speaking",
-      label: "Phát âm",
-      icon: Mic,
-      isActive: pathname === "/speaking",
-    },
   ];
 
   const drawerSections = [
+    {
+      title: "Chương Trình Trọng Tâm",
+      items: [
+        {
+          href: "/tech-lead",
+          label: "Tech Lead 90D Solution Mastery",
+          desc: "Lộ trình 12 tuần luyện call & bảo vệ kiến trúc",
+          icon: ShieldCheck,
+          badge: "PRO",
+        },
+      ],
+    },
     {
       title: "Phòng Luyện Nói & Ngữ Điệu",
       items: [
@@ -131,7 +145,13 @@ export function MobileBottomNav() {
         {
           href: "/vocab",
           label: "Executive Vocabulary Hub",
-          desc: "Kho từ vựng 7 chủ đề dạng thẻ",
+          desc: "Kho từ vựng 8 chủ đề dạng thẻ",
+          icon: BookOpen,
+        },
+        {
+          href: "/phrases",
+          label: "Tech Phrasebook",
+          desc: "Mẫu câu kiến trúc & pushback",
           icon: BookOpen,
         },
         {

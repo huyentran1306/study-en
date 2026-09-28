@@ -15,9 +15,14 @@ import {
   Bot,
   Compass,
   ArrowRight,
+  Mic,
+  Volume2,
+  Square,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useSTTRecorder } from "@/hooks/use-stt-recorder";
+import { cn } from "@/lib/utils";
 
 const WORKER_BASE = process.env.NEXT_PUBLIC_WORKER_URL || "https://d1-template.trann46698.workers.dev";
 
@@ -283,6 +288,31 @@ async function fetchNPCResponse(scenario: RolePlayScenario, history: ChatMessage
   }
 }
 
+async function playRoleplayTTS(text: string) {
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, lang: "en" }),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+      return;
+    }
+  } catch {
+    /* fallback to speech synthesis */
+  }
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US";
+    window.speechSynthesis.speak(u);
+  }
+}
+
 function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack: () => void }) {
   const { addXP, addCoins, username, activeStudyLanguage } = useGame();
   const isZh = activeStudyLanguage === "zh";
@@ -296,6 +326,30 @@ function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack
   const [showVocab, setShowVocab] = useState(false);
   const [isNPCLoading, setIsNPCLoading] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
+
+  const {
+    isRecording,
+    isTranscribing,
+    transcript,
+    startRecording,
+    stopRecording,
+    resetTranscript,
+  } = useSTTRecorder();
+
+  useEffect(() => {
+    if (transcript) {
+      setInput(transcript);
+    }
+  }, [transcript]);
+
+  const handleVoiceToggle = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      resetTranscript();
+      await startRecording();
+    }
+  };
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -414,7 +468,7 @@ function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack
             )}
 
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed ${
+              className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed space-y-1.5 ${
                 msg.sender === "player"
                   ? "bg-indigo-600 text-white shadow-sm"
                   : "bg-slate-100 dark:bg-slate-800 text-foreground border border-slate-200/60 dark:border-slate-700/60"
@@ -426,7 +480,21 @@ function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
                 </div>
               ) : (
-                msg.text
+                <>
+                  <div>{msg.text}</div>
+                  {msg.sender === "npc" && (
+                    <div className="pt-1 flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={() => playRoleplayTTS(msg.text)}
+                        className="text-[10px] text-muted-foreground hover:text-indigo-500 flex items-center gap-1 transition-colors"
+                      >
+                        <Volume2 className="w-3 h-3" />
+                        <span>Nghe giọng AI</span>
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -456,24 +524,57 @@ function RolePlayChat({ scenario, onBack }: { scenario: RolePlayScenario; onBack
         </div>
       </div>
 
-      {/* Input Console */}
-      <div className="flex gap-2">
+      {/* Input Console with Voice Dictation */}
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          onClick={handleVoiceToggle}
+          disabled={isNPCLoading}
+          variant="outline"
+          className={cn(
+            "h-11 w-11 p-0 rounded-xl flex-shrink-0 transition-all",
+            isRecording
+              ? "bg-rose-500 hover:bg-rose-600 text-white border-rose-600 animate-pulse"
+              : isTranscribing
+              ? "bg-amber-100 dark:bg-amber-950 text-amber-600 border-amber-300"
+              : "border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+          )}
+          title={isRecording ? "Dừng ghi âm" : "Nói bằng giọng nói"}
+        >
+          {isRecording ? (
+            <Square className="w-4 h-4 fill-current" />
+          ) : isTranscribing ? (
+            <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+          ) : (
+            <Mic className="w-4 h-4 text-indigo-500" />
+          )}
+        </Button>
+
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
-          disabled={isNPCLoading}
-          placeholder={isZh ? "输入你的回应..." : "Nhập câu thoại của bạn để tương tác..."}
+          disabled={isNPCLoading || isRecording}
+          placeholder={
+            isRecording
+              ? "Đang lắng nghe giọng Trân..."
+              : isTranscribing
+              ? "Đang chuyển giọng nói thành văn bản..."
+              : isZh
+              ? "输入你的回应..."
+              : "Nhập hoặc chạm mic để nói..."
+          }
           className="flex-1 px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs sm:text-sm"
         />
+
         <Button
           onClick={() => sendMessage(input)}
-          disabled={!input.trim() || isNPCLoading}
-          className="btn-pro px-5 rounded-xl gap-2"
+          disabled={!input.trim() || isNPCLoading || isRecording}
+          className="btn-pro h-11 px-4 sm:px-5 rounded-xl gap-2 flex-shrink-0"
         >
           {isNPCLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          <span>Gửi</span>
+          <span className="hidden sm:inline">Gửi</span>
         </Button>
       </div>
     </div>
