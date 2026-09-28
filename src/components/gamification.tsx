@@ -5,17 +5,31 @@ import { useGame, useTranslation } from "@/contexts/game-context";
 import { Flame, Zap, Coins, Star, Trophy } from "lucide-react";
 import { AnimatedNumber } from "@/components/fx/animated-number";
 
+export function getTechRank(level: number) {
+  if (level >= 25) return { title: "Principal Architect", badge: "🏛️ Principal Architect" };
+  if (level >= 15) return { title: "Staff Architect", badge: "⚡ Staff Lead" };
+  if (level >= 8) return { title: "Tech Lead", badge: "🚀 Tech Lead" };
+  if (level >= 4) return { title: "Senior Engineer", badge: "💼 Senior Engineer" };
+  return { title: "Software Engineer", badge: "🌱 Software Engineer" };
+}
+
 export function XPBar() {
   const { xp, xpToNextLevel, xpProgress, level } = useGame();
   const t = useTranslation();
+  const rank = getTechRank(level);
 
   return (
     <div className="w-full">
       <div className="flex justify-between items-center mb-1.5 text-xs">
-        <span className="font-semibold text-foreground flex items-center gap-1">
-          <Trophy className="w-3.5 h-3.5 text-indigo-500" />
-          {t.level} {level}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-foreground flex items-center gap-1">
+            <Trophy className="w-3.5 h-3.5 text-indigo-500" />
+            {t.level} {level}
+          </span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+            {rank.badge}
+          </span>
+        </div>
         <span className="font-medium text-muted-foreground tabular-nums">
           <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{xp}</span> / {xpToNextLevel} {t.xp}
         </span>
