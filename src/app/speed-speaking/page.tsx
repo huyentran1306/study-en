@@ -22,29 +22,52 @@ import Link from "next/link";
 
 const TOPICS = [
   {
-    topic: "Pitching your current project impact to executive stakeholders",
-    vn: "Thuyết trình về giá trị dự án bạn đang phụ trách cho ban giám đốc",
-    context: "Business Pitch & Stakeholder Value",
+    topic: "Defending why we need 2 weeks of tech debt refactoring to the client",
+    vn: "Thuyết phục khách hàng dành 2 tuần refactor nợ kỹ thuật (Tech Debt)",
+    context: "Tech Lead • Tech Debt & Architecture",
+    category: "tech-lead",
   },
   {
-    topic: "How automation and generative AI are transforming your daily workflow",
-    vn: "Tác động của AI và tự động hóa đến năng suất làm việc của bạn",
-    context: "Tech Trends & Productivity",
+    topic: "Explaining distributed caching (Redis) vs database read replicas under peak traffic",
+    vn: "Giải thích chiến lược Redis caching so với read replica khi chịu tải cao",
+    context: "Solution Architecture • Scalability",
+    category: "tech-lead",
+  },
+  {
+    topic: "Leading an emergency war room call during a payment gateway outage",
+    vn: "Dẫn dắt phòng họp khẩn cấp (War Room) khi cổng thanh toán gặp sự cố",
+    context: "Incident Lead • Outage Management",
+    category: "tech-lead",
+  },
+  {
+    topic: "Handling a sudden scope creep request 3 days before sprint release",
+    vn: "Từ chối khéo và đàm phán khi khách đòi thêm tính năng sát ngày release",
+    context: "Client Pushback • Scope Management",
+    category: "tech-lead",
+  },
+  {
+    topic: "Pitching your current project impact to executive stakeholders",
+    vn: "Thuyết trình về giá trị dự án bạn đang phụ trách cho ban giám đốc",
+    context: "Executive Pitch • Stakeholder Value",
+    category: "general",
   },
   {
     topic: "Describe a high-pressure situation at work and how you handled it",
     vn: "Xử lý khủng hoảng hoặc áp lực cao trong công việc thực tế",
-    context: "Problem Solving & Resilience",
+    context: "Leadership • Crisis Management",
+    category: "general",
+  },
+  {
+    topic: "How automation and generative AI are transforming your daily workflow",
+    vn: "Tác động của AI và tự động hóa đến năng suất làm việc của bạn",
+    context: "Tech Trends & Engineering Velocity",
+    category: "general",
   },
   {
     topic: "The pros and cons of fully remote work vs hybrid corporate models",
     vn: "Đánh giá mô hình làm việc từ xa (Remote) so với Hybrid",
     context: "Modern Workplace Strategy",
-  },
-  {
-    topic: "What are your most critical career milestones for the upcoming three years?",
-    vn: "Mục tiêu và lộ trình sự nghiệp then chốt trong 3 năm tới",
-    context: "Career Vision & Growth",
+    category: "general",
   },
 ];
 
@@ -148,6 +171,12 @@ export default function SpeedSpeakingPage() {
 
   const getTier = (wpm: number) => WPM_TIERS.slice().reverse().find((b) => wpm >= b.wpm) || WPM_TIERS[0];
 
+  const [selectedCategory, setSelectedCategory] = useState<"all" | "tech-lead" | "general">("all");
+
+  const filteredTopics = TOPICS.filter(
+    (t) => selectedCategory === "all" || t.category === selectedCategory
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       {/* Header */}
@@ -172,13 +201,49 @@ export default function SpeedSpeakingPage() {
         {/* Phase: pick topic */}
         {phase === "pick" && (
           <motion.div key="pick" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Chọn chủ đề phản xạ:</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Lựa chọn chủ đề bạn muốn luyện tư duy nhanh bằng tiếng Anh.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Chọn chủ đề phản xạ:</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Lựa chọn chủ đề bạn muốn luyện tư duy nhanh bằng tiếng Anh.</p>
+              </div>
+
+              {/* Category tabs */}
+              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/60">
+                <button
+                  onClick={() => setSelectedCategory("all")}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                    selectedCategory === "all"
+                      ? "bg-card text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Tất cả
+                </button>
+                <button
+                  onClick={() => setSelectedCategory("tech-lead")}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                    selectedCategory === "tech-lead"
+                      ? "bg-card text-indigo-600 dark:text-indigo-400 shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  🚀 Tech Lead & Scalability
+                </button>
+                <button
+                  onClick={() => setSelectedCategory("general")}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                    selectedCategory === "general"
+                      ? "bg-card text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  💼 Quản lý chung
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
-              {TOPICS.map((t) => (
+              {filteredTopics.map((t) => (
                 <button
                   key={t.topic}
                   onClick={() => setSelectedTopic(t)}

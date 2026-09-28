@@ -36,10 +36,11 @@ interface FixResult {
 export default function FixEnglishPage() {
   const { addXP, addCoins } = useGame();
   const [text, setText] = useState("");
+  const [tone, setTone] = useState<"executive" | "slack" | "code_review" | "incident">("executive");
   const [result, setResult] = useState<FixResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [ttsLoading, setTtsLoading] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { isRecording, isTranscribing, transcript, startRecording, stopRecording, resetTranscript } = useSTTRecorder();
@@ -65,7 +66,7 @@ export default function FixEnglishPage() {
       const res = await fetch("/api/fix-english", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text.trim() }),
+        body: JSON.stringify({ text: text.trim(), tone }),
       });
       const data = await res.json() as FixResult;
       setResult(data);
@@ -99,11 +100,66 @@ export default function FixEnglishPage() {
     }
   };
 
-  const copyToClipboard = (val: string) => {
+  const copyToClipboard = (val: string, key = "main") => {
     navigator.clipboard.writeText(val);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
+
+  const tones = [
+    {
+      id: "executive" as const,
+      label: "Client / C-Level",
+      sub: "Ngoại giao & Đàm phán",
+      icon: "👔",
+    },
+    {
+      id: "slack" as const,
+      label: "Slack & Standup",
+      sub: "Ngắn gọn & Tự nhiên",
+      icon: "💬",
+    },
+    {
+      id: "code_review" as const,
+      label: "PR Code Review",
+      sub: "Góp ý code xây dựng",
+      icon: "🔍",
+    },
+    {
+      id: "incident" as const,
+      label: "Incident Update",
+      sub: "Báo cáo sự cố khẩn",
+      icon: "🚨",
+    },
+  ];
+
+  const quickScenarios = [
+    {
+      label: "Pushback deadline sprint",
+      tone: "executive" as const,
+      text: "We cannot deploy this sprint on Friday because QA found a critical bug in payment and we need more time to test.",
+    },
+    {
+      label: "Nhờ review PR gấp",
+      tone: "slack" as const,
+      text: "Can you review my PR when you have free time? It is urgent for today release.",
+    },
+    {
+      label: "Góp ý tối ưu query N+1",
+      tone: "code_review" as const,
+      text: "I think this database query will make slow in production because it query inside loop.",
+    },
+    {
+      label: "Báo cáo sự cố server & ETA",
+      tone: "incident" as const,
+      text: "Our payment service is down now. We are fixing it. Maybe 30 minutes will be ok.",
+    },
+    {
+      label: "Hỏi rõ yêu cầu SLA P99",
+      tone: "executive" as const,
+      text: "Can you tell me more about how many users visit website same time and what is response time you want?",
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -114,15 +170,46 @@ export default function FixEnglishPage() {
             Dashboard
           </Link>
           <span className="text-slate-400">/</span>
-          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Writing Refiner</span>
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Tech Lead Writing Co-pilot</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5">
           <Wand2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-          AI Writing & Grammar Refiner
+          Tech Lead Executive Writing & Slack Polish
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Nhập câu nói hoặc email công việc — AI tự động phân tích ngữ pháp, tinh chỉnh độ tự nhiên và đề xuất cách nói chuẩn bản xứ.
+          Biến các ý tưởng tiếng Anh gượng gạo thành thông điệp chuẩn Tech Lead: chuyên nghiệp khi làm việc với đối tác, súc tích trên Slack, và chuẩn mực trong Code Review.
         </p>
+      </div>
+
+      {/* Tone Mode Selector */}
+      <div className="space-y-2">
+        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+          Chọn phong cách giao tiếp (Tone of Voice):
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {tones.map((t) => {
+            const active = tone === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTone(t.id)}
+                className={`p-3 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                  active
+                    ? "bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 text-indigo-900 dark:text-indigo-200 shadow-sm"
+                    : "bg-card border-border/80 hover:bg-muted/50 text-foreground"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm">
+                  <span>{t.icon}</span>
+                  <span>{t.label}</span>
+                </div>
+                <span className="text-[11px] text-muted-foreground leading-tight">
+                  {t.sub}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Editor Box */}
@@ -130,7 +217,7 @@ export default function FixEnglishPage() {
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Nhập câu tiếng Anh bạn muốn kiểm tra (ví dụ: I am very boring in this meeting, She said me that she will come...)"
+          placeholder="Nhập câu tiếng Anh bạn muốn kiểm tra (ví dụ: We cannot deliver this sprint because QA found bug, Can you review my PR...)"
           className="min-h-[120px] text-sm sm:text-base resize-none border-slate-200/80 dark:border-slate-800 focus-visible:ring-indigo-500 rounded-xl leading-relaxed"
         />
 
@@ -145,8 +232,18 @@ export default function FixEnglishPage() {
               }`}
             >
               {isRecording ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5 text-indigo-500" />}
-              {isRecording ? "Dừng ghi âm" : isTranscribing ? "Đang xử lý..." : "Nhập bằng giọng nói"}
+              {isRecording ? "Dừng ghi âm" : isTranscribing ? "Đang xử lý..." : "Nói bằng Micro"}
             </Button>
+            {text && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setText("")}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Xóa
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -156,7 +253,7 @@ export default function FixEnglishPage() {
               className="btn-pro text-xs font-bold gap-2 px-5"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {loading ? "Đang phân tích..." : "Phân Tích & Tối Ưu Hóa"}
+              {loading ? "Đang tinh chỉnh..." : "Tối Ưu Ngay (Refine)"}
             </Button>
           </div>
         </div>
@@ -165,21 +262,19 @@ export default function FixEnglishPage() {
       {/* Quick Example Chips */}
       <div className="space-y-2">
         <span className="text-[11px] font-semibold text-muted-foreground block">
-          Hoặc thử nhanh với các lỗi diễn đạt phổ biến:
+          💡 Tình huống Tech Lead mẫu thường gặp (Click để điền nhanh):
         </span>
         <div className="flex flex-wrap gap-2">
-          {[
-            "I am very boring in this meeting.",
-            "She said me that she will come tomorrow.",
-            "Can you explain to me about this strategy?",
-            "Please revert back to me as soon as possible.",
-          ].map((ex) => (
+          {quickScenarios.map((sc, idx) => (
             <button
-              key={ex}
-              onClick={() => setText(ex)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 transition-colors text-left"
+              key={idx}
+              onClick={() => {
+                setText(sc.text);
+                setTone(sc.tone);
+              }}
+              className="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 transition-colors text-left flex items-center gap-1.5"
             >
-              {ex}
+              <span>{sc.label}</span>
             </button>
           ))}
         </div>
@@ -197,26 +292,26 @@ export default function FixEnglishPage() {
             <div className="pro-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {result.is_correct ? (
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 flex-shrink-0">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                 ) : (
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 flex-shrink-0">
                     <AlertCircle className="w-5 h-5" />
                   </div>
                 )}
                 <div>
                   <h3 className="font-bold text-base text-foreground">
-                    {result.is_correct ? "Ngữ pháp chuẩn xác" : "Phát hiện điểm cần cải thiện"}
+                    {result.is_correct ? "Ngữ pháp chuẩn xác & Tự nhiên" : "Gợi ý cải thiện diễn đạt"}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                     {result.explanation}
                   </p>
                 </div>
               </div>
 
-              <div className="sm:text-right">
-                <span className="text-[11px] font-semibold text-muted-foreground block">Chỉ số tự nhiên (Naturalness)</span>
+              <div className="sm:text-right flex-shrink-0">
+                <span className="text-[11px] font-semibold text-muted-foreground block">Độ tự nhiên Tech Lead</span>
                 <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums">
                   {result.naturalness_score} / 10
                 </span>
@@ -235,15 +330,15 @@ export default function FixEnglishPage() {
               <div className="pro-card p-5 border-emerald-500/30 bg-emerald-50/20 dark:bg-emerald-950/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                    Bản đã tối ưu (Refined)
+                    Bản tối ưu đề xuất (Refined)
                   </span>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => copyToClipboard(result.corrected)}
+                      onClick={() => copyToClipboard(result.corrected, "refined")}
                       className="text-slate-400 hover:text-foreground text-xs transition-colors p-1"
                       title="Sao chép"
                     >
-                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedKey === "refined" ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => playTTS(result.corrected)}
@@ -277,32 +372,55 @@ export default function FixEnglishPage() {
               </div>
             )}
 
-            {/* Alternative Phrases */}
+            {/* Alternative Variations */}
             {result.alternatives && result.alternatives.length > 0 && (
               <div className="pro-card p-6 space-y-3">
                 <div className="flex items-center gap-2 font-bold text-foreground text-sm">
                   <Sparkles className="w-4 h-4 text-indigo-500" />
-                  Các Cách Diễn Đạt Tương Đương Chuẩn Bản Xứ
+                  Các Biến Thể Diễn Đạt Khác Nhau (Tùy bối cảnh)
                 </div>
-                <div className="space-y-2">
-                  {result.alternatives.map((alt, i) => (
-                    <div
-                      key={i}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-750 flex items-center justify-between gap-3 text-xs sm:text-sm font-medium"
-                    >
-                      <span className="text-foreground">&ldquo;{alt}&rdquo;</span>
-                      <button
-                        onClick={() => playTTS(alt)}
-                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 p-1 flex-shrink-0"
+                <div className="space-y-2.5">
+                  {result.alternatives.map((alt, i) => {
+                    const badgeLabels = [
+                      "⚡ Ngắn gọn & Trực tiếp",
+                      "🤝 Ngoại giao & Thấu cảm",
+                      "🛠️ Chuyên sâu Kỹ thuật",
+                    ];
+                    const label = badgeLabels[i] || `Lựa chọn ${i + 1}`;
+                    return (
+                      <div
+                        key={i}
+                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-750 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm font-medium"
                       >
-                        {ttsLoading === alt ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Volume2 className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  ))}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 block">
+                            {label}
+                          </span>
+                          <span className="text-foreground leading-relaxed">&ldquo;{alt}&rdquo;</span>
+                        </div>
+                        <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+                          <button
+                            onClick={() => copyToClipboard(alt, `alt-${i}`)}
+                            className="p-1 text-slate-400 hover:text-foreground transition-colors"
+                            title="Sao chép"
+                          >
+                            {copiedKey === `alt-${i}` ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => playTTS(alt)}
+                            className="p-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500"
+                            title="Nghe phát âm"
+                          >
+                            {ttsLoading === alt ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Volume2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
