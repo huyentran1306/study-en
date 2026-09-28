@@ -265,19 +265,122 @@ function StoryReader({ story, onComplete }: { story: Story; onComplete: () => vo
   );
 }
 
+const BUILTIN_STORIES: Story[] = [
+  {
+    id: "story-strangler-migration",
+    language: "en",
+    level: "C1",
+    title: "The Midnight Cutover: Breaking the Monolith",
+    emoji: "🚀",
+    intro: "At 2:00 AM on a rainy Tuesday, Trân and her distributed engineering team gathered on a high-priority bridge call. Tonight was the cutover window for their legacy billing service, transitioning to a modern event-driven microservices architecture using the Strangler-fig pattern.",
+    body: "Ten months of architectural planning had led to this exact moment. Instead of a high-risk big-bang migration, the squad had incrementally routed incoming traffic through an API gateway proxy. Synthetic canary transactions showed nominal latency at 42 milliseconds. Suddenly, an alert flashed in CloudWatch: replica database synchronization had stalled due to connection saturation. Keeping her composure, Trân instructed the platform lead to trip the circuit breaker and switch reads to read-replicas. Within three minutes, replication caught up, and all health checks turned emerald green.",
+    mid_question: "How did Trân resolve the sudden database replica synchronization delay during cutover?",
+    mid_question_options: JSON.stringify([
+      "By immediately restarting the entire production cluster",
+      "By tripping the circuit breaker and diverting reads to read-replicas",
+      "By aborting the deployment and rolling back completely",
+      "By disabling all user logins for thirty minutes",
+    ]),
+    mid_question_answer: 1,
+    conclusion: "By 3:30 AM, one hundred percent of live billing traffic was seamlessly handled by the new decoupled microservices. The executive team commended Trân's decisive leadership and fault-tolerant architecture. The legacy monolith was finally deprecated without a single second of customer downtime.",
+    vocab_highlight: JSON.stringify([
+      { word: "Strangler-fig pattern", meaning: "mô hình bóc tách dần monolith sang microservices không gây downtime" },
+      { word: "canary transactions", meaning: "giao dịch kiểm thử tự động trên lượng nhỏ lưu lượng" },
+      { word: "circuit breaker", meaning: "cơ chế ngắt mạch tự động chống sụp đổ dây chuyền hệ thống" },
+    ]),
+  },
+  {
+    id: "story-black-friday-incident",
+    language: "en",
+    level: "B2",
+    title: "Surviving the Surge: The Black Friday Incident",
+    emoji: "⚡",
+    intro: "It was 11:59 PM on Thanksgiving night. In sixty seconds, the annual Black Friday flash sale would unleash twenty times normal traffic onto the e-commerce checkout platform. Trân sat at her multi-monitor command center with the SRE squad.",
+    body: "As the countdown hit zero, request volume skyrocketed to ninety thousand transactions per second. The frontend CDN cached static assets efficiently, but the dynamic inventory allocation service began throwing HTTP 503 errors. Downstream consumers were suffocating under heavy queue backpressure. The VP of Product urgently joined the voice bridge, asking if the site was going down. Trân calmly replied: 'The system is degrading gracefully. We have throttled non-essential recommendation widgets to preserve critical checkout throughput.' Her fast-acting rate limiter and automated Kubernetes pod autoscaling stabilized the platform before any cart abandonment could occur.",
+    mid_question: "What technique did Trân employ to preserve critical checkout throughput under peak surge?",
+    mid_question_options: JSON.stringify([
+      "Shutting down the entire database cluster",
+      "Graceful degradation by throttling non-essential recommendation widgets",
+      "Increasing marketing discounts to distract users",
+      "Transferring all traffic to an unencrypted backup server",
+    ]),
+    mid_question_answer: 1,
+    conclusion: "By sunrise, the platform had processed over forty million dollars in successful orders with zero data corruption. The post-mortem report became a company-wide blueprint for high-availability engineering, highlighting the vital role of graceful degradation.",
+    vocab_highlight: JSON.stringify([
+      { word: "graceful degradation", meaning: "duy trì tính năng cốt lõi khi hệ thống chịu tải cực hạn" },
+      { word: "backpressure", meaning: "kiểm soát ngược dòng khi consumer bị nghẽn" },
+      { word: "rate limiter", meaning: "bộ điều tiết giới hạn tần suất yêu cầu" },
+    ]),
+  },
+  {
+    id: "story-architectural-pushback",
+    language: "en",
+    level: "C1",
+    title: "The Art of Diplomatic Pushback",
+    emoji: "🛡️",
+    intro: "During the quarterly steering committee, the enterprise client's business sponsor demanded that an unvetted third-party biometric authentication SDK be integrated into the upcoming mobile release—without shifting the rigid November deadline.",
+    body: "The room fell silent as stakeholders looked toward Trân. A junior engineer might have impulsively agreed or bluntly refused. Instead, Trân framed the dilemma through the lens of business risk and Total Cost of Ownership. She presented telemetry illustrating that integrating the uncertified SDK without security audits would violate SOC2 compliance and jeopardize their 99.9% uptime SLA. She proposed a phased roadmap: launch the core biometric release with Apple FaceID and Android Biometrics on schedule, then audit and integrate the custom enterprise SDK in Phase Two.",
+    mid_question: "Why was Trân's diplomatic pushback effective with the client stakeholders?",
+    mid_question_options: JSON.stringify([
+      "She threatened to resign from the project immediately",
+      "She framed the trade-off around business risk, SLA stability, and SOC2 compliance",
+      "She blamed the frontend development squad for slow delivery",
+      "She ignored the client's request completely without explaining why",
+    ]),
+    mid_question_answer: 1,
+    conclusion: "The client director nodded in agreement, expressing deep appreciation for Trân's transparency and risk mitigation foresight. The team hit their delivery date flawlessly while maintaining bulletproof security integrity.",
+    vocab_highlight: JSON.stringify([
+      { word: "Total Cost of Ownership (TCO)", meaning: "tổng chi phí sở hữu và bảo trì vận hành dài hạn" },
+      { word: "SOC2 compliance", meaning: "tiêu chuẩn bảo mật và tuân thủ dữ liệu quốc tế" },
+      { word: "risk mitigation", meaning: "chiến lược kiểm soát và giảm thiểu rủi ro kỹ thuật" },
+    ]),
+  },
+  {
+    id: "story-cloud-finops-triumph",
+    language: "en",
+    level: "B2",
+    title: "Taming the Cloud Bill: The FinOps Turnaround",
+    emoji: "💰",
+    intro: "When the CFO reviewed the quarterly AWS cloud infrastructure expenditure, the numbers were staggering: hosting costs had surged forty-five percent year-over-year. Trân was tasked with slashing the cloud bill by twenty-five percent without impacting user latency.",
+    body: "Rather than making blind server cuts, Trân spearheaded a comprehensive FinOps audit. Telemetry revealed that developmental Kubernetes staging environments were running full compute clusters over weekends, and production storage was retaining uncompressed analytical logs indefinitely. Trân led the team to implement Karpenter dynamic autoscaling with EC2 Spot instances for background workers, while transitioning cold data to automated S3 Glacier lifecycle policies. Furthermore, Redis query caching lowered costly database provisioned IOPS by thirty percent.",
+    mid_question: "Which strategic optimization helped Trân cut compute expenditure for background workloads?",
+    mid_question_options: JSON.stringify([
+      "Switching to manual on-premise physical servers",
+      "Using EC2 Spot instances with dynamic Karpenter autoscaling",
+      "Deleting all production database backups",
+      "Turning off the production website after office hours",
+    ]),
+    mid_question_answer: 1,
+    conclusion: "At the next board meeting, Trân presented the results: monthly cloud expenditure had dropped twenty-eight percent, saving over three hundred thousand dollars annually, all while P99 latency actually improved by twelve milliseconds.",
+    vocab_highlight: JSON.stringify([
+      { word: "FinOps", meaning: "quản trị tài chính và tối ưu hóa chi phí hạ tầng cloud" },
+      { word: "Spot instances", meaning: "máy chủ nhàn rỗi giá rẻ của nhà cung cấp cloud" },
+      { word: "provisioned IOPS", meaning: "tài nguyên đọc/ghi cơ sở dữ liệu được cấp phát sẵn" },
+    ]),
+  },
+];
+
 export default function StoryPage() {
   const { activeStudyLanguage } = useGame();
   const t = useTranslation();
-  const [stories, setStories] = useState<Story[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [stories, setStories] = useState<Story[]>(BUILTIN_STORIES);
+  const [loading, setLoading] = useState(false);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
 
   useEffect(() => {
-    setLoading(true);
     fetch(`${WORKER_BASE}/api/stories?language=${activeStudyLanguage}&limit=12`)
       .then((r) => r.json())
-      .then((res) => setStories(Array.isArray(res) ? res : (res.data || [])))
-      .catch(() => setStories([]))
+      .then((res) => {
+        const fetched = Array.isArray(res) ? res : (res.data || []);
+        if (fetched.length > 0) {
+          setStories(fetched);
+        } else {
+          setStories(BUILTIN_STORIES);
+        }
+      })
+      .catch(() => {
+        setStories(BUILTIN_STORIES);
+      })
       .finally(() => setLoading(false));
   }, [activeStudyLanguage]);
 

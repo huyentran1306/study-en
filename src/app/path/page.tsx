@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 interface Level {
   id: number;
   theme: string;
-  themeZh: string;
+  themeVi: string;
   emoji: string;
   xpRequired: number;
   gateXP: number;
@@ -34,70 +34,80 @@ interface Lesson {
   id: string;
   type: "vocab" | "story" | "roleplay" | "speaking" | "game";
   title: string;
-  titleZh: string;
+  titleVi: string;
   xpReward: number;
   href: string;
 }
 
 const LEVELS: Level[] = [
   {
-    id: 1, theme: "Professional Foundations & Workplace Intro", themeZh: "职场基础与自我介绍", emoji: "🏢",
+    id: 1, theme: "Professional Foundations & Workplace Intro", themeVi: "Nền tảng giao tiếp công sở & Tự giới thiệu", emoji: "🏢",
     xpRequired: 0, gateXP: 100,
     lessons: [
-      { id: "l1-vocab", type: "vocab", title: "Core Workplace Terms", titleZh: "核心职场词汇", xpReward: 20, href: "/vocab" },
-      { id: "l1-story", type: "story", title: "First Week Onboarding", titleZh: "入职第一周", xpReward: 30, href: "/story" },
-      { id: "l1-role", type: "roleplay", title: "Meeting Team Members", titleZh: "认识团队成员", xpReward: 25, href: "/roleplay" },
-      { id: "l1-speak", type: "speaking", title: "Introduce Your Background", titleZh: "介绍你的专业背景", xpReward: 25, href: "/speaking" },
+      { id: "l1-vocab", type: "vocab", title: "Core Workplace Terms", titleVi: "Từ vựng công sở thiết yếu", xpReward: 20, href: "/vocab" },
+      { id: "l1-story", type: "story", title: "First Week Onboarding", titleVi: "Truyện: Tuần đầu hội nhập công ty", xpReward: 30, href: "/story" },
+      { id: "l1-role", type: "roleplay", title: "Meeting Team Members", titleVi: "Giao tiếp với đồng nghiệp mới", xpReward: 25, href: "/roleplay" },
+      { id: "l1-speak", type: "speaking", title: "Introduce Your Background", titleVi: "Giới thiệu chuyên môn & kinh nghiệm", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 2, theme: "Project Alignment & Agile Communication", themeZh: "项目协作与敏捷沟通", emoji: "📊",
+    id: 2, theme: "Project Alignment & Agile Communication", themeVi: "Họp dự án Agile & Báo cáo Blocker", emoji: "📊",
     xpRequired: 100, gateXP: 250,
     lessons: [
-      { id: "l2-vocab", type: "vocab", title: "Agile & Project Lexicon", titleZh: "敏捷项目词汇", xpReward: 20, href: "/vocab" },
-      { id: "l2-game", type: "game", title: "Business Term Recall", titleZh: "商业术语快速回忆", xpReward: 30, href: "/games" },
-      { id: "l2-story", type: "story", title: "The Critical Sprint Deadline", titleZh: "关键迭代冲刺", xpReward: 30, href: "/story" },
-      { id: "l2-role", type: "roleplay", title: "Sprint Standup Update", titleZh: "每日站会汇报", xpReward: 25, href: "/roleplay" },
+      { id: "l2-vocab", type: "vocab", title: "Agile & Project Lexicon", titleVi: "Thuật ngữ Sprint & Agile", xpReward: 20, href: "/vocab" },
+      { id: "l2-game", type: "game", title: "Business Term Recall", titleVi: "Trò chơi: Nhớ nhanh thuật ngữ", xpReward: 30, href: "/games" },
+      { id: "l2-story", type: "story", title: "The Critical Sprint Deadline", titleVi: "Truyện: Nước rút trước kỳ Sprint", xpReward: 30, href: "/story" },
+      { id: "l2-role", type: "roleplay", title: "Sprint Standup Update", titleVi: "Báo cáo tiến độ Standup 2 phút", xpReward: 25, href: "/roleplay" },
     ],
   },
   {
-    id: 3, theme: "Client Relations & Networking Protocol", themeZh: "商务接待与人脉拓展", emoji: "🤝",
+    id: 3, theme: "Client Relations & Networking Protocol", themeVi: "Quan hệ khách hàng & Ngoại giao công sở", emoji: "🤝",
     xpRequired: 250, gateXP: 450,
     lessons: [
-      { id: "l3-vocab", type: "vocab", title: "Networking & Dining Terms", titleZh: "商务社交词汇", xpReward: 20, href: "/vocab" },
-      { id: "l3-story", type: "story", title: "The Client Dinner Dialogue", titleZh: "客户晚宴对话", xpReward: 30, href: "/story" },
-      { id: "l3-role", type: "roleplay", title: "Coffee Sync & Small Talk", titleZh: "咖啡交流会", xpReward: 30, href: "/roleplay" },
-      { id: "l3-speak", type: "speaking", title: "Pitch Your Division's Value", titleZh: "介绍团队核心价值", xpReward: 25, href: "/speaking" },
+      { id: "l3-vocab", type: "vocab", title: "Networking & Dining Terms", titleVi: "Thuật ngữ Networking & Tiệc chiêu đãi", xpReward: 20, href: "/vocab" },
+      { id: "l3-story", type: "story", title: "The Client Dinner Dialogue", titleVi: "Truyện: Tiệc tối cùng đối tác", xpReward: 30, href: "/story" },
+      { id: "l3-role", type: "roleplay", title: "Coffee Sync & Small Talk", titleVi: "Trò chuyện Small Talk tự nhiên", xpReward: 30, href: "/roleplay" },
+      { id: "l3-speak", type: "speaking", title: "Pitch Your Division's Value", titleVi: "Trình bày năng lực chuyên môn", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 4, theme: "Strategic Negotiation & Contract Terms", themeZh: "商务谈判与合同条款", emoji: "📑",
+    id: 4, theme: "Strategic Negotiation & Contract Terms", themeVi: "Đàm phán chiến lược & Thỏa thuận SLA", emoji: "📑",
     xpRequired: 450, gateXP: 700,
     lessons: [
-      { id: "l4-vocab", type: "vocab", title: "Contract & Agreement Vocab", titleZh: "合同条款词汇", xpReward: 20, href: "/vocab" },
-      { id: "l4-game", type: "game", title: "Negotiation Pair Match", titleZh: "谈判词汇配对", xpReward: 30, href: "/games" },
-      { id: "l4-role", type: "roleplay", title: "Vendor Pricing Negotiation", titleZh: "供应商价格谈判", xpReward: 35, href: "/roleplay" },
-      { id: "l4-speak", type: "speaking", title: "Argue for SLA Expansion", titleZh: "争取服务等级协议", xpReward: 25, href: "/speaking" },
+      { id: "l4-vocab", type: "vocab", title: "Contract & Agreement Vocab", titleVi: "Từ vựng đàm phán hợp đồng", xpReward: 20, href: "/vocab" },
+      { id: "l4-game", type: "game", title: "Negotiation Pair Match", titleVi: "Trò chơi ghép đôi đàm phán", xpReward: 30, href: "/games" },
+      { id: "l4-role", type: "roleplay", title: "Vendor Pricing Negotiation", titleVi: "Thương lượng chi phí giải pháp", xpReward: 35, href: "/roleplay" },
+      { id: "l4-speak", type: "speaking", title: "Argue for SLA Expansion", titleVi: "Bảo vệ cam kết mức độ dịch vụ", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 5, theme: "Global Operations & International Travel", themeZh: "跨国业务与差旅沟通", emoji: "✈️",
+    id: 5, theme: "Global Operations & Cross-Border Delivery", themeVi: "Vận hành quốc tế & Làm việc đa văn hóa", emoji: "✈️",
     xpRequired: 700, gateXP: 1000,
     lessons: [
-      { id: "l5-vocab", type: "vocab", title: "Global Logistics Lexicon", titleZh: "国际商务与出行", xpReward: 20, href: "/vocab" },
-      { id: "l5-story", type: "story", title: "Overseas Expansion Mission", titleZh: "海外拓展任务", xpReward: 30, href: "/story" },
-      { id: "l5-role", type: "roleplay", title: "At the Overseas Branch Office", titleZh: "在海外分部", xpReward: 35, href: "/roleplay" },
-      { id: "l5-speak", type: "speaking", title: "Cross-cultural Collaboration", titleZh: "跨文化协作经验", xpReward: 25, href: "/speaking" },
+      { id: "l5-vocab", type: "vocab", title: "Global Logistics Lexicon", titleVi: "Từ vựng công tác & điều hành", xpReward: 20, href: "/vocab" },
+      { id: "l5-story", type: "story", title: "Overseas Expansion Mission", titleVi: "Truyện: Chiến dịch mở rộng quốc tế", xpReward: 30, href: "/story" },
+      { id: "l5-role", type: "roleplay", title: "At the Overseas Branch Office", titleVi: "Làm việc tại văn phòng chi nhánh", xpReward: 35, href: "/roleplay" },
+      { id: "l5-speak", type: "speaking", title: "Cross-cultural Collaboration", titleVi: "Kinh nghiệm điều phối đa quốc gia", xpReward: 25, href: "/speaking" },
     ],
   },
   {
-    id: 6, theme: "Executive Leadership & Board Presentations", themeZh: "高管领导力与董事会汇报", emoji: "🏆",
+    id: 6, theme: "Executive Leadership & Board Presentations", themeVi: "Lãnh đạo cấp cao & Báo cáo ban giám đốc", emoji: "🏆",
     xpRequired: 1000, gateXP: 1400,
     lessons: [
-      { id: "l6-vocab", type: "vocab", title: "Executive Strategic Terms", titleZh: "战略领导力术语", xpReward: 20, href: "/vocab" },
-      { id: "l6-game", type: "game", title: "Executive Decision Drill", titleZh: "高管决策演练", xpReward: 30, href: "/games" },
-      { id: "l6-story", type: "story", title: "The Annual Shareholder Meeting", titleZh: "年度股东大会", xpReward: 30, href: "/story" },
-      { id: "l6-role", type: "roleplay", title: "Presenting to the Board", titleZh: "董事会战略报告", xpReward: 35, href: "/roleplay" },
+      { id: "l6-vocab", type: "vocab", title: "Executive Strategic Terms", titleVi: "Thuật ngữ lãnh đạo chiến lược", xpReward: 20, href: "/vocab" },
+      { id: "l6-game", type: "game", title: "Executive Decision Drill", titleVi: "Mô phỏng ra quyết định cấp cao", xpReward: 30, href: "/games" },
+      { id: "l6-story", type: "story", title: "The Annual Shareholder Meeting", titleVi: "Truyện: Đại hội cổ đông thường niên", xpReward: 30, href: "/story" },
+      { id: "l6-role", type: "roleplay", title: "Presenting to the Board", titleVi: "Thuyết trình trước ban điều hành", xpReward: 35, href: "/roleplay" },
+    ],
+  },
+  {
+    id: 7, theme: "Solution Architecture & Tech Lead Mastery", themeVi: "Kiến trúc hệ thống & Bản lĩnh Tech Lead", emoji: "⚡",
+    xpRequired: 1400, gateXP: 1900,
+    lessons: [
+      { id: "l7-lead", type: "speaking", title: "Tech Lead 90-Day Roadmap", titleVi: "Lộ trình 12 tuần cho Tech Lead", xpReward: 40, href: "/tech-lead" },
+      { id: "l7-shadow", type: "speaking", title: "Solution Call Shadowing", titleVi: "Luyện nhại thoại Call Solution", xpReward: 35, href: "/shadowing?tab=dialogues" },
+      { id: "l7-role", type: "roleplay", title: "Defend Architecture with CTO", titleVi: "Bảo vệ giải pháp với CTO đối tác", xpReward: 40, href: "/roleplay?scenario=builtin-solution-architecture" },
+      { id: "l7-pushback", type: "roleplay", title: "Diplomatic Pushback Drill", titleVi: "Đàm phán từ chối Scope Creep", xpReward: 35, href: "/roleplay?scenario=builtin-tradeoff-pushback" },
     ],
   },
 ];
@@ -147,6 +157,13 @@ const BOSS_QUESTIONS: Record<number, { q: string; options: string[]; answer: num
     { q: "What does 'fiduciary duty' mean?", options: ["Legal obligation to act in best interest of another party", "Personal friendship", "Casual advice", "Secret negotiation"], answer: 0 },
     { q: "Which denotes a fundamental shift in company direction?", options: ["Strategic pivot", "Minor typo", "Daily routine", "Coffee break"], answer: 0 },
   ],
+  7: [
+    { q: "What is the primary advantage of the Strangler-fig pattern in legacy migration?", options: ["Deploying everything on Friday night", "Incrementally replacing monolith components without downtime", "Stopping all user traffic for a week", "Deleting legacy databases without backup"], answer: 1 },
+    { q: "In distributed microservices, what does 'Idempotency' guarantee?", options: ["Operations can be retried multiple times without changing the end state", "Database queries run twice as fast", "All microservices use the same programming language", "Network connections never drop"], answer: 0 },
+    { q: "When a downstream service crashes, what pattern prevents cascading failure?", options: ["Infinite retry loop", "Circuit breaker with graceful degradation", "Deleting the message queue", "Increasing CPU voltage"], answer: 1 },
+    { q: "What does 'P99 Latency' measure?", options: ["The average response time across all servers", "The response time threshold that 99% of requests meet", "The 1% fastest requests", "The time required to compile TypeScript code"], answer: 1 },
+    { q: "How should a Tech Lead diplomatically handle sudden scope creep before a hard deadline?", options: ["Agree to everything and work 24/7 without telling the team", "Present the trade-offs politely, explaining impact on SLA and proposing phased releases", "Blame the client publicly in a meeting", "Ignore all emails from the product manager"], answer: 1 },
+  ],
 };
 
 const XP_MILESTONES = [
@@ -155,7 +172,8 @@ const XP_MILESTONES = [
   { xp: 450, reward: "Mở khóa Cột mốc 4: Strategic Negotiation", level: 4 },
   { xp: 700, reward: "Mở khóa Cột mốc 5: Global Operations", level: 5 },
   { xp: 1000, reward: "Mở khóa Cột mốc 6: Executive Leadership", level: 6 },
-  { xp: 1400, reward: "Hoàn tất Toàn Bộ Lộ Trình Năng Lực Quốc Tế!", level: 6 },
+  { xp: 1400, reward: "Mở khóa Cột mốc 7: Solution Architecture & Tech Lead", level: 7 },
+  { xp: 1900, reward: "Đạt Đỉnh Cao: Solution Architecture & Tech Lead Mastery!", level: 7 },
 ];
 
 export default function PathPage() {
@@ -409,6 +427,7 @@ export default function PathPage() {
                       )}
                     </div>
                     <h3 className="text-base font-bold text-foreground mt-0.5">{level.theme}</h3>
+                    <p className="text-xs text-muted-foreground">{level.themeVi}</p>
                   </div>
                 </div>
 
@@ -440,7 +459,7 @@ export default function PathPage() {
                                   <Icon className="w-4 h-4 text-indigo-500" />
                                   <div>
                                     <h4 className="text-xs font-bold text-foreground">{lesson.title}</h4>
-                                    <span className="text-[10px] text-muted-foreground capitalize">{lesson.type}</span>
+                                    <span className="text-[10px] text-muted-foreground">{lesson.titleVi}</span>
                                   </div>
                                 </div>
                                 <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">

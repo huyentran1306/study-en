@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Brain,
   Compass,
+  Server,
   Tag,
   ChevronLeft,
   ChevronRight,
@@ -51,6 +52,7 @@ const TOPIC_ICON_MAP = {
   TrendingUp,
   Brain,
   Compass,
+  Server,
 };
 
 async function playTTS(text: string): Promise<void> {

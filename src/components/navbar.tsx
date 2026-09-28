@@ -20,6 +20,8 @@ import {
   Layers,
   Activity,
   ShieldCheck,
+  Wand2,
+  Zap,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -152,11 +154,14 @@ export function Navbar() {
   ];
 
   const practiceLinks: DropdownItem[] = [
-    { href: "/tech-lead", label: "Tech Lead 90D Mastery", desc: "Solution calls & architecture defense", icon: ShieldCheck },
-    { href: "/voice", label: "Voice Realtime", desc: "Hands-free AI speaking", icon: Mic },
-    { href: "/shadowing", label: "Shadowing Studio", desc: "Accent & intonation drill", icon: Repeat },
-    { href: "/roleplay", label: "Situational Roleplay", desc: "Workplace & life scenarios", icon: Layers },
-    { href: "/story", label: "Contextual Stories", desc: "Immersive narrative reading", icon: BookOpen },
+    { href: "/tech-lead", label: "Tech Lead 90D Mastery", desc: "12-week solution call roadmap", icon: ShieldCheck },
+    { href: "/voice", label: "Voice Realtime Studio", desc: "Hands-free AI speaking (<200ms)", icon: Mic },
+    { href: "/shadowing", label: "Shadowing Studio", desc: "Long calls & sentence drills", icon: Repeat },
+    { href: "/roleplay", label: "Situational Roleplay", desc: "AI CTO & Lead call simulation", icon: Layers },
+    { href: "/fix-english", label: "Fix My English", desc: "Polish Slack, PRs & client emails", icon: Wand2 },
+    { href: "/phrases", label: "Tech Phrasebook", desc: "Architecture & pushback phrases", icon: BookOpen },
+    { href: "/story", label: "Contextual Stories", desc: "IT architecture case studies", icon: BookOpen },
+    { href: "/speed-speaking", label: "Speed Speaking Sprint", desc: "Fast speech reflex challenge", icon: Zap },
     { href: "/review", label: "Spaced Review", desc: "Smart memory retention", icon: Activity },
     { href: "/path", label: "Learning Path", desc: "Milestone progression", icon: Compass },
   ];
