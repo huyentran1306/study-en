@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,9 +23,6 @@ import {
   Sun,
   Languages,
   ArrowRight,
-  Flame,
-  Check,
-  ExternalLink,
 } from "lucide-react";
 import { useGame } from "@/contexts/game-context";
 import { useTheme } from "next-themes";
@@ -37,7 +34,7 @@ interface CommandItem {
   title: string;
   description: string;
   category: "Tech Lead 90D" | "Call & Shadowing" | "Công cụ & Luyện tập" | "Đấu trường & Game" | "Tác vụ nhanh";
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   iconBg: string;
   badge?: string;
   shortcut?: string;
@@ -387,7 +384,7 @@ export function CommandPalette() {
                 <div className="py-12 text-center">
                   <p className="text-sm font-medium text-foreground">Không tìm thấy kết quả phù hợp</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Thử tìm với từ khóa khác như "lead", "call", "voice", "slack", "speed"...
+                    Thử tìm với từ khóa khác như &quot;lead&quot;, &quot;call&quot;, &quot;voice&quot;, &quot;slack&quot;, &quot;speed&quot;...
                   </p>
                 </div>
               ) : (
