@@ -32,6 +32,7 @@ import LogoutDialog from "@/components/logout-dialog";
 import { BrandLogo } from "@/components/brand-logo";
 import { getTechRank } from "@/components/gamification";
 import { triggerCommandPalette } from "@/components/command-palette";
+import { soundFX } from "@/lib/sound-fx";
 
 function useDropdown() {
   const [open, setOpen] = useState(false);
@@ -69,7 +70,11 @@ function NavDropdown({
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          const next = !open;
+          if (next) soundFX.open();
+          setOpen(next);
+        }}
         className={cn(
           "flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
           isAnyActive
@@ -101,7 +106,10 @@ function NavDropdown({
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    soundFX.select();
+                    setOpen(false);
+                  }}
                 >
                   <div
                     className={cn(
@@ -158,6 +166,9 @@ export function Navbar() {
     level,
     streak,
     coins,
+    xp,
+    xpToNextLevel,
+    xpProgress,
     resetProgress,
     logout,
   } = useGame();
@@ -309,7 +320,10 @@ export function Navbar() {
           {/* Unified Compact Streak & Coin Status Pill (Desktop only) */}
           <div className="hidden lg:flex items-center gap-2.5 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 py-1 text-xs font-semibold select-none h-9">
             <span className="flex items-center gap-1 text-orange-500">
-              <Flame className="w-3.5 h-3.5 fill-orange-500" />
+              <Flame className={cn(
+                "w-3.5 h-3.5 fill-orange-500 transition-all",
+                streak > 0 && "animate-pulse drop-shadow-[0_0_4px_rgba(249,115,22,0.6)]"
+              )} />
               <span className="tabular-nums font-bold text-foreground">{streak}</span>
             </span>
             <span className="text-slate-300 dark:text-slate-700">·</span>
@@ -339,19 +353,34 @@ export function Navbar() {
           {/* User Profile Pill & Dropdown */}
           <div className="hidden sm:block relative" ref={profileDropdown.ref}>
             <button
-              onClick={() => profileDropdown.setOpen(!profileDropdown.open)}
-              className="flex items-center gap-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 py-1.5 transition-all text-xs font-semibold h-9 select-none"
+              onClick={() => {
+                const next = !profileDropdown.open;
+                if (next) soundFX.open();
+                profileDropdown.setOpen(next);
+              }}
+              className="flex flex-col items-center bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 py-1 transition-all text-xs font-semibold select-none group"
             >
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-rose-400 via-pink-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-black shadow-xs flex-shrink-0">
-                {username?.[0]?.toUpperCase() || "T"}
+              <div className="flex items-center gap-2 h-7">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-rose-400 via-pink-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-black shadow-xs flex-shrink-0 group-hover:shadow-md group-hover:shadow-pink-500/20 transition-shadow">
+                  {username?.[0]?.toUpperCase() || "T"}
+                </div>
+                <span className="max-w-[70px] truncate font-bold text-foreground">{username || "Trân"}</span>
+                <ChevronDown
+                  className={cn(
+                    "h-3 w-3 text-slate-400 transition-transform duration-200",
+                    profileDropdown.open && "rotate-180"
+                  )}
+                />
               </div>
-              <span className="max-w-[70px] truncate font-bold text-foreground">{username || "Trân"}</span>
-              <ChevronDown
-                className={cn(
-                  "h-3 w-3 text-slate-400 transition-transform duration-200",
-                  profileDropdown.open && "rotate-180"
-                )}
-              />
+              {/* XP Micro Progress Bar */}
+              <div className="w-full h-1 bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden mt-0.5">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-sky-400 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, Math.max(2, xpProgress))}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                />
+              </div>
             </button>
 
             <AnimatePresence>
@@ -394,6 +423,7 @@ export function Navbar() {
                         <button
                           key={lang.id}
                           onClick={() => {
+                            soundFX.select();
                             setActiveStudyLanguage(lang.id);
                             profileDropdown.setOpen(false);
                           }}
@@ -414,7 +444,10 @@ export function Navbar() {
                   <div className="p-1.5 border-b border-slate-200/70 dark:border-slate-800 space-y-0.5">
                     <Link
                       href="/achievements"
-                      onClick={() => profileDropdown.setOpen(false)}
+                      onClick={() => {
+                        soundFX.select();
+                        profileDropdown.setOpen(false);
+                      }}
                       className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       <Award className="w-3.5 h-3.5 text-amber-500" />
@@ -422,7 +455,10 @@ export function Navbar() {
                     </Link>
                     <Link
                       href="/leaderboard"
-                      onClick={() => profileDropdown.setOpen(false)}
+                      onClick={() => {
+                        soundFX.select();
+                        profileDropdown.setOpen(false);
+                      }}
                       className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       <BarChart3 className="w-3.5 h-3.5 text-sky-500" />

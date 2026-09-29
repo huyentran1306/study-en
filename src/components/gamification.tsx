@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useGame, useTranslation } from "@/contexts/game-context";
 import { Flame, Zap, Coins, Star, Trophy } from "lucide-react";
 import { AnimatedNumber } from "@/components/fx/animated-number";
+import { cn } from "@/lib/utils";
 
 export function getTechRank(level: number) {
   if (level >= 25) return { title: "Principal Architect", badge: "🏛️ Principal Architect" };
@@ -84,7 +85,13 @@ export function StatsBar() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.08 }}
         >
-          <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
+          <stat.icon
+            className={cn(
+              "w-3.5 h-3.5",
+              stat.color,
+              stat.icon === Flame && stat.value > 0 && "animate-pulse drop-shadow-[0_0_4px_rgba(249,115,22,0.6)]"
+            )}
+          />
           <AnimatedNumber value={stat.value} className="text-foreground tabular-nums" />
         </motion.div>
       ))}
@@ -120,7 +127,7 @@ export function StreakDisplay() {
       className="flex items-center gap-2.5 bg-slate-900 dark:bg-slate-800 text-white px-4 py-2 rounded-xl border border-slate-700/60 shadow-sm"
       whileHover={{ scale: 1.02 }}
     >
-      <Flame className="w-5 h-5 text-orange-400" />
+      <Flame className={cn("w-5 h-5 text-orange-400", streak > 0 && "animate-pulse drop-shadow-[0_0_6px_rgba(249,115,22,0.7)]")} />
       <div className="flex flex-col">
         <span className="font-bold text-base leading-none tabular-nums">{streak} {t.streak}</span>
         <span className="text-[11px] text-slate-400 font-medium">Daily Streak</span>

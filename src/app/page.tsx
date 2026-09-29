@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -43,6 +44,15 @@ const itemAnim = {
 export default function Home() {
   const { username, level, streak, xp, xpToNextLevel } = useGame();
   const t = useTranslation();
+
+  /** Track mouse position for pro-card radial glow effect */
+  const handleCardMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    e.currentTarget.style.setProperty("--mouse-x", `${x}%`);
+    e.currentTarget.style.setProperty("--mouse-y", `${y}%`);
+  }, []);
 
   return (
     <div className="mx-auto max-w-6xl px-3.5 py-6 sm:px-6 sm:py-8 space-y-6 sm:space-y-10">
@@ -190,7 +200,7 @@ export default function Home() {
           {/* Bento Card 1: Flagship Voice Realtime (Large Spanning 2 Columns) */}
           <motion.div variants={itemAnim} className="sm:col-span-2">
             <Link href="/voice" className="block h-full">
-              <div className="pro-card p-6 sm:p-7 flex flex-col justify-between h-full bg-gradient-to-br from-indigo-900/10 via-white to-sky-900/10 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 border-indigo-500/30">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 sm:p-7 flex flex-col justify-between h-full bg-gradient-to-br from-indigo-900/10 via-white to-sky-900/10 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 border-indigo-500/30">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -232,7 +242,7 @@ export default function Home() {
           {/* Bento Card 2: AI Conversation Mentor */}
           <motion.div variants={itemAnim}>
             <Link href="/chat" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
@@ -260,7 +270,7 @@ export default function Home() {
           {/* Bento Card 3: Shadowing Studio */}
           <motion.div variants={itemAnim}>
             <Link href="/shadowing" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-600 flex items-center justify-center text-white shadow-xs">
@@ -288,7 +298,7 @@ export default function Home() {
           {/* Bento Card 4: Situational Roleplay */}
           <motion.div variants={itemAnim}>
             <Link href="/roleplay" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center text-white shadow-xs">
@@ -316,7 +326,7 @@ export default function Home() {
           {/* Bento Card 5: Spaced Repetition Flashcards */}
           <motion.div variants={itemAnim}>
             <Link href="/vocab" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-xs">
@@ -344,7 +354,7 @@ export default function Home() {
           {/* Bento Card 6: Fix My English */}
           <motion.div variants={itemAnim}>
             <Link href="/fix-english" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-xs">
@@ -372,7 +382,7 @@ export default function Home() {
           {/* Bento Card 7: Speed Speaking 30s */}
           <motion.div variants={itemAnim}>
             <Link href="/speed-speaking" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white shadow-xs">
@@ -400,7 +410,7 @@ export default function Home() {
           {/* Bento Card 8: Pronunciation Drill */}
           <motion.div variants={itemAnim}>
             <Link href="/pronunciation" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-600 flex items-center justify-center text-white shadow-xs">
@@ -428,7 +438,7 @@ export default function Home() {
           {/* Bento Card 9: Language Arena */}
           <motion.div variants={itemAnim}>
             <Link href="/games" className="block h-full">
-              <div className="pro-card p-6 flex flex-col justify-between h-full">
+              <div onMouseMove={handleCardMouseMove} className="pro-card p-6 flex flex-col justify-between h-full">
                 <div>
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-600 flex items-center justify-center text-white shadow-xs">

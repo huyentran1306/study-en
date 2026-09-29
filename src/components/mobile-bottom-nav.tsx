@@ -32,6 +32,7 @@ import { useGame } from "@/contexts/game-context";
 import { StatsBar, XPBar } from "@/components/gamification";
 import LogoutDialog from "@/components/logout-dialog";
 import { triggerCommandPalette } from "@/components/command-palette";
+import { soundFX } from "@/lib/sound-fx";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -235,6 +236,7 @@ export function MobileBottomNav() {
               <Link
                 key={tab.href}
                 href={tab.href}
+                onClick={() => soundFX.click()}
                 className={cn(
                   "relative flex flex-col items-center justify-center h-full py-1 text-[10px] font-semibold transition-all group select-none active:scale-95",
                   tab.isActive
@@ -274,7 +276,10 @@ export function MobileBottomNav() {
 
           {/* Tab 5: "More / Thêm" Trigger for All Studios */}
           <button
-            onClick={() => setSheetOpen(true)}
+            onClick={() => {
+              soundFX.open();
+              setSheetOpen(true);
+            }}
             className={cn(
               "relative flex flex-col items-center justify-center h-full py-1 text-[10px] font-semibold transition-all group select-none active:scale-95",
               sheetOpen
@@ -383,7 +388,10 @@ export function MobileBottomNav() {
                     {["en", "zh"].map((lang) => (
                       <button
                         key={lang}
-                        onClick={() => setActiveStudyLanguage(lang)}
+                        onClick={() => {
+                          soundFX.select();
+                          setActiveStudyLanguage(lang);
+                        }}
                         className={cn(
                           "px-3 py-1 rounded-lg text-xs font-bold transition-all",
                           activeStudyLanguage === lang
@@ -412,7 +420,10 @@ export function MobileBottomNav() {
                           <Link
                             key={item.href}
                             href={item.href}
-                            onClick={() => setSheetOpen(false)}
+                            onClick={() => {
+                              soundFX.click();
+                              setSheetOpen(false);
+                            }}
                           >
                             <div
                               className={cn(
