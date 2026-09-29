@@ -11,6 +11,7 @@ import { AuthLoginModal } from "@/components/auth-login-modal";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { CommandPalette } from "@/components/command-palette";
 
 /** Ambient mesh background with subtle glow, zero visual distractions */
 function ProBackground() {
@@ -86,6 +87,7 @@ function AppContent({ children }: { children: ReactNode }) {
       <Navbar />
       <main className="min-h-[calc(100vh-4rem)] relative z-10 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] md:pb-8">{children}</main>
       <MobileBottomNav />
+      <CommandPalette />
       <XPParticleLayer />
       <AchievementToast achievement={currentAchievement} onDismiss={dismiss} />
     </>

@@ -25,11 +25,13 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/contexts/game-context";
 import { StatsBar, XPBar } from "@/components/gamification";
 import LogoutDialog from "@/components/logout-dialog";
+import { triggerCommandPalette } from "@/components/command-palette";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -350,7 +352,24 @@ export function MobileBottomNav() {
               </div>
 
               {/* Scrollable Body */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-5 overscroll-contain">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain">
+                {/* Search & Command Palette Trigger */}
+                <button
+                  onClick={() => {
+                    setSheetOpen(false);
+                    triggerCommandPalette();
+                  }}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 text-xs text-muted-foreground hover:text-foreground transition-all shadow-xs"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Search className="w-4 h-4 text-indigo-500" />
+                    <span className="font-medium text-foreground">Tìm nhanh bài học, mẫu câu...</span>
+                  </div>
+                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-700">
+                    ⌘K
+                  </kbd>
+                </button>
+
                 {/* User Progress Mini Card */}
                 <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 space-y-3">
                   <StatsBar />

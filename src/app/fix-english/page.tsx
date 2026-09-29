@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSTTRecorder } from "@/hooks/use-stt-recorder";
 import { useGame } from "@/contexts/game-context";
 import Link from "next/link";
+import { soundFX } from "@/lib/sound-fx";
 
 interface FixResult {
   is_correct: boolean;
@@ -70,6 +71,7 @@ export default function FixEnglishPage() {
       });
       const data = await res.json() as FixResult;
       setResult(data);
+      soundFX.success();
       addXP(10);
       if (data.is_correct) addCoins(5);
     } catch (e) {
@@ -102,6 +104,7 @@ export default function FixEnglishPage() {
 
   const copyToClipboard = (val: string, key = "main") => {
     navigator.clipboard.writeText(val);
+    soundFX.select();
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
   };
@@ -135,27 +138,37 @@ export default function FixEnglishPage() {
 
   const quickScenarios = [
     {
-      label: "Pushback deadline sprint",
+      label: "Từ chối Scope Creep (Pushback)",
       tone: "executive" as const,
       text: "We cannot deploy this sprint on Friday because QA found a critical bug in payment and we need more time to test.",
     },
     {
-      label: "Nhờ review PR gấp",
+      label: "Đề xuất refactor Technical Debt",
+      tone: "executive" as const,
+      text: "The current monolithic service has high coupling. We should spend this sprint to refactor rather than add features.",
+    },
+    {
+      label: "Nhờ review PR gấp trước release",
       tone: "slack" as const,
       text: "Can you review my PR when you have free time? It is urgent for today release.",
     },
     {
-      label: "Góp ý tối ưu query N+1",
+      label: "Góp ý tối ưu query N+1 trong PR",
       tone: "code_review" as const,
       text: "I think this database query will make slow in production because it query inside loop.",
     },
     {
-      label: "Báo cáo sự cố server & ETA",
+      label: "Chia nhỏ PR quá dài",
+      tone: "code_review" as const,
+      text: "This pull request has 1500 lines changed. It is too big and hard to review. Can you split it into smaller PRs?",
+    },
+    {
+      label: "Báo cáo sự cố server & ETA phục hồi",
       tone: "incident" as const,
       text: "Our payment service is down now. We are fixing it. Maybe 30 minutes will be ok.",
     },
     {
-      label: "Hỏi rõ yêu cầu SLA P99",
+      label: "Hỏi rõ yêu cầu SLA P99 & scale",
       tone: "executive" as const,
       text: "Can you tell me more about how many users visit website same time and what is response time you want?",
     },

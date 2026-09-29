@@ -23,6 +23,7 @@ import {
   Coins,
   MessageSquare,
   Sparkles,
+  Search,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ import { WOTDBadge } from "@/components/wotd-badge";
 import LogoutDialog from "@/components/logout-dialog";
 import { BrandLogo } from "@/components/brand-logo";
 import { getTechRank } from "@/components/gamification";
+import { triggerCommandPalette } from "@/components/command-palette";
 
 function useDropdown() {
   const [open, setOpen] = useState(false);
@@ -319,6 +321,20 @@ export function Navbar() {
               <span className="tabular-nums font-bold text-foreground">{coins}</span>
             </span>
           </div>
+
+          {/* Command Palette Trigger Button */}
+          <button
+            onClick={triggerCommandPalette}
+            title="Tìm kiếm nhanh & phím tắt (⌘K / Ctrl+K)"
+            aria-label="Open Command Palette"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-foreground bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-900/80 dark:hover:bg-slate-800/80 border border-slate-200/70 dark:border-slate-800 transition-all h-9 select-none"
+          >
+            <Search className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="hidden xl:inline text-xs text-muted-foreground">Tìm nhanh</span>
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-white/80 dark:bg-slate-800 rounded-md border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+              ⌘K
+            </kbd>
+          </button>
 
           {/* Word of the Day Pill */}
           <WOTDBadge />
