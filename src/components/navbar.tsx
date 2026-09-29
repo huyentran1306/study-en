@@ -22,12 +22,11 @@ import {
   Flame,
   Coins,
   MessageSquare,
-  Sparkles,
   Search,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
-import { useGame, useTranslation } from "@/contexts/game-context";
+import { useGame } from "@/contexts/game-context";
 import { WOTDBadge } from "@/components/wotd-badge";
 import LogoutDialog from "@/components/logout-dialog";
 import { BrandLogo } from "@/components/brand-logo";
@@ -152,12 +151,10 @@ function NavDropdown({
 
 export function Navbar() {
   const pathname = usePathname();
-  const t = useTranslation();
   const {
     activeStudyLanguage,
     setActiveStudyLanguage,
     username,
-    xp,
     level,
     streak,
     coins,
