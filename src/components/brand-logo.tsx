@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
@@ -12,6 +13,7 @@ interface BrandLogoProps {
 }
 
 export function BrandLogoIcon({ size = "md", className }: { size?: "sm" | "md" | "lg"; className?: string }) {
+  const [imgError, setImgError] = useState(false);
   const sizeMap = {
     sm: "w-8 h-8",
     md: "w-10 h-10",
@@ -36,14 +38,22 @@ export function BrandLogoIcon({ size = "md", className }: { size?: "sm" | "md" |
         className
       )}
     >
-      <Image
-        src="/mascot-logo.png"
-        alt="TranTech Talk Mascot"
-        width={imgPx[size]}
-        height={imgPx[size]}
-        className="w-full h-full object-cover scale-105"
-        priority
-      />
+      {!imgError ? (
+        <Image
+          src="/mascot-logo.png"
+          alt="TranTech Talk Mascot"
+          width={imgPx[size]}
+          height={imgPx[size]}
+          className="w-full h-full object-cover scale-105"
+          priority
+          unoptimized
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-rose-400 via-pink-400 to-indigo-500 flex items-center justify-center text-white font-black text-sm select-none shadow-inner">
+          T
+        </div>
+      )}
     </div>
   );
 }

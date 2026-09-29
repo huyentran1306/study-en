@@ -547,7 +547,7 @@ export default function TechLeadPage() {
               Bộ công thức phản xạ tức thì (Golden Formulas)
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              Những mẫu câu 'cứu cánh' đẳng cấp khi họp giải pháp, từ chối yêu cầu và xử lý sự cố.
+              Những mẫu câu &ldquo;cứu cánh&rdquo; đẳng cấp khi họp giải pháp, từ chối yêu cầu và xử lý sự cố.
             </p>
           </div>
 
