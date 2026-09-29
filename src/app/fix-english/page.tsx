@@ -400,6 +400,7 @@ export default function FixEnglishPage() {
                       "🛠️ Chuyên sâu Kỹ thuật",
                     ];
                     const label = badgeLabels[i] || `Lựa chọn ${i + 1}`;
+                    const cleanAlt = alt.replace(/^(⚡|🤝|🛠️|Option \d+|Lựa chọn \d+)[^:]*:\s*/i, "").replace(/^["'“”]+|["'“”]+$/g, "");
                     return (
                       <div
                         key={i}
@@ -409,22 +410,22 @@ export default function FixEnglishPage() {
                           <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 block">
                             {label}
                           </span>
-                          <span className="text-foreground leading-relaxed">&ldquo;{alt}&rdquo;</span>
+                          <span className="text-foreground leading-relaxed">&ldquo;{cleanAlt}&rdquo;</span>
                         </div>
                         <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
                           <button
-                            onClick={() => copyToClipboard(alt, `alt-${i}`)}
+                            onClick={() => copyToClipboard(cleanAlt, `alt-${i}`)}
                             className="p-1 text-slate-400 hover:text-foreground transition-colors"
                             title="Sao chép"
                           >
                             {copiedKey === `alt-${i}` ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
                           <button
-                            onClick={() => playTTS(alt)}
+                            onClick={() => playTTS(cleanAlt)}
                             className="p-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-500"
                             title="Nghe phát âm"
                           >
-                            {ttsLoading === alt ? (
+                            {ttsLoading === cleanAlt ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
                               <Volume2 className="w-3.5 h-3.5" />
