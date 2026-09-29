@@ -234,7 +234,7 @@ export function MobileBottomNav() {
                 key={tab.href}
                 href={tab.href}
                 className={cn(
-                  "relative flex flex-col items-center justify-center h-full py-1 text-[10px] font-semibold transition-all group select-none",
+                  "relative flex flex-col items-center justify-center h-full py-1 text-[10px] font-semibold transition-all group select-none active:scale-95",
                   tab.isActive
                     ? "text-indigo-600 dark:text-indigo-400 font-bold"
                     : "text-slate-500 dark:text-slate-400 hover:text-foreground"
@@ -274,7 +274,7 @@ export function MobileBottomNav() {
           <button
             onClick={() => setSheetOpen(true)}
             className={cn(
-              "relative flex flex-col items-center justify-center h-full py-1 text-[10px] font-semibold transition-all group select-none",
+              "relative flex flex-col items-center justify-center h-full py-1 text-[10px] font-semibold transition-all group select-none active:scale-95",
               sheetOpen
                 ? "text-indigo-600 dark:text-indigo-400 font-bold"
                 : "text-slate-500 dark:text-slate-400 hover:text-foreground"

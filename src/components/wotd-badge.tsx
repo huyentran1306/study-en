@@ -59,7 +59,7 @@ export function WOTDBadge() {
               initial={{ opacity: 0, y: -6, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
-              className="absolute right-0 top-10 z-50 w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden"
+              className="absolute -right-2 sm:right-0 top-10 z-50 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden"
             >
               <div className="h-1 bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500" />
               <div className="p-5 space-y-3">

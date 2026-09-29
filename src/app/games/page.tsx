@@ -1085,10 +1085,10 @@ function ExecutiveMatchGame() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         {/* Term column */}
         <div className="space-y-2">
-          <span className="text-xs font-bold text-muted-foreground block text-center">Thuật ngữ Tech Lead (EN)</span>
+          <span className="text-[11px] sm:text-xs font-bold text-muted-foreground block text-center truncate">Thuật ngữ (EN)</span>
           {PAIR_DATA.map((p, idx) => {
             const isMatched = matched.has(idx);
             const isSelected = selectedTerm === idx;
@@ -1097,7 +1097,7 @@ function ExecutiveMatchGame() {
                 key={idx}
                 disabled={isMatched}
                 onClick={() => handleTermClick(idx)}
-                className={`w-full p-3.5 rounded-xl border text-left text-xs sm:text-sm font-bold transition-all flex items-center justify-between ${
+                className={`w-full p-2.5 sm:p-3.5 rounded-xl border text-left text-[11px] sm:text-sm font-bold transition-all flex items-center justify-between min-h-[52px] ${
                   isMatched
                     ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 opacity-50"
                     : isSelected
@@ -1105,8 +1105,8 @@ function ExecutiveMatchGame() {
                     : "bg-card border-border hover:border-indigo-500/50 text-foreground"
                 }`}
               >
-                <span>{p.term}</span>
-                <span>{p.icon}</span>
+                <span className="leading-tight">{p.term}</span>
+                <span className="hidden sm:inline">{p.icon}</span>
               </button>
             );
           })}
@@ -1114,7 +1114,7 @@ function ExecutiveMatchGame() {
 
         {/* Meaning column */}
         <div className="space-y-2">
-          <span className="text-xs font-bold text-muted-foreground block text-center">Định nghĩa & Ý nghĩa (VI)</span>
+          <span className="text-[11px] sm:text-xs font-bold text-muted-foreground block text-center truncate">Ý nghĩa & Giải pháp (VI)</span>
           {shuffledMeanings.map((meaning, idx) => {
             const isMatched = PAIR_DATA.some(
               (p, i) => matched.has(i) && p.meaning === meaning
@@ -1125,7 +1125,7 @@ function ExecutiveMatchGame() {
                 key={idx}
                 disabled={isMatched}
                 onClick={() => handleMeaningClick(idx)}
-                className={`w-full p-3.5 rounded-xl border text-left text-xs sm:text-sm font-medium transition-all ${
+                className={`w-full p-2.5 sm:p-3.5 rounded-xl border text-left text-[10px] sm:text-sm font-medium transition-all min-h-[52px] leading-snug flex items-center ${
                   isMatched
                     ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 opacity-50"
                     : isSelected

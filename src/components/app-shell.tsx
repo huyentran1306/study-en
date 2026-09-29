@@ -84,7 +84,7 @@ function AppContent({ children }: { children: ReactNode }) {
       <ProBackground />
       <FloatingDecorations />
       <Navbar />
-      <main className="min-h-[calc(100vh-4rem)] relative z-10 pb-24 md:pb-8">{children}</main>
+      <main className="min-h-[calc(100vh-4rem)] relative z-10 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] md:pb-8">{children}</main>
       <MobileBottomNav />
       <XPParticleLayer />
       <AchievementToast achievement={currentAchievement} onDismiss={dismiss} />
