@@ -138,6 +138,26 @@ export default function FixEnglishPage() {
 
   const quickScenarios = [
     {
+      label: "Báo cáo giảm 70% RU Cosmos DB & Tiered Cache",
+      tone: "executive" as const,
+      text: "We change partition key to userId and add Redis L1 cache so Cosmos DB RU cost reduce 70% and no more 429 error.",
+    },
+    {
+      label: "Bảo vệ In-Process Rule Engine (.NET 8 NuGet)",
+      tone: "executive" as const,
+      text: "We should not make rule engine as separate microservice because network call will make latency too slow for 500k flash sale users.",
+    },
+    {
+      label: "Đề xuất lộ trình Strangler Fig trên AKS",
+      tone: "executive" as const,
+      text: "We plan to strangle monolith service by service to AKS. We will run dual-run 3 weeks to make sure data is 100% same before switch.",
+    },
+    {
+      label: "Tích hợp Azure OpenAI sinh unit test biên",
+      tone: "slack" as const,
+      text: "We integrated Azure OpenAI GPT-4o to generate edge case unit test, our code coverage increase from 40% to 85%.",
+    },
+    {
       label: "Từ chối Scope Creep (Pushback)",
       tone: "executive" as const,
       text: "We cannot deploy this sprint on Friday because QA found a critical bug in payment and we need more time to test.",

@@ -49,7 +49,7 @@ interface ShadowingCategory {
   id: string;
   name: string;
   desc: string;
-  icon: typeof Cpu | typeof Server | typeof Briefcase | typeof MessageSquare | typeof Flame | typeof Coffee | typeof ShieldAlert;
+  icon: typeof Cpu | typeof Server | typeof Briefcase | typeof MessageSquare | typeof Flame | typeof Coffee | typeof ShieldAlert | typeof Sparkles | typeof Terminal;
   accent: string;
   border: string;
   badge: string;
@@ -59,7 +59,173 @@ interface ShadowingCategory {
 
 const CATEGORIES: ShadowingCategory[] = [
   // ─────────────────────────────────────────────────────────────
-  // 1. IT & SOLUTION CALLS (TOP PRIORITY)
+  // 1. CAPITASTAR LOYALTY & RULE ENGINE (.NET 8 & IN-PROCESS NUGET)
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: "it-loyalty-rules",
+    name: "Loyalty Engine & Dynamic Rules (.NET 8 & In-Process NuGet)",
+    desc: "Bảo vệ kiến trúc Rule Engine in-process, Chain of Responsibility, xử lý xung đột ưu đãi và tối ưu 500k DAU",
+    icon: Terminal,
+    accent: "text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/40",
+    badge: "Loyalty & Rules (C1)",
+    domain: "it",
+    items: [
+      {
+        id: "lr-1",
+        text: "For our five hundred thousand daily active user loyalty platform, we packaged the dynamic rule engine as an in-process NuGet library rather than an external microservice.",
+        vietnamese: "Đối với nền tảng khách hàng thân thiết 500.000 người dùng hoạt động mỗi ngày, chúng tôi đóng gói bộ máy quy tắc động dưới dạng thư viện NuGet chạy trực tiếp trong tiến trình thay vì một microservice bên ngoài.",
+        context: "Lập luận kỹ thuật kinh điển khi bảo vệ kiến trúc Dynamic Rule Engine trước hội đồng Enterprise Architecture.",
+        level: "C1",
+        stressWords: ["five hundred thousand", "daily active user", "dynamic", "rule engine", "in-process", "NuGet", "microservice"],
+        linkingPairs: [["packaged", "the"], ["in-process", "NuGet"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh 'in-process NuGet library' và hạ giọng dứt khoát ở 'microservice' ↘.",
+      },
+      {
+        id: "lr-2",
+        text: "Executing rule chains in-process completely eliminates network serialization overhead and keeps evaluation latency under fifteen milliseconds.",
+        vietnamese: "Việc thực thi chuỗi quy tắc ngay trong tiến trình loại bỏ hoàn toàn chi phí trễ tuần tự hóa qua mạng và giữ độ trễ thẩm định dưới 15 mili-giây.",
+        context: "Giải thích lý do hiệu năng và SLA thời gian thực trong các đợt flash sale voucher.",
+        level: "C1",
+        stressWords: ["executing", "in-process", "eliminates", "network serialization", "latency", "fifteen milliseconds"],
+        linkingPairs: [["in", "process"], ["latency", "under"]],
+        intonation: "falling",
+        intonationNote: "Hạ giọng ở 'fifteen milliseconds' ↘ để khẳng định cam kết hiệu năng vượt trội.",
+      },
+      {
+        id: "lr-3",
+        text: "We implemented the Chain of Responsibility pattern with deterministic priority weighting to resolve conflicting campaign discounts.",
+        vietnamese: "Chúng tôi đã triển khai mẫu Chain of Responsibility với trọng số ưu tiên xác định để xử lý triệt để các xung đột chiết khấu chiến dịch.",
+        context: "Mô tả giải thuật giải quyết mâu thuẫn khi giỏ hàng thỏa mãn đồng thời nhiều chương trình khuyến mãi.",
+        level: "C1",
+        stressWords: ["implemented", "Chain of Responsibility", "deterministic", "priority weighting", "resolve", "conflicting"],
+        linkingPairs: [["Chain", "of"], ["priority", "weighting"]],
+        intonation: "falling",
+        intonationNote: "Phát âm chuẩn xác 'deterministic priority weighting' và dứt khoát ở 'discounts' ↘.",
+      },
+      {
+        id: "lr-4",
+        text: "Marketing teams can configure multi-tier campaign rules on the fly without requiring engineering code deployments.",
+        vietnamese: "Đội ngũ marketing có thể cấu hình các quy tắc chiến dịch đa tầng linh hoạt ngay tức thì mà không cần kỹ sư phải triển khai code mới.",
+        context: "Khẳng định giá trị kinh doanh (Business Value) của Rule Engine đối với Product Team và Marketing.",
+        level: "B2",
+        stressWords: ["marketing", "configure", "multi-tier", "campaign rules", "engineering", "deployments"],
+        linkingPairs: [["on", "the"], ["without", "requiring"]],
+        intonation: "falling",
+        intonationNote: "Hạ giọng ở 'code deployments' ↘ để nhấn mạnh tính linh hoạt tự phục vụ của hệ thống.",
+      },
+    ],
+  },
+  // ─────────────────────────────────────────────────────────────
+  // 2. AZURE CLOUD, COSMOS DB RU TUNING & PERFORMANCE OPTIMIZATION
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: "it-azure-perf",
+    name: "Azure Cloud, Cosmos DB RU Tuning & Latency Optimization",
+    desc: "Tối ưu chi phí Request Units (RU/s), kiến trúc Tiered Caching (Redis L1 + In-Memory L2) và giảm P99 latency",
+    icon: Server,
+    accent: "text-cyan-600 dark:text-cyan-400",
+    border: "border-cyan-500/40",
+    badge: "Azure Cloud & Perf (C1)",
+    domain: "it",
+    items: [
+      {
+        id: "ap-1",
+        text: "During peak flash sale spikes of ten million daily transactions, we dropped P99 checkout latency from 3.2 seconds down to 1.1 seconds.",
+        vietnamese: "Trong các đợt flash sale cao điểm lên tới 10 triệu giao dịch mỗi ngày, chúng tôi đã giảm độ trễ thanh toán P99 từ 3,2 giây xuống còn 1,1 giây.",
+        context: "Báo cáo thành quả tối ưu hóa hiệu năng ấn tượng với ban giám đốc và khách hàng doanh nghiệp.",
+        level: "C1",
+        stressWords: ["peak", "flash sale", "ten million", "daily transactions", "dropped", "P99", "checkout latency"],
+        linkingPairs: [["flash", "sale"], ["down", "to"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh các con số chứng minh 'ten million', '3.2 seconds' và '1.1 seconds' ↘.",
+      },
+      {
+        id: "ap-2",
+        text: "By choosing userId as the Cosmos DB partition key and pruning unindexed fields, we slashed Request Unit consumption by seventy percent.",
+        vietnamese: "Bằng cách chọn userId làm khóa phân vùng (partition key) trong Cosmos DB và cắt giảm các trường không cần đánh chỉ mục, chúng tôi đã cắt giảm 70% mức tiêu thụ Request Units (RU).",
+        context: "Giải trình chi tiết giải pháp kỹ thuật cắt giảm ngân sách đám mây Azure cho CTO đối tác.",
+        level: "C1",
+        stressWords: ["userId", "Cosmos DB", "partition key", "slashed", "Request Unit", "seventy percent"],
+        linkingPairs: [["as", "the"], ["by", "seventy"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh cụm 'Request Unit consumption' và hạ giọng mạnh mẽ ở 'seventy percent' ↘.",
+      },
+      {
+        id: "ap-3",
+        text: "We deployed a two-tier caching topology: an ultra-fast in-memory L2 cache coupled with a distributed Redis L1 cluster.",
+        vietnamese: "Chúng tôi đã triển khai kiến trúc bộ nhớ đệm hai tầng: bộ đệm L2 siêu nhanh ngay trong bộ nhớ kết hợp với cụm Redis L1 phân tán.",
+        context: "Mô tả giải pháp kiến trúc chống nghẽn bộ nhớ và chịu tải hàng triệu lượt đọc cùng lúc.",
+        level: "C1",
+        stressWords: ["two-tier", "caching topology", "in-memory", "L2 cache", "distributed", "Redis L1"],
+        linkingPairs: [["two", "tier"], ["coupled", "with"]],
+        intonation: "falling",
+        intonationNote: "Ngắt nghỉ nhịp nhàng giữa L2 cache và Redis L1 cluster, hạ giọng ở 'cluster' ↘.",
+      },
+      {
+        id: "ap-4",
+        text: "When campaign catalog prices update, an Azure Service Bus topic broadcasts invalidation events across all AKS worker pods within milliseconds.",
+        vietnamese: "Khi bảng giá danh mục chiến dịch thay đổi, một topic của Azure Service Bus sẽ phát sóng sự kiện vô hiệu hóa cache tới toàn bộ worker pod trên AKS chỉ trong vài mili-giây.",
+        context: "Giải thích cơ chế bảo đảm tính nhất quán dữ liệu giữa cache và database theo kiến trúc hướng sự kiện.",
+        level: "C1",
+        stressWords: ["catalog prices", "Azure Service Bus", "broadcasts", "invalidation events", "AKS worker pods", "milliseconds"],
+        linkingPairs: [["broadcasts", "invalidation"], ["within", "milliseconds"]],
+        intonation: "falling",
+        intonationNote: "Đọc trôi chảy 'Azure Service Bus topic' và hạ giọng dứt khoát ở 'milliseconds' ↘.",
+      },
+    ],
+  },
+  // ─────────────────────────────────────────────────────────────
+  // 3. ENTERPRISE AI INTEGRATIONS & DEV LEADERSHIP
+  // ─────────────────────────────────────────────────────────────
+  {
+    id: "it-ai-engineering",
+    name: "Enterprise AI Integrations & Modern Engineering (GPT-4o & RAG)",
+    desc: "Tích hợp Azure OpenAI GPT-4o sinh test case biên, Semantic Kernel RAG nội bộ và phát hiện bất thường qua App Insights",
+    icon: Sparkles,
+    accent: "text-purple-600 dark:text-purple-400",
+    border: "border-purple-500/40",
+    badge: "AI Engineering & Lead (C1)",
+    domain: "it",
+    items: [
+      {
+        id: "ai-1",
+        text: "We integrated Azure OpenAI GPT-4o into our CI/CD pipeline to generate boundary unit tests, lifting code coverage from forty to eighty-five percent.",
+        vietnamese: "Chúng tôi đã tích hợp Azure OpenAI GPT-4o vào quy trình CI/CD để tự động sinh các unit test ca biên, nâng độ bao phủ mã nguồn từ 40% lên 85%.",
+        context: "Chia sẻ kinh nghiệm áp dụng Generative AI để nâng cao chất lượng kỹ thuật trong các buổi tech talk và phỏng vấn.",
+        level: "C1",
+        stressWords: ["integrated", "Azure OpenAI", "GPT-4o", "boundary unit tests", "lifting", "code coverage", "eighty-five percent"],
+        linkingPairs: [["into", "our"], ["from", "forty"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh 'boundary unit tests' và hạ giọng tự tin ở 'eighty-five percent' ↘.",
+      },
+      {
+        id: "ai-2",
+        text: "Our internal engineering Slack bot uses Semantic Kernel and RAG over technical wikis, cutting new hire onboarding from two weeks down to three days.",
+        vietnamese: "Bot Slack kỹ thuật nội bộ của chúng tôi dùng Semantic Kernel và RAG trên wiki kỹ thuật, rút ngắn thời gian hội nhập của kỹ sư mới từ hai tuần xuống còn ba ngày.",
+        context: "Minh họa năng lực tối ưu hóa hiệu suất đội ngũ thông qua giải pháp AI nội bộ chuẩn doanh nghiệp.",
+        level: "C1",
+        stressWords: ["Slack bot", "Semantic Kernel", "RAG", "technical wikis", "onboarding", "three days"],
+        linkingPairs: [["uses", "Semantic"], ["down", "to"]],
+        intonation: "falling",
+        intonationNote: "Nhấn mạnh số liệu tương phản 'from two weeks down to three days' ↘.",
+      },
+      {
+        id: "ai-3",
+        text: "Machine learning anomaly detection on Azure Application Insights telemetry reduced our mean time to detect production issues to under two minutes.",
+        vietnamese: "Hệ thống phát hiện bất thường bằng máy học trên dữ liệu giám sát Azure Application Insights đã giảm thời gian trung bình phát hiện sự cố production xuống dưới hai phút.",
+        context: "Trình bày về độ tin cậy và khả năng quan sát hệ thống (Observability & SRE) với khách hàng.",
+        level: "C1",
+        stressWords: ["machine learning", "anomaly detection", "Azure Application Insights", "mean time to detect", "under two minutes"],
+        linkingPairs: [["on", "Azure"], ["mean", "time"]],
+        intonation: "falling",
+        intonationNote: "Phát âm chuẩn xác 'mean time to detect' (MTTD) và hạ giọng ở 'two minutes' ↘.",
+      },
+    ],
+  },
+  // ─────────────────────────────────────────────────────────────
+  // 4. IT & SOLUTION CALLS (TOP PRIORITY)
   // ─────────────────────────────────────────────────────────────
   {
     id: "it-solution-architecture",

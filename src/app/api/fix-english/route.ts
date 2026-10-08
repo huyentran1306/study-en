@@ -17,6 +17,97 @@ interface FixResult {
 // Curated high-impact Tech Lead knowledge base for common workplace communication scenarios
 const CURATED_SCENARIOS: { match: RegExp; result: (tone: string) => FixResult }[] = [
   {
+    // Cosmos DB RU Tuning & Tiered Caching
+    match: /partition key.*userId.*(RU|Cosmos|429|reduce 70%)/i,
+    result: () => ({
+      is_correct: false,
+      naturalness_score: 5,
+      issues: [
+        "'We change partition key' là thì hiện tại đơn giản; nên dùng thì hiện tại hoàn thành 'By re-partitioning data by userId' để báo cáo thành quả kỹ thuật.",
+        "'RU cost reduce 70%' sai ngữ pháp; chuẩn Tech Lead là 'slashed Request Unit consumption by 70%'.",
+        "'no more 429 error' nên dùng thuật ngữ chuyên nghiệp: 'completely eliminated HTTP 429 rate-limiting throttling exceptions'.",
+      ],
+      corrected:
+        "By re-partitioning our Cosmos DB collections by userId and introducing an L1 Redis cache, we slashed Request Unit consumption by 70% and completely eliminated HTTP 429 throttling exceptions.",
+      alternatives: [
+        "Re-aligning the partition key to userId alongside tiered Redis caching dropped our Cosmos DB RU overhead by 70%, eradicating 429 rate-limit bottlenecks.",
+        "We mitigated hot partition bottlenecks by keying on userId and fronting Cosmos DB with a distributed Redis cache, yielding a 70% RU reduction.",
+        "Through partition key optimization and an L1 caching layer, we achieved a 70% drop in Cosmos DB RU spend with zero 429 throttling under peak load.",
+      ],
+      explanation:
+        "Khi báo cáo tối ưu chi phí hạ tầng với CTO hoặc khách hàng doanh nghiệp, kết hợp số liệu phần trăm cụ thể (70% RU reduction) với thuật ngữ chuẩn xác ('re-partitioning', 'HTTP 429 throttling exceptions', 'tiered caching') sẽ tạo ấn tượng chuyên gia vượt trội.",
+      good_parts: "Xác định chuẩn xác nguyên nhân kỹ thuật (partition key userId) và kết quả định lượng (giảm 70%).",
+    }),
+  },
+  {
+    // In-Process Rule Engine vs Microservices
+    match: /rule engine.*(microservice|in-process|network call|500k)/i,
+    result: () => ({
+      is_correct: false,
+      naturalness_score: 6,
+      issues: [
+        "'We should not make rule engine as separate microservice' nghe thiếu tính thuyết phục kiến trúc; nên dùng 'We strongly advocate against isolating the rule engine into a distinct microservice'.",
+        "'network call will make latency too slow' nên dùng 'network serialization overhead would severely degrade evaluation latency'.",
+        "'for 500k flash sale users' nên chuẩn hóa thành 'under our 500k DAU peak flash sale workload'.",
+      ],
+      corrected:
+        "We advocate keeping the rule engine as an in-process .NET NuGet library rather than an external microservice, as network hops and JSON serialization would introduce unacceptable latency for our 500k DAU flash sale traffic.",
+      alternatives: [
+        "Packaging the rule engine as an in-process library eliminates inter-service network overhead, maintaining sub-15ms evaluation latency during 500k DAU traffic surges.",
+        "Rather than deploying a standalone microservice, embedding the rule engine in-process prevents serialization bottlenecks and ensures deterministic throughput under peak flash sales.",
+        "To satisfy our strict latency SLAs under 500k DAU load, an in-process NuGet package is architecturally superior to a distributed REST microservice.",
+      ],
+      explanation:
+        "Trong các buổi Architectural Review Board (ARB), không bao giờ chỉ nói 'it will be too slow'. Hãy chỉ rõ 'network hops and serialization overhead' và so sánh trực tiếp với cam kết SLA (sub-15ms) để bảo vệ giải pháp in-process library.",
+      good_parts: "Nắm bắt chuẩn xác trade-off về độ trễ mạng khi xử lý 500k DAU.",
+    }),
+  },
+  {
+    // Strangler Fig Migration on AKS
+    match: /strangle.*monolith.*(AKS|dual-run|3 weeks|service by service)/i,
+    result: () => ({
+      is_correct: false,
+      naturalness_score: 5,
+      issues: [
+        "'We plan to strangle monolith service by service' dịch thô; nên dùng thuật ngữ chuẩn: 'We are adopting the Strangler Fig pattern to progressively migrate core capabilities to Azure AKS'.",
+        "'We test dual-run 3 weeks' nên diễn đạt thành 'We will enforce a three-week dual-run validation period'.",
+        "'make sure data is 100% same before switch' nên dùng 'ensure complete data parity and idempotency before the final cutover'.",
+      ],
+      corrected:
+        "We are adopting the Strangler Fig pattern to progressively migrate monolith domains onto Azure AKS, enforcing a three-week dual-run validation to guarantee 100% data parity prior to cutover.",
+      alternatives: [
+        "Our migration roadmap leverages the Strangler Fig pattern with a three-week dual-run phase to verify complete parity before cutting over traffic on AKS.",
+        "To de-risk the cloud modernization, we will incrementally peel off services to AKS and validate output parity via a three-week parallel run.",
+        "By implementing the Strangler Fig approach and maintaining a three-week dual-run window, we ensure zero downtime and absolute data consistency.",
+      ],
+      explanation:
+        "Khi trình bày kế hoạch di trú hệ thống lớn cho khách hàng, cụm từ 'Strangler Fig pattern', 'three-week dual-run validation' và 'data parity prior to cutover' là bảo chứng cho một quy trình an toàn chuẩn enterprise.",
+      good_parts: "Kế hoạch di trú có lộ trình phân kỳ (service by service) và giai đoạn kiểm thử song song (dual-run).",
+    }),
+  },
+  {
+    // Azure OpenAI Unit Test Generation
+    match: /Azure OpenAI.*(unit test|coverage|40%.*85%|edge case)/i,
+    result: () => ({
+      is_correct: false,
+      naturalness_score: 6,
+      issues: [
+        "'our code coverage increase from 40% to 85%' thiếu trợ động từ/thì quá khứ; nên dùng 'boosting test coverage from 40% to 85%'.",
+        "'edge case unit test' nên dùng số nhiều: 'boundary and edge case test suites'.",
+      ],
+      corrected:
+        "We integrated Azure OpenAI GPT-4o into our CI/CD pipeline to synthesize boundary unit tests, lifting our overall test coverage from 40% to 85%.",
+      alternatives: [
+        "Leveraging Azure OpenAI GPT-4o for automated edge-case test generation boosted our test coverage from 40% to 85%.",
+        "By integrating Azure OpenAI into our development workflow to generate boundary scenarios, we drove code coverage up from 40% to 85%.",
+        "We tapped into Azure OpenAI GPT-4o to scaffold comprehensive unit tests, expanding our test coverage from 40% to 85% across core modules.",
+      ],
+      explanation:
+        "Trên Slack hay trong sprint review, dùng các động từ hành động mạnh như 'synthesize', 'lifting/boosting coverage from X% to Y%' giúp thông điệp về ứng dụng AI vừa cuốn hút vừa mang tính kỹ thuật cao.",
+      good_parts: "Có số liệu đo lường cụ thể và minh bạch (40% lên 85%).",
+    }),
+  },
+  {
     // Scope Creep / Deploy Pushback
     match: /(cannot|can't) deploy.*(friday|sprint).*bug.*(payment|test)/i,
     result: (tone) => ({
