@@ -24,6 +24,9 @@ import {
   ShieldCheck,
   Radio,
   BrainCircuit,
+  Calendar,
+  BarChart3,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DailyChallengeCard } from "@/components/daily-challenge";
@@ -147,30 +150,45 @@ export default function Home() {
         </div>
       </motion.section>
 
-      {/* Tech Lead 90-Day High-Impact Banner */}
+      {/* Tech Lead 30-Day Sprint & Call Prep Executive Banner */}
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-700/40 p-5 sm:p-6 shadow-xl text-white relative overflow-hidden"
+        className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-indigo-700/50 p-6 sm:p-7 shadow-2xl text-white relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/25 border border-indigo-400/30 text-[11px] font-bold text-indigo-300">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Chương trình 3 Tháng · Tech Lead Solution Calls</span>
+        <div className="absolute top-0 right-0 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2.5 max-w-2xl">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/25 border border-indigo-400/40 text-xs font-bold text-indigo-300">
+                <Calendar className="w-3.5 h-3.5" />
+                Lộ trình 30 Ngày Call Khách · 15 phút mỗi ngày
+              </span>
+              <span className="text-xs text-sky-300 font-semibold">
+                Dành riêng cho Lead & Architect
+              </span>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight">
-              Lộ trình 90 Ngày Cho Developer Leader & Solution Architect
+            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              Chuẩn bị phản xạ trước giờ Call với Khách Nước Ngoài
             </h3>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Cải thiện khả năng phản xạ khi call với khách hàng nước ngoài: giải thích kiến trúc (System Design), đàm phán từ chối yêu cầu (Pushback) và ứng phó sự cố (Incident Triage).
+              Xóa bỏ 3 giây dịch nhẩm tiếng Việt trong đầu. Rèn luyện 15 phút hôm nay với 3 micro-tasks: Mẫu câu mở đầu, Shadowing nhịp thở tự nhiên và mô phỏng phản biện với AI CTO.
             </p>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <Link href="/tech-lead">
-              <Button className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm gap-1.5 shadow-md">
-                Khám phá lộ trình 12 tuần <ArrowRight className="w-4 h-4" />
+          <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+            <Link href="/tech-lead?tab=daily">
+              <Button className="bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm gap-2 shadow-lg shadow-indigo-500/30">
+                <CheckSquare className="w-4 h-4" />
+                Luyện 15 phút hôm nay & Check-in
+              </Button>
+            </Link>
+            <Link href="/tech-lead?tab=assessment">
+              <Button
+                variant="outline"
+                className="rounded-xl border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold px-4 py-3 text-xs sm:text-sm gap-1.5"
+              >
+                <BarChart3 className="w-4 h-4 text-sky-400" />
+                Nhật ký Call & Đánh giá
               </Button>
             </Link>
           </div>
