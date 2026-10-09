@@ -13,6 +13,12 @@
       "database_id": "4e532c0d-ca33-49ac-83a5-a2be4f671c19"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "ai-gateway-images"
+    }
+  ],
   "observability": {
     "enabled": true
   }

@@ -176,6 +176,71 @@ export class AIGatewayClient {
     const data = await res.json() as { tables?: string[] };
     return data.tables || [];
   }
+
+  // =========================================================================
+  // 3. NHÓM TÍNH NĂNG VISION AI & LƯU ẢNH BÉ (R2 STORAGE + LLAMA 3.2 VISION)
+  // =========================================================================
+
+  /**
+   * Chụp hình bé & phân tích hoạt động, cảm xúc bằng Vision AI
+   * Tự động lưu ảnh vào Cloudflare R2 và lưu kết quả vào D1 Database.
+   */
+  async analyzeChildPhoto(
+    image: Blob | File | string,
+    prompt?: string,
+    childName?: string
+  ): Promise<{
+    success: boolean;
+    id: number;
+    file_id: string;
+    image_url: string;
+    child_name: string;
+    prompt: string;
+    analysis: string;
+    saved_to_db: boolean;
+  }> {
+    if (typeof image === "string") {
+      const isUrl = image.startsWith("http");
+      const res = await fetch(`${this.gatewayUrl}/vision/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(isUrl ? { imageUrl: image, prompt, childName } : { image, prompt, childName }),
+      });
+      if (!res.ok) throw new Error(`Vision analyze failed: ${res.statusText}`);
+      return res.json();
+    }
+
+    const formData = new FormData();
+    formData.append("image", image);
+    if (prompt) formData.append("prompt", prompt);
+    if (childName) formData.append("childName", childName);
+
+    const res = await fetch(`${this.gatewayUrl}/vision/analyze`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error(`Vision analyze failed: ${res.statusText}`);
+    return res.json();
+  }
+
+  /**
+   * Lấy lịch sử danh sách ảnh của bé đã phân tích từ D1 Database
+   */
+  async getChildPhotos(limit = 20): Promise<Array<{
+    id: number;
+    file_id: string;
+    image_url: string;
+    prompt: string;
+    analysis: string;
+    child_name: string;
+    created_at: string;
+  }>> {
+    const res = await fetch(`${this.gatewayUrl}/child-photos?limit=${limit}`);
+    if (!res.ok) throw new Error(`Get child photos failed: ${res.statusText}`);
+    const data = await res.json() as { photos?: any[] };
+    return data.photos || [];
+  }
 }
 
 // Export một instance mặc định
