@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai-gateway-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2026-04-24",
+  "ai": {
+    "binding": "AI"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ai-gateway-db",
+      "database_id": "4e532c0d-ca33-49ac-83a5-a2be4f671c19"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
