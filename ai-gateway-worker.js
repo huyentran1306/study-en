@@ -1,18 +1,33 @@
 /**
- * AI, DATABASE (D1) & IMAGE STORAGE (R2) GATEWAY WORKER
+ * ADVANCED AI, VECTORIZE, R2 & D1 GATEWAY WORKER (VERSION 3.0.0)
  * 
  * 🌐 Live URL: https://ai-gateway-worker.trann46698.workers.dev
  * 
- * Các dịch vụ tích hợp:
- * 1. 🎤 STT (OpenAI Whisper):             POST /stt
- * 2. 🔊 TTS (Deepgram Aura-2):           POST /tts
- * 3. 🧠 LLM Chat (Meta Llama 3.3 70B):   POST /chat
- * 4. ✍️ Fix English (Tech Lead Coach):   POST /fix-english
- * 5. 📷 Vision AI (Phân tích ảnh bé):    POST /vision/analyze
- * 6. 🖼️ Lưu trữ ảnh R2:                  POST /images/upload  | GET /images/:id
- * 7. 👶 Lịch sử ảnh & phân tích:        GET  /child-photos
- * 8. 💾 Database D1 SQL Query:           POST /db/query       | POST /db/execute
- * 9. 🔑 Key-Value Store D1:              GET  /db/kv/:key     | POST /db/kv/:key
+ * BỘ TÍNH NĂNG CAO CẤP TÍCH HỢP:
+ * -------------------------------------------------------------------------
+ * 1. 🔍 VECTOR SEARCH & RAG:
+ *    - POST /search/index          -> Đánh chỉ mục văn bản/bài học vào Vector Database
+ *    - POST /search/vector         -> Tìm kiếm ngữ nghĩa bằng câu hỏi tự nhiên (Vectorize)
+ * 
+ * 2. 🎨 AI IMAGE GENERATION:
+ *    - POST /images/generate       -> Tạo ảnh nghệ thuật từ text prompt (Flux 1 / SDXL Lightning)
+ * 
+ * 3. 📷 VISION AI & OCR:
+ *    - POST /vision/analyze        -> Phân tích ảnh chụp bé (cảm xúc, hoạt động, lời khuyên)
+ *    - POST /vision/ocr            -> Bóc tách chữ tiếng Anh từ ảnh chụp tài liệu/bài tập
+ *    - GET  /images/:id            -> Hiển thị ảnh trực tiếp từ R2 (cho thẻ <img>)
+ *    - GET  /child-photos          -> Lịch sử ảnh bé & phân tích
+ * 
+ * 4. 🎤 STT & 🔊 TTS:
+ *    - POST /stt                   -> Whisper Bóc băng giọng nói
+ *    - POST /tts                   -> Deepgram Aura-2 Đọc giọng bản xứ
+ * 
+ * 5. 🧠 LLM CHAT & COACH:
+ *    - POST /chat                  -> Llama 3.3 70B Fast
+ *    - POST /fix-english           -> Sửa câu chuẩn Tech Lead
+ * 
+ * 6. 💾 D1 DATABASE (SQLITE CLOUD):
+ *    - POST /db/query | POST /db/execute | GET /db/kv/:key | POST /db/kv/:key
  */
 
 export default {
@@ -32,11 +47,153 @@ export default {
 
     try {
       // =====================================================================
-      // 1. VISION AI & LƯU TRỮ HÌNH ẢNH (CHỤP HÌNH BÉ & PHÂN TÍCH)
+      // 1. 🎨 AI IMAGE GENERATION (FLUX 1 / SDXL LIGHTNING)
+      // =====================================================================
+      if (pathname === "/images/generate" && request.method === "POST") {
+        const { prompt = "", style = "photorealistic", num_steps = 4 } = await request.json().catch(() => ({}));
+        if (!prompt) {
+          return jsonResponse({ error: "Thiếu trường 'prompt' để tạo ảnh" }, 400, corsHeaders);
+        }
+
+        // Tinh chỉnh prompt theo phong cách mong muốn
+        const enhancedPrompt = `${prompt}, high quality, beautiful lighting, ${style === "anime" ? "anime illustration, vibrant" : style === "pixar" ? "3D pixar style animated character, cute, smooth render" : "highly detailed, professional photography"}`;
+
+        let rawImage = null;
+        try {
+          rawImage = await env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
+            prompt: enhancedPrompt,
+            steps: Math.min(num_steps, 8),
+          });
+        } catch {
+          rawImage = await env.AI.run("@cf/bytedance/stable-diffusion-xl-lightning", {
+            prompt: enhancedPrompt,
+            num_steps: Math.min(num_steps, 8),
+          });
+        }
+
+        let imageBytes = null;
+        if (rawImage && typeof rawImage === "object" && rawImage.image) {
+          const binaryStr = atob(rawImage.image);
+          imageBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) imageBytes[i] = binaryStr.charCodeAt(i);
+        } else if (typeof rawImage === "string") {
+          const binaryStr = atob(rawImage);
+          imageBytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) imageBytes[i] = binaryStr.charCodeAt(i);
+        } else {
+          imageBytes = new Uint8Array(await new Response(rawImage).arrayBuffer());
+        }
+
+        const fileId = `ai_gen_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
+        if (env.IMAGES) {
+          await env.IMAGES.put(fileId, imageBytes, {
+            httpMetadata: { contentType: "image/jpeg" },
+          });
+        }
+
+        const imageUrl = `${url.origin}/images/${fileId}`;
+        return jsonResponse(
+          {
+            success: true,
+            file_id: fileId,
+            image_url: imageUrl,
+            prompt,
+            enhanced_prompt: enhancedPrompt,
+          },
+          200,
+          corsHeaders
+        );
+      }
+
+      // =====================================================================
+      // 2. 🔍 VECTORIZE: TÌM KIẾM NGỮ NGHĨA AI (SEMANTIC VECTOR SEARCH & RAG)
       // =====================================================================
 
-      // 📷 POST /vision/analyze
-      // Nhận ảnh (binary, formData hoặc JSON base64/imageUrl) -> Lưu R2 -> Phân tích bằng Llama 3.2 Vision -> Lưu D1
+      // POST /search/index -> Đưa văn bản vào Vector Database
+      if (pathname === "/search/index" && request.method === "POST") {
+        const { id, text = "", metadata = {} } = await request.json().catch(() => ({}));
+        if (!text) {
+          return jsonResponse({ error: "Thiếu trường 'text' để index" }, 400, corsHeaders);
+        }
+
+        const docId = id || `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+        // 1. Sinh vector 768 chiều từ text bằng BGE Base
+        const embeddingRes = await env.AI.run("@cf/baai/bge-base-en-v1.5", {
+          text: [text],
+        });
+        const vectorValues = embeddingRes.data[0];
+
+        // 2. Lưu vào Cloudflare Vectorize
+        if (env.VECTORIZE) {
+          await env.VECTORIZE.upsert([
+            {
+              id: docId,
+              values: vectorValues,
+              metadata: {
+                text: text.slice(0, 1000), // Lưu preview text
+                ...metadata,
+              },
+            },
+          ]);
+        }
+
+        return jsonResponse(
+          {
+            success: true,
+            id: docId,
+            indexed_text: text,
+            dimensions: vectorValues.length,
+          },
+          200,
+          corsHeaders
+        );
+      }
+
+      // POST /search/vector -> Tìm kiếm bằng ngữ nghĩa câu hỏi
+      if (pathname === "/search/vector" && request.method === "POST") {
+        const { query = "", topK = 5 } = await request.json().catch(() => ({}));
+        if (!query) {
+          return jsonResponse({ error: "Thiếu trường 'query' để tìm kiếm" }, 400, corsHeaders);
+        }
+
+        // 1. Sinh vector từ câu hỏi query
+        const embeddingRes = await env.AI.run("@cf/baai/bge-base-en-v1.5", {
+          text: [query],
+        });
+        const queryVector = embeddingRes.data[0];
+
+        // 2. Tìm kiếm các vector gần nhất trong Vectorize theo Cosine Distance
+        let matches = [];
+        if (env.VECTORIZE) {
+          const searchResult = await env.VECTORIZE.query(queryVector, {
+            topK: Math.min(topK, 20),
+            returnMetadata: "all",
+          });
+          matches = searchResult.matches || [];
+        }
+
+        return jsonResponse(
+          {
+            query,
+            total_results: matches.length,
+            results: matches.map((m) => ({
+              id: m.id,
+              score: Math.round(m.score * 10000) / 10000,
+              text: m.metadata?.text || "",
+              metadata: m.metadata || {},
+            })),
+          },
+          200,
+          corsHeaders
+        );
+      }
+
+      // =====================================================================
+      // 3. 📷 VISION AI, OCR & ẢNH BÉ (LLAMA 3.2 VISION + R2 + D1)
+      // =====================================================================
+
+      // 📷 POST /vision/analyze -> Chụp ảnh bé & phân tích
       if (pathname === "/vision/analyze" && request.method === "POST") {
         let imageBytes = null;
         let mimeType = "image/jpeg";
@@ -60,21 +217,16 @@ export default {
           if (body.childName) childName = body.childName;
 
           if (body.image) {
-            // Base64 string
             const base64Clean = body.image.replace(/^data:image\/\w+;base64,/, "");
             const binaryStr = atob(base64Clean);
             imageBytes = new Uint8Array(binaryStr.length);
-            for (let i = 0; i < binaryStr.length; i++) {
-              imageBytes[i] = binaryStr.charCodeAt(i);
-            }
+            for (let i = 0; i < binaryStr.length; i++) imageBytes[i] = binaryStr.charCodeAt(i);
           } else if (body.imageUrl) {
-            // Fetch từ URL
             const imgRes = await fetch(body.imageUrl);
             imageBytes = new Uint8Array(await imgRes.arrayBuffer());
             mimeType = imgRes.headers.get("content-type") || "image/jpeg";
           }
         } else {
-          // Binary trực tiếp trong request body
           imageBytes = new Uint8Array(await request.arrayBuffer());
           mimeType = contentType || "image/jpeg";
         }
@@ -83,7 +235,6 @@ export default {
           return jsonResponse({ error: "Không tìm thấy dữ liệu hình ảnh để phân tích." }, 400, corsHeaders);
         }
 
-        // 1. Lưu ảnh vào R2 Storage
         const ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
         const fileId = `child_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
         if (env.IMAGES) {
@@ -93,7 +244,6 @@ export default {
         }
         const imageUrl = `${url.origin}/images/${fileId}`;
 
-        // 2. Gọi Vision AI (Llama 3.2 11B Vision Instruct của Cloudflare)
         let aiAnalysis = "";
         try {
           const visionResponse = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
@@ -103,11 +253,9 @@ export default {
           });
           aiAnalysis = visionResponse.response || visionResponse.description || "";
         } catch (visionErr) {
-          console.error("Vision AI error:", visionErr);
           aiAnalysis = `Không thể phân tích ảnh qua Vision AI: ${visionErr.message}`;
         }
 
-        // 3. Tự động lưu thông tin & kết quả vào D1 Database
         await ensureChildPhotosTable(env.DB);
         const insertResult = await env.DB.prepare(
           "INSERT INTO child_photos (file_id, image_url, prompt, analysis, child_name, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP);"
@@ -129,30 +277,10 @@ export default {
         );
       }
 
-      // 🖼️ GET /images/:id -> Xem hoặc tải ảnh trực tiếp từ R2 (cho thẻ <img src="...">)
-      if (pathname.startsWith("/images/") && request.method === "GET") {
-        const fileId = pathname.replace("/images/", "");
-        if (!env.IMAGES) {
-          return new Response("R2 Storage not configured", { status: 500, headers: corsHeaders });
-        }
-
-        const object = await env.IMAGES.get(fileId);
-        if (!object) {
-          return new Response("Image not found", { status: 404, headers: corsHeaders });
-        }
-
-        const headers = new Headers();
-        object.writeHttpMetadata(headers);
-        headers.set("Access-Control-Allow-Origin", "*");
-        headers.set("Cache-Control", "public, max-age=31536000, immutable");
-
-        return new Response(object.body, { headers });
-      }
-
-      // 🖼️ POST /images/upload -> Chỉ upload ảnh lên R2 lấy link (không cần phân tích AI)
-      if (pathname === "/images/upload" && request.method === "POST") {
-        const contentType = request.headers.get("content-type") || "image/jpeg";
+      // 📝 POST /vision/ocr -> Trích xuất văn bản từ ảnh chụp tài liệu/bài tập
+      if (pathname === "/vision/ocr" && request.method === "POST") {
         let imageBytes = null;
+        const contentType = request.headers.get("content-type") || "";
 
         if (contentType.includes("multipart/form-data")) {
           const formData = await request.formData();
@@ -165,26 +293,44 @@ export default {
         }
 
         if (!imageBytes || imageBytes.length === 0) {
-          return jsonResponse({ error: "No image data" }, 400, corsHeaders);
+          return jsonResponse({ error: "Không tìm thấy file ảnh" }, 400, corsHeaders);
         }
 
-        const fileId = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
-        await env.IMAGES.put(fileId, imageBytes, {
-          httpMetadata: { contentType: "image/jpeg" },
+        const ocrPrompt = "Extract all text, paragraphs, and words from this image accurately. Preserve formatting where possible.";
+        const visionResponse = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+          prompt: ocrPrompt,
+          image: [...imageBytes],
+          max_tokens: 1200,
         });
 
         return jsonResponse(
           {
             success: true,
-            file_id: fileId,
-            image_url: `${url.origin}/images/${fileId}`,
+            extracted_text: visionResponse.response || "",
           },
           200,
           corsHeaders
         );
       }
 
-      // 👶 GET /child-photos -> Lấy danh sách lịch sử ảnh của bé và kết quả phân tích AI từ D1
+      // 🖼️ GET & HEAD /images/:id -> Render ảnh từ R2
+      if (pathname.startsWith("/images/") && (request.method === "GET" || request.method === "HEAD")) {
+        const fileId = pathname.replace("/images/", "");
+        if (!env.IMAGES) return new Response("R2 not configured", { status: 500, headers: corsHeaders });
+
+        const object = await env.IMAGES.get(fileId);
+        if (!object) return new Response("Image not found", { status: 404, headers: corsHeaders });
+
+        const headers = new Headers();
+        object.writeHttpMetadata(headers);
+        const mime = fileId.endsWith(".png") ? "image/png" : fileId.endsWith(".webp") ? "image/webp" : "image/jpeg";
+        headers.set("Content-Type", object.httpMetadata?.contentType || mime);
+        headers.set("Access-Control-Allow-Origin", "*");
+        headers.set("Cache-Control", "public, max-age=31536000, immutable");
+        return new Response(object.body, { headers });
+      }
+
+      // 👶 GET /child-photos -> Danh sách ảnh bé
       if (pathname === "/child-photos" && request.method === "GET") {
         await ensureChildPhotosTable(env.DB);
         const limit = Number(url.searchParams.get("limit")) || 20;
@@ -196,70 +342,44 @@ export default {
       }
 
       // =====================================================================
-      // 2. CÁC ROUTE AI KHÁC (STT, TTS, CHAT, FIX ENGLISH)
+      // 4. 🎤 STT, 🔊 TTS, 🧠 CHAT & ✍️ FIX ENGLISH
       // =====================================================================
-
-      // 🎤 STT: Nhận diện giọng nói từ âm thanh (OpenAI Whisper)
       if (pathname === "/stt" && request.method === "POST") {
         const audioBuffer = await request.arrayBuffer();
         if (!audioBuffer || audioBuffer.byteLength === 0) {
           return jsonResponse({ error: "Chưa gửi dữ liệu audio" }, 400, corsHeaders);
         }
-
-        const response = await env.AI.run("@cf/openai/whisper", {
-          audio: [...new Uint8Array(audioBuffer)],
-        });
-
+        const response = await env.AI.run("@cf/openai/whisper", { audio: [...new Uint8Array(audioBuffer)] });
         return jsonResponse({ text: response.text || "" }, 200, corsHeaders);
       }
 
-      // 🔊 TTS: Đọc văn bản thành file âm thanh MP3 (Deepgram Aura-2)
       if (pathname === "/tts" && request.method === "POST") {
         const { text = "" } = await request.json().catch(() => ({}));
-        if (!text) {
-          return jsonResponse({ error: "Thiếu trường 'text'" }, 400, corsHeaders);
-        }
-
+        if (!text) return jsonResponse({ error: "Thiếu trường 'text'" }, 400, corsHeaders);
         const audio = await env.AI.run("@cf/deepgram/aura-2-en", { text });
         return new Response(audio, {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "audio/mpeg",
-            "Cache-Control": "public, max-age=3600",
-          },
+          headers: { ...corsHeaders, "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=3600" },
         });
       }
 
-      // 🧠 CHAT: Llama 3.3 70B Fast
       if (pathname === "/chat" && request.method === "POST") {
         const { messages = [], max_tokens = 800, temperature = 0.7 } = await request.json().catch(() => ({}));
         if (!Array.isArray(messages) || messages.length === 0) {
           return jsonResponse({ error: "Thiếu mảng 'messages'" }, 400, corsHeaders);
         }
-
-        const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-          messages,
-          max_tokens,
-          temperature,
-        });
-
+        const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", { messages, max_tokens, temperature });
         return jsonResponse({ response: response.response || "" }, 200, corsHeaders);
       }
 
-      // ✍️ FIX ENGLISH: Nâng cấp câu chuẩn Tech Lead
       if (pathname === "/fix-english" && request.method === "POST") {
         const { text = "", tone = "executive" } = await request.json().catch(() => ({}));
-        if (!text) {
-          return jsonResponse({ error: "Thiếu trường 'text'" }, 400, corsHeaders);
-        }
+        if (!text) return jsonResponse({ error: "Thiếu trường 'text'" }, 400, corsHeaders);
 
-        const systemPrompt = `You are an elite English coach for Tech Leads. Elevate this sentence with tone "${tone}". Respond ONLY in valid JSON with fields: is_correct (bool), naturalness_score (int 1-10), issues (array of strings in Vietnamese), corrected (string), alternatives (array of 3 strings), explanation (string in Vietnamese), good_parts (string in Vietnamese).`;
+        const systemPrompt = `You are an elite English coach for Tech Leads. Elevate this sentence with tone "${tone}". Respond ONLY in valid JSON:
+{ "is_correct": false, "naturalness_score": 6, "issues": ["..."], "corrected": "...", "alternatives": ["..."], "explanation": "...", "good_parts": "..." }`;
 
         const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `Refine: "${text}"` },
-          ],
+          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `Refine: "${text}"` }],
           temperature: 0.2,
           max_tokens: 1000,
         });
@@ -267,53 +387,30 @@ export default {
         const raw = response.response || "";
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
         const data = jsonMatch ? JSON.parse(jsonMatch[0]) : { corrected: raw };
-
         return jsonResponse(data, 200, corsHeaders);
       }
 
       // =====================================================================
-      // 3. DATABASE D1 (SQLITE CLOUD) ROUTES
+      // 5. 💾 D1 DATABASE (SQLITE)
       // =====================================================================
-
-      // 💾 DB QUERY: SELECT
       if (pathname === "/db/query" && request.method === "POST") {
         const { query = "", params = [] } = await request.json().catch(() => ({}));
         if (!query) return jsonResponse({ error: "Thiếu trường 'query'" }, 400, corsHeaders);
-
         const stmt = env.DB.prepare(query);
         const boundStmt = params.length > 0 ? stmt.bind(...params) : stmt;
         const result = await boundStmt.all();
         return jsonResponse(result, 200, corsHeaders);
       }
 
-      // 💾 DB EXECUTE: INSERT, UPDATE, DELETE, CREATE TABLE
       if (pathname === "/db/execute" && request.method === "POST") {
         const { query = "", params = [] } = await request.json().catch(() => ({}));
         if (!query) return jsonResponse({ error: "Thiếu trường 'query'" }, 400, corsHeaders);
-
         const stmt = env.DB.prepare(query);
         const boundStmt = params.length > 0 ? stmt.bind(...params) : stmt;
         const result = await boundStmt.run();
         return jsonResponse(result, 200, corsHeaders);
       }
 
-      // 💾 DB BATCH: Nhiều lệnh SQL trong transaction
-      if (pathname === "/db/batch" && request.method === "POST") {
-        const { statements = [] } = await request.json().catch(() => ({}));
-        if (!Array.isArray(statements) || statements.length === 0) {
-          return jsonResponse({ error: "Thiếu mảng 'statements'" }, 400, corsHeaders);
-        }
-
-        const prepared = statements.map((s) => {
-          const stmt = env.DB.prepare(s.query);
-          return s.params && s.params.length > 0 ? stmt.bind(...s.params) : stmt;
-        });
-
-        const results = await env.DB.batch(prepared);
-        return jsonResponse({ success: true, results }, 200, corsHeaders);
-      }
-
-      // 📊 DB TABLES: Xem danh sách các bảng
       if (pathname === "/db/tables" && request.method === "GET") {
         const result = await env.DB.prepare(
           "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%';"
@@ -321,7 +418,6 @@ export default {
         return jsonResponse({ tables: result.results.map((r) => r.name) }, 200, corsHeaders);
       }
 
-      // 🔑 DB KV STORE: GET /db/kv/:key
       if (pathname.startsWith("/db/kv/") && request.method === "GET") {
         const key = pathname.replace("/db/kv/", "");
         await ensureKvTable(env.DB);
@@ -332,7 +428,6 @@ export default {
         return jsonResponse({ key, value: parsed, updated_at: row.updated_at, found: true }, 200, corsHeaders);
       }
 
-      // 🔑 DB KV STORE: POST /db/kv/:key
       if (pathname.startsWith("/db/kv/") && request.method === "POST") {
         const key = pathname.replace("/db/kv/", "");
         const body = await request.json().catch(() => ({}));
@@ -341,42 +436,47 @@ export default {
         await env.DB.prepare(
           "INSERT INTO _kv_store (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
         ).bind(key, valStr).run();
-
         return jsonResponse({ success: true, key, saved: true }, 200, corsHeaders);
       }
 
       // =====================================================================
-      // 4. HEALTH CHECK & API DOCS (GET /)
+      // 6. HEALTH CHECK & API SITEMAP (GET /)
       // =====================================================================
       return jsonResponse(
         {
-          service: "Cloudflare AI, R2 Storage & D1 Database Gateway",
+          service: "Advanced Cloudflare AI, Vectorize, R2 & D1 Gateway",
           owner: "Huyen Tran (trann46698)",
           status: "online",
-          version: "2.0.0",
+          version: "3.0.0",
           gateway_url: "https://ai-gateway-worker.trann46698.workers.dev",
-          features: {
-            child_vision_ai: [
-              "POST /vision/analyze -> Upload ảnh bé & phân tích tâm lý, biểu cảm, hoạt động (lưu R2 + D1)",
-              "GET  /child-photos   -> Xem danh sách lịch sử ảnh bé và kết quả phân tích AI",
-              "GET  /images/:id     -> Hiển thị ảnh trực tiếp từ R2 (cho thẻ <img>)",
-              "POST /images/upload  -> Upload ảnh lấy link R2 mà không phân tích",
+          modules: {
+            "1_AI_IMAGE_GENERATION": [
+              "POST /images/generate     -> Tạo ảnh nghệ thuật từ mô tả văn bản (Flux 1 / SDXL)"
             ],
-            ai: [
-              "POST /stt            -> Bóc băng âm thanh thành text (OpenAI Whisper)",
-              "POST /tts            -> Đọc văn bản thành MP3 (Deepgram Aura-2)",
-              "POST /chat           -> Hội thoại thông minh (Llama 3.3 70B)",
-              "POST /fix-english    -> Sửa văn phong chuẩn Tech Lead",
+            "2_VECTOR_SEARCH_RAG": [
+              "POST /search/index        -> Đánh chỉ mục bài học/tài liệu vào Vector Database",
+              "POST /search/vector       -> Tìm kiếm ngữ nghĩa thông minh bằng câu hỏi tự nhiên"
             ],
-            database: [
-              "POST /db/query       -> SELECT SQL query",
-              "POST /db/execute     -> INSERT/UPDATE/DELETE/CREATE SQL",
-              "POST /db/batch       -> Chạy nhiều lệnh SQL transaction",
-              "GET  /db/tables      -> Xem các bảng trong D1",
-              "GET  /db/kv/:key     -> Lấy Key-Value",
-              "POST /db/kv/:key     -> Lưu Key-Value",
+            "3_VISION_AND_IMAGES": [
+              "POST /vision/analyze      -> Chụp ảnh bé & AI phân tích hoạt động, cảm xúc (lưu R2 + D1)",
+              "POST /vision/ocr          -> Bóc tách chữ tiếng Anh từ ảnh chụp tài liệu/bài tập",
+              "GET  /images/:id          -> Hiển thị ảnh trực tiếp từ R2 (cho thẻ <img>)",
+              "GET  /child-photos        -> Xem album lịch sử ảnh bé & lời khuyên AI"
             ],
-          },
+            "4_VOICE_AND_CHAT": [
+              "POST /stt                 -> Bóc băng âm thanh thành text (OpenAI Whisper)",
+              "POST /tts                 -> Đọc văn bản thành giọng MP3 bản xứ (Deepgram Aura-2)",
+              "POST /chat                -> Hội thoại thông minh (Llama 3.3 70B Fast)",
+              "POST /fix-english         -> Nâng cấp câu chuẩn Tech Lead"
+            ],
+            "5_D1_DATABASE": [
+              "POST /db/query            -> SQL SELECT query",
+              "POST /db/execute          -> SQL INSERT/UPDATE/DELETE/CREATE",
+              "GET  /db/tables           -> Xem danh sách các bảng trong D1",
+              "GET  /db/kv/:key          -> Lấy dữ liệu Key-Value",
+              "POST /db/kv/:key          -> Lưu dữ liệu Key-Value"
+            ]
+          }
         },
         200,
         corsHeaders
@@ -390,10 +490,7 @@ export default {
 function jsonResponse(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
-    headers: {
-      ...headers,
-      "Content-Type": "application/json; charset=utf-8",
-    },
+    headers: { ...headers, "Content-Type": "application/json; charset=utf-8" },
   });
 }
 

@@ -241,6 +241,74 @@ export class AIGatewayClient {
     const data = await res.json() as { photos?: any[] };
     return data.photos || [];
   }
+
+  // =========================================================================
+  // 4. NHÓM TÍNH NĂNG SINH ẢNH AI & TÌM KIẾM VECTORIZE (RAG)
+  // =========================================================================
+
+  /**
+   * Tạo ảnh nghệ thuật từ văn bản (Flux 1 Schnell / SDXL)
+   * Tự động lưu vào Cloudflare R2 và trả về URL ảnh công khai.
+   */
+  async generateImage(
+    prompt: string,
+    style: "pixar" | "anime" | "photorealistic" = "pixar"
+  ): Promise<{ success: boolean; image_url: string; file_id: string; prompt: string }> {
+    const res = await fetch(`${this.gatewayUrl}/images/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, style }),
+    });
+
+    if (!res.ok) throw new Error(`Image generation failed: ${res.statusText}`);
+    return res.json();
+  }
+
+  /**
+   * Đánh chỉ mục văn bản/bài học vào Vector Database (Cloudflare Vectorize)
+   */
+  async indexVectorDocument(text: string, id?: string, metadata: Record<string, any> = {}): Promise<any> {
+    const res = await fetch(`${this.gatewayUrl}/search/index`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, text, metadata }),
+    });
+
+    if (!res.ok) throw new Error(`Index document failed: ${res.statusText}`);
+    return res.json();
+  }
+
+  /**
+   * Tìm kiếm ngữ nghĩa bằng câu hỏi tự nhiên (Vector Semantic Search)
+   */
+  async searchVector(query: string, topK = 5): Promise<Array<{ id: string; score: number; text: string; metadata: any }>> {
+    const res = await fetch(`${this.gatewayUrl}/search/vector`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, topK }),
+    });
+
+    if (!res.ok) throw new Error(`Vector search failed: ${res.statusText}`);
+    const data = await res.json() as { results?: any[] };
+    return data.results || [];
+  }
+
+  /**
+   * Bóc tách chữ tiếng Anh từ ảnh chụp tài liệu/bài tập (OCR)
+   */
+  async extractTextFromImage(image: Blob | File): Promise<string> {
+    const formData = new FormData();
+    formData.append("image", image);
+
+    const res = await fetch(`${this.gatewayUrl}/vision/ocr`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error(`OCR failed: ${res.statusText}`);
+    const data = await res.json() as { extracted_text?: string };
+    return data.extracted_text || "";
+  }
 }
 
 // Export một instance mặc định

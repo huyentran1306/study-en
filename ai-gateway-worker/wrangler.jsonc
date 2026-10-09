@@ -19,6 +19,12 @@
       "bucket_name": "ai-gateway-images"
     }
   ],
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "ai-search-index"
+    }
+  ],
   "observability": {
     "enabled": true
   }
