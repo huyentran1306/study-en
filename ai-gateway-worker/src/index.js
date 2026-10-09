@@ -247,9 +247,10 @@ export default {
         let aiAnalysis = "";
         try {
           const visionResponse = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
-            prompt: `${prompt}\n(Vui lòng trả lời bằng tiếng Việt thân thiện, tâm lý và chi tiết).`,
+            prompt: `${prompt}\n(Vui lòng trả lời bằng tiếng Việt thân thiện, tâm lý, xúc tích và rõ ràng).`,
             image: [...imageBytes],
-            max_tokens: 1000,
+            max_tokens: 600,
+            temperature: 0.2,
           });
           aiAnalysis = visionResponse.response || visionResponse.description || "";
         } catch (visionErr) {
