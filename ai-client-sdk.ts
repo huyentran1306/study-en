@@ -1,199 +1,182 @@
 /**
- * AI CLIENT SDK - DÙNG CHO APP NGOÀI GỌI CÁC DỊCH VỤ AI CỦA CLOUDFLARE
+ * CLIENT SDK DÙNG CHO APP NGOÀI GỌI TRỰC TIẾP GATEWAY AI & DATABASE D1
  * 
- * Hướng dẫn sử dụng:
- * 1. Copy file này vào thư mục dự án của app mới (src/lib/ai-client.ts hoặc tương tự).
- * 2. Cài đặt biến môi trường hoặc truyền trực tiếp cấu hình.
- * 3. Gọi các hàm: transcribeAudio, generateSpeech, chatWithLlama, fixEnglish.
+ * 🌐 Gateway URL đã deploy: https://ai-gateway-worker.trann46698.workers.dev
+ * 
+ * Cách dùng:
+ * 1. Copy file này vào app ngoài (React, Next.js, Vue, Node.js...).
+ * 2. Gọi trực tiếp các hàm:
+ *    - aiGateway.chat([...])
+ *    - aiGateway.fixEnglish(text, tone)
+ *    - aiGateway.transcribe(audioBlob)
+ *    - aiGateway.speak(text)
+ *    - aiGateway.dbQuery(sql, params)
+ *    - aiGateway.dbExecute(sql, params)
+ *    - aiGateway.dbGet(key)
+ *    - aiGateway.dbSet(key, value)
  */
-
-export interface AIClientConfig {
-  /**
-   * Account ID lấy từ Cloudflare Dashboard (chuỗi 32 ký tự).
-   * Lấy tại: https://dash.cloudflare.com/
-   */
-  accountId?: string;
-
-  /**
-   * API Token tạo từ Cloudflare Dashboard với quyền Workers AI (Read).
-   * Lấy tại: https://dash.cloudflare.com/profile/api-tokens
-   */
-  apiToken?: string;
-
-  /**
-   * Hoặc dùng link Worker STT dựng sẵn không cần Token:
-   */
-  sttWorkerUrl?: string;
-}
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-export interface FixEnglishResponse {
+export interface FixEnglishResult {
   is_correct: boolean;
   naturalness_score: number;
   issues: string[];
   corrected: string;
   alternatives: string[];
   explanation: string;
-  good_parts: string;
+  good_parts?: string;
 }
 
-export class CloudflareAIClient {
-  private accountId: string;
-  private apiToken: string;
-  private sttWorkerUrl: string;
+export class AIGatewayClient {
+  private gatewayUrl: string;
 
-  constructor(config?: AIClientConfig) {
-    this.accountId = config?.accountId || process.env.CLOUDFLARE_ACCOUNT_ID || "";
-    this.apiToken = config?.apiToken || process.env.CLOUDFLARE_API_TOKEN || "";
-    this.sttWorkerUrl = config?.sttWorkerUrl || "https://steep-boat-9faa.trann46698.workers.dev/";
+  constructor(gatewayUrl = "https://ai-gateway-worker.trann46698.workers.dev") {
+    this.gatewayUrl = gatewayUrl.replace(/\/$/, "");
   }
 
+  // =========================================================================
+  // 1. NHÓM TÍNH NĂNG AI
+  // =========================================================================
+
   /**
-   * Helper gọi Cloudflare Workers AI REST API trực tiếp từ app ngoài
+   * Chat và trả lời câu hỏi với Llama 3.3 70B Fast
    */
-  private async runModel<T = any>(modelName: string, body: any, isBinary = false): Promise<T> {
-    if (!this.accountId || !this.apiToken) {
-      throw new Error(
-        "Thiếu CLOUDFLARE_ACCOUNT_ID hoặc CLOUDFLARE_API_TOKEN. Vui lòng cấu hình trước khi gọi từ app ngoài."
-      );
-    }
-
-    const url = `https://api.cloudflare.com/client/v4/accounts/${this.accountId}/ai/run/${modelName}`;
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.apiToken}`,
-    };
-
-    if (!isBinary) {
-      headers["Content-Type"] = "application/json";
-    }
-
-    const response = await fetch(url, {
+  async chat(messages: ChatMessage[], options?: { maxTokens?: number; temperature?: number }): Promise<string> {
+    const res = await fetch(`${this.gatewayUrl}/chat`, {
       method: "POST",
-      headers,
-      body: isBinary ? body : JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages,
+        max_tokens: options?.maxTokens || 800,
+        temperature: options?.temperature ?? 0.7,
+      }),
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Cloudflare AI API Error [${response.status}]: ${errText}`);
-    }
-
-    return response as unknown as T;
+    if (!res.ok) throw new Error(`Chat failed: ${res.statusText}`);
+    const data = await res.json() as { response?: string };
+    return data.response || "";
   }
 
-  // =========================================================================
-  // 1. STT: BÓC BĂNG GIỌNG NÓI TỪ MICROPHONE THÀNH TEXT (OPENAI WHISPER)
-  // =========================================================================
   /**
-   * Nhận diện giọng nói từ file audio Blob hoặc ArrayBuffer.
-   * Mặc định gọi qua Worker STT dựng sẵn (KHÔNG CẦN TOKEN).
-   */
-  async transcribeAudio(audioData: Blob | ArrayBuffer): Promise<string> {
-    // Cách 1: Gọi qua Worker STT dựng sẵn (Miễn phí, 0 cần Token)
-    try {
-      const body = audioData instanceof Blob ? await audioData.arrayBuffer() : audioData;
-      const res = await fetch(this.sttWorkerUrl, {
-        method: "POST",
-        headers: { "Content-Type": "audio/webm" },
-        body,
-      });
-
-      if (res.ok) {
-        const json = (await res.json()) as { response?: { text?: string } };
-        return json.response?.text || "";
-      }
-    } catch (e) {
-      console.warn("Worker STT fallback sang Direct API Token nếu có...");
-    }
-
-    // Cách 2: Fallback sang REST API chính thức nếu có Token
-    if (this.accountId && this.apiToken) {
-      const body = audioData instanceof Blob ? await audioData.arrayBuffer() : audioData;
-      const res = await this.runModel<Response>("@cf/openai/whisper", body, true);
-      const json = await (res as unknown as Response).json() as { result?: { text?: string } };
-      return json.result?.text || "";
-    }
-
-    throw new Error("Không thể bóc băng âm thanh. Kiểm tra kết nối mạng hoặc cấu hình API Token.");
-  }
-
-  // =========================================================================
-  // 2. TTS: TẠO GIỌNG NÓI BẢN XỨ TỪ TEXT (DEEPGRAM AURA-2)
-  // =========================================================================
-  /**
-   * Tạo file âm thanh (MP3 audio Blob) từ đoạn văn bản tiếng Anh.
-   */
-  async generateSpeech(text: string): Promise<Blob> {
-    const res = await this.runModel<Response>("@cf/deepgram/aura-2-en", { text });
-    return (res as unknown as Response).blob();
-  }
-
-  // =========================================================================
-  // 3. LLM CHAT: HỘI THOẠI & TRẢ LỜI CÂU HỎI (LLAMA 3.3 70B FAST)
-  // =========================================================================
-  /**
-   * Gọi mô hình Meta Llama 3.3 70B Instruct để chat, trả lời câu hỏi, nhập vai.
-   */
-  async chatWithLlama(
-    messages: ChatMessage[],
-    options?: { maxTokens?: number; temperature?: number }
-  ): Promise<string> {
-    const res = await this.runModel<Response>("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-      messages,
-      max_tokens: options?.maxTokens || 800,
-      temperature: options?.temperature ?? 0.7,
-    });
-
-    const json = await (res as unknown as Response).json() as { result?: { response?: string } };
-    return json.result?.response || "";
-  }
-
-  // =========================================================================
-  // 4. FIX ENGLISH: NÂNG CẤP VĂN PHONG TECH LEAD / CLIENT / SLACK
-  // =========================================================================
-  /**
-   * Sửa câu tiếng Anh theo phong cách chuyên nghiệp chuẩn Tech Lead.
-   * @param text Đoạn tiếng Anh cần sửa
-   * @param tone Phong cách: 'executive' (khách hàng/CTO), 'slack' (chat nội bộ), 'code_review', 'incident'
+   * Sửa câu tiếng Anh chuẩn Tech Lead / C-Level
    */
   async fixEnglish(
     text: string,
     tone: "executive" | "slack" | "code_review" | "incident" = "executive"
-  ): Promise<FixEnglishResponse> {
-    const systemPrompt = `You are an elite English communication coach for software engineering leaders and solution architects.
-Target Tone: ${tone}.
-Elevate the user's rough draft into high-impact, professional technical English.
-Respond ONLY with valid JSON in this exact schema:
-{
-  "is_correct": false,
-  "naturalness_score": 6,
-  "issues": ["Issue 1 in Vietnamese", "Issue 2 in Vietnamese"],
-  "corrected": "Elevated sentence",
-  "alternatives": ["⚡ Option 1", "🤝 Option 2", "🛠️ Option 3"],
-  "explanation": "Clear explanation in Vietnamese",
-  "good_parts": "Brief praise in Vietnamese"
-}`;
+  ): Promise<FixEnglishResult> {
+    const res = await fetch(`${this.gatewayUrl}/fix-english`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, tone }),
+    });
 
-    const rawResponse = await this.chatWithLlama(
-      [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Refine this draft: "${text}"` },
-      ],
-      { temperature: 0.2, maxTokens: 1000 }
-    );
+    if (!res.ok) throw new Error(`Fix English failed: ${res.statusText}`);
+    return res.json() as Promise<FixEnglishResult>;
+  }
 
-    const match = rawResponse.match(/\{[\s\S]*\}/);
-    if (match) {
-      return JSON.parse(match[0]) as FixEnglishResponse;
-    }
+  /**
+   * Bóc băng giọng nói từ microphone thành text (OpenAI Whisper)
+   */
+  async transcribe(audioData: Blob | ArrayBuffer): Promise<string> {
+    const body = audioData instanceof Blob ? await audioData.arrayBuffer() : audioData;
+    const res = await fetch(`${this.gatewayUrl}/stt`, {
+      method: "POST",
+      headers: { "Content-Type": "audio/webm" },
+      body,
+    });
 
-    throw new Error("Không thể phân tích kết quả JSON từ mô hình AI.");
+    if (!res.ok) throw new Error(`STT failed: ${res.statusText}`);
+    const data = await res.json() as { text?: string };
+    return data.text || "";
+  }
+
+  /**
+   * Đọc văn bản tiếng Anh thành file âm thanh MP3 (Deepgram Aura-2)
+   */
+  async speak(text: string): Promise<Blob> {
+    const res = await fetch(`${this.gatewayUrl}/tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!res.ok) throw new Error(`TTS failed: ${res.statusText}`);
+    return res.blob();
+  }
+
+  // =========================================================================
+  // 2. NHÓM TÍNH NĂNG DATABASE D1 SQLITE
+  // =========================================================================
+
+  /**
+   * Thực hiện truy vấn SELECT trên D1 Database
+   */
+  async dbQuery<T = any>(query: string, params: any[] = []): Promise<T[]> {
+    const res = await fetch(`${this.gatewayUrl}/db/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, params }),
+    });
+
+    if (!res.ok) throw new Error(`DB Query failed: ${res.statusText}`);
+    const data = await res.json() as { results?: T[] };
+    return data.results || [];
+  }
+
+  /**
+   * Thực thi lệnh INSERT, UPDATE, DELETE, CREATE TABLE trên D1 Database
+   */
+  async dbExecute(query: string, params: any[] = []): Promise<any> {
+    const res = await fetch(`${this.gatewayUrl}/db/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, params }),
+    });
+
+    if (!res.ok) throw new Error(`DB Execute failed: ${res.statusText}`);
+    return res.json();
+  }
+
+  /**
+   * Lưu nhanh dữ liệu Key-Value vào D1 (tự động serialize JSON)
+   */
+  async dbSet(key: string, value: any): Promise<boolean> {
+    const res = await fetch(`${this.gatewayUrl}/db/kv/${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value }),
+    });
+
+    if (!res.ok) throw new Error(`DB Set failed: ${res.statusText}`);
+    const data = await res.json() as { success?: boolean };
+    return !!data.success;
+  }
+
+  /**
+   * Lấy nhanh dữ liệu Key-Value từ D1 (tự động deserialize JSON)
+   */
+  async dbGet<T = any>(key: string): Promise<T | null> {
+    const res = await fetch(`${this.gatewayUrl}/db/kv/${encodeURIComponent(key)}`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`DB Get failed: ${res.statusText}`);
+    const data = await res.json() as { value?: T };
+    return data.value ?? null;
+  }
+
+  /**
+   * Xem danh sách tất cả các bảng trong D1
+   */
+  async dbTables(): Promise<string[]> {
+    const res = await fetch(`${this.gatewayUrl}/db/tables`);
+    if (!res.ok) throw new Error(`DB Tables failed: ${res.statusText}`);
+    const data = await res.json() as { tables?: string[] };
+    return data.tables || [];
   }
 }
 
-// Export một instance mặc định tiện dùng nhanh
-export const defaultAIClient = new CloudflareAIClient();
+// Export một instance mặc định
+export const aiGateway = new AIGatewayClient();
