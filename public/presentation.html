@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báo Cáo Dự Thi: Study-EN & AI Edge Gateway Suite</title>
+  <style>
+    /* =========================================================================
+       CSS RESET & BASE DESIGN SYSTEM (OFFLINE-FIRST / 100% SELF-CONTAINED)
+       ========================================================================= */
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: #0f172a;
+      --bg-card-hover: #1e293b;
+      --border-color: #334155;
+      --border-focus: #6366f1;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --secondary: #0ea5e9;
+      --accent: #ec4899;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --gradient-primary: linear-gradient(135deg, #6366f1 0%, #0ea5e9 100%);
+      --gradient-accent: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+      --gradient-gold: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-stack);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.5;
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* TOP CONTROLS & HEADER */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 1000;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: var(--primary-light);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-main);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary-light);
+      color: #fff;
+    }
+
+    .btn-primary {
+      background: var(--gradient-primary);
+      border: none;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    .mode-toggle {
+      background: rgba(30, 41, 59, 0.7);
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      gap: 2px;
+    }
+
+    .mode-tab {
+      padding: 4px 10px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      transition: all 0.2s;
+    }
+
+    .mode-tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* SLIDE CONTAINER */
+    .deck-container {
+      margin-top: 56px;
+      min-height: calc(100vh - 56px);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* SLIDE MODE */
+    .slide {
+      display: none;
+      padding: 40px 32px 80px 32px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.995);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* DOCUMENT SCROLL MODE */
+    body.doc-mode .slide {
+      display: block !important;
+      padding: 60px 32px;
+      border-bottom: 2px dashed rgba(51, 65, 85, 0.5);
+      animation: none;
+    }
+
+    body.doc-mode .bottom-nav {
+      display: none;
+    }
+
+    /* BOTTOM NAV FOR SLIDE MODE */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 1000;
+    }
+
+    .progress-bar-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(51, 65, 85, 0.4);
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--gradient-primary);
+      width: 10%;
+      transition: width 0.3s ease;
+    }
+
+    .slide-counter {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .slide-counter span {
+      color: var(--primary-light);
+    }
+
+    .slide-dots {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background: var(--border-color);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .dot.active {
+      background: var(--primary-light);
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    /* TYPOGRAPHY & CARDS */
+    .slide-header {
+      margin-bottom: 28px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+      padding-bottom: 16px;
+    }
+
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .slide-title {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .slide-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+      .slide-title {
+        font-size: 22px;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(99, 102, 241, 0.5);
+      background: var(--bg-card-hover);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .card-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .highlight-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--primary-light);
+      margin-top: 8px;
+    }
+
+    /* HERO COVER SLIDE */
+    .hero-slide {
+      text-align: center;
+      padding: 60px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(80vh - 100px);
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: var(--primary-light);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .hero-title {
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      max-width: 900px;
+      margin-bottom: 20px;
+    }
+
+    .gradient-text {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      max-width: 720px;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    .meta-box {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 16px 24px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .meta-item strong {
+      color: #fff;
+    }
+
+    /* TEAM MEMBER CARD */
+    .member-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .avatar-wrapper {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      border: 3px solid var(--primary);
+      margin-bottom: 16px;
+      overflow: hidden;
+      position: relative;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .member-name {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .member-role {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--secondary);
+      margin: 4px 0 12px 0;
+    }
+
+    .member-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    .member-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(14, 165, 233, 0.15);
+      color: var(--secondary);
+      margin-top: 6px;
+      display: inline-block;
+    }
+
+    /* SVG ARCHITECTURE DIAGRAM */
+    .arch-diagram-wrapper {
+      background: #0b1120;
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 24px;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .svg-diagram {
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    /* FEATURE SHOWCASE TABS */
+    .feature-pill {
+      display: flex;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      align-items: flex-start;
+    }
+
+    .feature-icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 18px;
+    }
+
+    .icon-indigo { background: rgba(99, 102, 241, 0.2); color: var(--primary-light); }
+    .icon-sky { background: rgba(14, 165, 233, 0.2); color: var(--secondary); }
+    .icon-emerald { background: rgba(16, 185, 129, 0.2); color: var(--emerald); }
+    .icon-amber { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
+
+    /* TIMELINE / ROADMAP */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      margin-left: 12px;
+      border-left: 2px solid var(--border-color);
+      padding-left: 24px;
+    }
+
+    .timeline-item {
+      position: relative;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -31px;
+      top: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 3px solid var(--bg-dark);
+    }
+
+    .timeline-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .timeline-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* CODE SNIPPET BOX */
+    .code-box {
+      background: #020617;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #e2e8f0;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    /* PHOTO UPLOADER HELPER (OFFLINE LOCAL PERSISTENCE) */
+    .upload-helper-box {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    /* PRINT STYLES FOR EXPORT */
+    @media print {
+      .top-bar, .bottom-nav, .upload-helper-box {
+        display: none !important;
+      }
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .slide {
+        display: block !important;
+        page-break-after: always;
+        padding: 20px !important;
+        max-width: 100% !important;
+      }
+      .card, .member-card, .arch-diagram-wrapper {
+        border: 1px solid #ccc !important;
+        background: #fafafa !important;
+        color: #111 !important;
+      }
+      .card-title, .slide-title, .member-name {
+        color: #000 !important;
+      }
+      .card-text, .slide-desc, .member-desc {
+        color: #333 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP APP BAR -->
+  <header class="top-bar">
+    <div class="brand-group">
+      <div class="brand-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Dự Thi Hackathon
+      </div>
+      <div class="brand-title">Study-EN & AI Edge Gateway</div>
+    </div>
+
+    <div class="controls-group">
+      <!-- VIEW MODE TOGGLE -->
+      <div class="mode-toggle">
+        <button class="mode-tab active" id="btnSlideMode" onclick="setViewMode('slide')">Trình Chiếu Slide</button>
+        <button class="mode-tab" id="btnDocMode" onclick="setViewMode('doc')">Xem Bản Đầy Đủ</button>
+      </div>
+
+      <button class="btn" onclick="toggleFullscreen()" title="Toàn màn hình">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        F11
+      </button>
+      <button class="btn btn-primary" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        In / Xuất PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- PRESENTATION MAIN DECK -->
+  <main class="deck-container">
+
+    <!-- =====================================================================
+         SLIDE 1: COVER / TITLE SLIDE
+         ===================================================================== -->
+    <section class="slide active" id="slide-1">
+      <div class="hero-slide">
+        <div class="hero-pill">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          HỒ SƠ THUYẾT TRÌNH SẢN PHẨM SỐNG & HỆ THỐNG AI
+        </div>
+
+        <h1 class="hero-title">
+          <span class="gradient-text">Study-EN & AI Edge Gateway</span><br/>
+          Nền Tảng Đột Phá Tiếng Anh Giao Tiếp Cho Tech Lead & Hệ Sinh Thái AI Serverless
+        </h1>
+
+        <p class="hero-subtitle">
+          Giải pháp xoá bỏ rào cản "dịch nhẩm 3 giây" khi đàm phán giải pháp với khách hàng quốc tế. Tích hợp AI Gateway biên (Edge Serverless) đa năng: Voice Whisper, Deepgram TTS, Vision Llama 3.2, Semantic Vector Search và Serverless SQL D1.
+        </p>
+
+        <div class="meta-box">
+          <div class="meta-item">Đội thi: <strong>Elite LeadTech</strong></div>
+          <div class="meta-item">Đại diện: <strong>Nguyễn Thị Huyền Trân (Tech Lead)</strong></div>
+          <div class="meta-item">Hạ tầng: <strong>Cloudflare Edge Workers + Next.js 14</strong></div>
+          <div class="meta-item">Phiên bản: <strong>Production v3.0.0 (Live Ready)</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 2: GIỚI THIỆU VỀ TEAM (TEAM INTRODUCTION)
+         ===================================================================== -->
+    <section class="slide" id="slide-2">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 1 / 2.2 · Giới thiệu Đội Ngũ Dự Thi</div>
+        <h2 class="slide-title">1. Đội Ngũ Phát Triển (Team Introduction)</h2>
+        <p class="slide-desc">Hội tụ năng lực kiến trúc giải pháp cao cấp, kỹ thuật AI Edge và sự am hiểu sâu sắc về rào cản ngoại ngữ thực tế trong các dự án phần mềm toàn cầu.</p>
+      </div>
+
+      <!-- Quick photo update banner -->
+      <div class="upload-helper-box">
+        <span>💡 <strong>Ảnh đại diện thành viên:</strong> Đã tích hợp sẵn ảnh đồ họa vector chuyên nghiệp. Bạn cũng có thể bấm nút bên phải để tải ảnh cá nhân thật của bạn vào (lưu trực tiếp trong máy, không cần internet).</span>
+        <label class="btn" style="cursor: pointer; margin: 0;">
+          📷 Thay ảnh Leader
+          <input type="file" accept="image/*" style="display:none;" onchange="updateLeaderAvatar(event)">
+        </label>
+      </div>
+
+      <div class="grid-3">
+        <!-- Leader -->
+        <div class="member-card">
+          <div class="avatar-wrapper" id="leaderAvatarContainer">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h3 class="member-name">Nguyễn Thị Huyền Trân</h3>
+          <div class="member-role">Team Leader & Solution Architect / Full-stack</div>
+          <div class="member-tag">Lead Architect · Core Developer</div>
+          <div class="member-desc" style="margin-top: 12px;">
+            • Thiết kế toàn bộ kiến trúc tổng thể của Study-EN & Cloudflare AI Gateway.<br/>
+            • Xây dựng Worker v3.0.0 đa mô hình (Llama 3.3 70B, Vision 11B, Flux 1, D1 SQL, Vectorize).<br/>
+            • Trực tiếp biên soạn kịch bản 30 Ngày Call Khách Hàng và chuẩn hóa các bài tập Shadowing thực chiến.
+          </div>
+        </div>
+
+        <!-- Member 2 -->
+        <div class="member-card">
+          <div class="avatar-wrapper">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.5">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+          </div>
+          <h3 class="member-name">Kỹ Sư AI & Hệ Thống</h3>
+          <div class="member-role">AI Engineer & Cloud Infrastructure</div>
+          <div class="member-tag">AI Pipeline · Vector Database</div>
+          <div class="member-desc" style="margin-top: 12px;">
+            • Phụ trách pipeline trích xuất âm thanh STT Whisper và bộ phát âm TTS Deepgram Aura-2.<br/>
+            • Thiết lập Vector Database (Vectorize Index) và thuật toán Semantic RAG tài liệu kỹ thuật.<br/>
+            • Tối ưu quota 10,000 Neurons miễn phí/ngày và cơ chế fallback tự động không gián đoạn.
+          </div>
+        </div>
+
+        <!-- Member 3 -->
+        <div class="member-card">
+          <div class="avatar-wrapper">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <h3 class="member-name">Chuyên Gia Sản Phẩm & UX</h3>
+          <div class="member-role">Product Specialist & Executive UX</div>
+          <div class="member-tag">Executive UX · English Curriculum</div>
+          <div class="member-desc" style="margin-top: 12px;">
+            • Nghiên cứu hành vi người lớn học tiếng Anh, loại bỏ cảm giác "game trẻ con".<br/>
+            • Thiết kế hệ thống đánh giá 4 chỉ số lưu loát (Fluency Scorecard) và Form rút kinh nghiệm sau call.<br/>
+            • Tối ưu hóa UI/UX đạt chuẩn Executive Dark Slate, mượt mà trên cả máy tính lẫn di động.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 3: PAINPOINT & MỤC ĐÍCH (PROBLEM & MOTIVATION)
+         ===================================================================== -->
+    <section class="slide" id="slide-3">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 2 / 2.2 · Vấn đề thực tế</div>
+        <h2 class="slide-title">2.1. Painpoint & Mục Đích Chọn Đề Tài</h2>
+        <p class="slide-desc">Tại sao hơn 500,000 kỹ sư phần mềm Việt Nam rất giỏi kỹ thuật nhưng lại lúng túng khi bước vào các cuộc họp giải pháp toàn cầu?</p>
+      </div>
+
+      <div class="grid-2">
+        <!-- Problem 1 -->
+        <div class="card" style="border-left: 4px solid var(--rose);">
+          <div class="card-title">
+            <span style="color: var(--rose);">❌ 1. Rào cản "Dịch nhẩm 3 giây" & Khoảng lặng chết (Dead Silence)</span>
+          </div>
+          <div class="card-text">
+            Khi khách hàng nước ngoài (Singapore, Mỹ, Úc) hỏi dồn dập về kiến trúc hoặc deadline, kỹ sư thường dịch câu hỏi sang tiếng Việt, nghĩ phương án bằng tiếng Việt rồi mới dịch ngược sang tiếng Anh. Khoảng dừng 3–5 giây này tạo cảm giác thiếu tự tin và làm suy giảm uy tín chuyên môn của cả đội ngũ.
+          </div>
+          <span class="highlight-badge" style="background: rgba(244, 63, 94, 0.15); color: #fb7185;">Hậu quả: Bị đối tác đánh giá thấp năng lực dẫn dắt</span>
+        </div>
+
+        <!-- Problem 2 -->
+        <div class="card" style="border-left: 4px solid var(--amber);">
+          <div class="card-title">
+            <span style="color: var(--amber);">❌ 2. Thiếu kỹ năng từ chối khéo léo (Diplomatic Pushback)</span>
+          </div>
+          <div class="card-text">
+            Khi đối tác đưa ra yêu cầu phi thực tế (Scope Creep) hoặc ép mốc bàn giao sát ngày, kỹ sư Việt thường chỉ biết nói "No, cannot" (quá cộc cằn) hoặc cam kết bừa "Yes, okay" (gây gãy Sprint). Họ thiếu các mẫu câu phản xạ ngoại giao đưa ra đánh đổi: <em>"We can certainly incorporate this, provided we shift feature X to Sprint 2."</em>
+          </div>
+          <span class="highlight-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">Hậu quả: Đội dự án quá tải, nợ kỹ thuật chồng chất</span>
+        </div>
+
+        <!-- Problem 3 -->
+        <div class="card" style="border-left: 4px solid var(--primary-light);">
+          <div class="card-title">
+            <span style="color: var(--primary-light);">❌ 3. Các ứng dụng hiện nay không có kịch bản ngành IT</span>
+          </div>
+          <div class="card-text">
+            Duolingo, ELSA hay các trung tâm truyền thống chủ yếu dạy tiếng Anh du lịch, nhà hàng, ngữ pháp cơ bản. Không có bất kỳ ứng dụng nào đào tạo chuyên biệt: NFR Discovery, Caching Redis, Idempotency, Outage Incident RCA, Strangler Fig Migration.
+          </div>
+          <span class="highlight-badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc;">Thiếu hụt: Thiếu hẳn công cụ luyện tập theo bối cảnh Lead</span>
+        </div>
+
+        <!-- Problem 4 -->
+        <div class="card" style="border-left: 4px solid var(--emerald);">
+          <div class="card-title">
+            <span style="color: var(--emerald);">🎯 Mục đích cốt lõi của sản phẩm</span>
+          </div>
+          <div class="card-text">
+            Xây dựng một không gian học tập <strong>chuyên sâu, thực dụng, chỉ 15 phút mỗi ngày</strong> kết hợp với <strong>AI Gateway Serverless thế hệ mới</strong>, giúp kỹ sư công nghệ biến tiếng Anh từ điểm yếu thành vũ khí cạnh tranh chiến lược trên thị trường quốc tế.
+          </div>
+          <span class="highlight-badge" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7;">Mục tiêu: Đạt chuẩn C-Level / Principal Lead phản xạ tự nhiên</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 4: SOLUTION & CÁCH TIẾP CẬN KHÁC BIỆT
+         ===================================================================== -->
+    <section class="slide" id="slide-4">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 2 / 2.2 · Giải pháp đột phá</div>
+        <h2 class="slide-title">2.2. Solution & Cách Tiếp Cận Khác Biệt</h2>
+        <p class="slide-desc">Kết hợp phương pháp phản xạ khẩu hình (Speech Shadowing) cùng trí tuệ nhân tạo biên (Edge AI) để tạo ra trải nghiệm huấn luyện 1-on-1 không giới hạn.</p>
+      </div>
+
+      <div class="grid-3">
+        <!-- Solution Pillar 1 -->
+        <div class="card">
+          <div class="feature-icon-box icon-indigo" style="margin-bottom: 12px;">⚡</div>
+          <h3 class="card-title">Micro-Learning 15 Phút/Ngày</h3>
+          <p class="card-text">
+            Không học ngữ pháp hàn lâm. Người đi làm bận rộn chỉ cần hoàn thành 3 chặng micro-task ngắn gọn mỗi ngày:
+          </p>
+          <ul style="font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-left: 16px; line-height: 1.6;">
+            <li><strong>5 phút:</strong> Đọc to Mẫu câu phản xạ (kèm phát âm giọng bản xứ).</li>
+            <li><strong>5 phút:</strong> Shadowing nhại âm theo nhịp điệu Solution Call.</li>
+            <li><strong>5 phút:</strong> Đối thoại trực tiếp với AI CTO phản biện.</li>
+          </ul>
+        </div>
+
+        <!-- Solution Pillar 2 -->
+        <div class="card">
+          <div class="feature-icon-box icon-sky" style="margin-bottom: 12px;">🛡️</div>
+          <h3 class="card-title">Tư Duy Đàm Phán Ngoại Giao</h3>
+          <p class="card-text">
+            Học viên được trang bị bộ công thức "cứu cánh":
+          </p>
+          <ul style="font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-left: 16px; line-height: 1.6;">
+            <li><strong>Mua thời gian suy nghĩ:</strong> <em>"That's a fair point. Let me pull up the technical context in just a second."</em></li>
+            <li><strong>Từ chối có phương án:</strong> Đưa ra đánh đổi thay vì nói "Không".</li>
+            <li><strong>Xử lý sự cố Outage:</strong> Giữ bình tĩnh cho khách hàng và cam kết thời gian cập nhật.</li>
+          </ul>
+        </div>
+
+        <!-- Solution Pillar 3 -->
+        <div class="card">
+          <div class="feature-icon-box icon-emerald" style="margin-bottom: 12px;">🌐</div>
+          <h3 class="card-title">AI Edge Gateway Serverless</h3>
+          <p class="card-text">
+            Kiến trúc hoàn toàn độc lập, siêu tốc độ và tiết kiệm chi phí:
+          </p>
+          <ul style="font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-left: 16px; line-height: 1.6;">
+            <li><strong>Độ trễ cực thấp:</strong> Chạy trên 330+ trung tâm dữ liệu Cloudflare Edge.</li>
+            <li><strong>Chi phí 0 VNĐ:</strong> Tận dụng hạn ngạch 10,000 Neurons/ngày miễn phí.</li>
+            <li><strong>Tích hợp mở rộng:</strong> Cung cấp RESTful API và SDK cho mọi dự án khác của công ty.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 5: CÁCH LÀM & KIẾN TRÚC HỆ THỐNG (ARCHITECTURE & HOW IT WORKS)
+         ===================================================================== -->
+    <section class="slide" id="slide-5">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 2 / 2.2 · Kiến trúc & Công nghệ</div>
+        <h2 class="slide-title">2.3. Cách Làm: Sơ Đồ Kiến Trúc Hệ Thống (Edge Architecture)</h2>
+        <p class="slide-desc">Mô hình phân tầng hiện đại: Frontend Web App + Cloudflare Edge AI Gateway + Multi-Modal Foundation Models.</p>
+      </div>
+
+      <div class="arch-diagram-wrapper">
+        <svg class="svg-diagram" viewBox="0 0 960 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background Grid lines -->
+          <line x1="20" y1="120" x2="940" y2="120" stroke="#1e293b" stroke-dasharray="4 4" />
+          <line x1="20" y1="260" x2="940" y2="260" stroke="#1e293b" stroke-dasharray="4 4" />
+
+          <!-- TIER 1: USER / CLIENT APPLICATIONS -->
+          <rect x="30" y="20" width="900" height="80" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+          <text x="50" y="48" fill="#818cf8" font-size="12" font-weight="bold" letter-spacing="1">TIER 1: CLIENT APPLICATION LAYER (NGƯỜI DÙNG & CÁC APP NGOÀI)</text>
+          
+          <rect x="50" y="60" width="260" height="30" rx="6" fill="#1e293b" stroke="#6366f1" />
+          <text x="60" y="80" fill="#fff" font-size="11" font-weight="600">💻 Study-EN Web App (Next.js 14)</text>
+
+          <rect x="340" y="60" width="260" height="30" rx="6" fill="#1e293b" stroke="#0ea5e9" />
+          <text x="350" y="80" fill="#fff" font-size="11" font-weight="600">📱 Mobile / Các App ngoài của công ty</text>
+
+          <rect x="630" y="60" width="280" height="30" rx="6" fill="#1e293b" stroke="#10b981" />
+          <text x="640" y="80" fill="#fff" font-size="11" font-weight="600">🎙️ Micro / Audio Stream & Camera Upload</text>
+
+          <!-- FLOW ARROWS DOWN -->
+          <path d="M 480 100 L 480 135" stroke="#6366f1" stroke-width="2" marker-end="url(#arrow)" />
+
+          <!-- TIER 2: CLOUDFLARE AI GATEWAY WORKER -->
+          <rect x="30" y="140" width="900" height="100" rx="12" fill="#111827" stroke="#6366f1" stroke-width="2" />
+          <text x="50" y="165" fill="#38bdf8" font-size="12" font-weight="bold" letter-spacing="1">TIER 2: CLOUDFLARE EDGE AI GATEWAY (SERVERLESS PROXY & ORCHESTRATION)</text>
+          <text x="50" y="182" fill="#94a3b8" font-size="11">ai-gateway-worker.trann46698.workers.dev · 330+ Global Edge Data Centers · &lt;50ms Edge Routing</text>
+
+          <rect x="50" y="195" width="160" height="32" rx="6" fill="#1f2937" stroke="#374151" />
+          <text x="60" y="215" fill="#f3f4f6" font-size="10" font-weight="600">🗄️ D1 Database (SQLite)</text>
+
+          <rect x="230" y="195" width="170" height="32" rx="6" fill="#1f2937" stroke="#374151" />
+          <text x="240" y="215" fill="#f3f4f6" font-size="10" font-weight="600">🗂️ R2 Storage (Ảnh bé & Audio)</text>
+
+          <rect x="420" y="195" width="180" height="32" rx="6" fill="#1f2937" stroke="#374151" />
+          <text x="430" y="215" fill="#f3f4f6" font-size="10" font-weight="600">🧠 Vectorize Index (RAG Search)</text>
+
+          <rect x="620" y="195" width="290" height="32" rx="6" fill="#312e81" stroke="#818cf8" />
+          <text x="630" y="215" fill="#e0e7ff" font-size="10" font-weight="600">⚡ Quota Controller & CORS Security Shield</text>
+
+          <!-- FLOW ARROWS DOWN -->
+          <path d="M 480 240 L 480 275" stroke="#0ea5e9" stroke-width="2" />
+
+          <!-- TIER 3: WORKERS AI FOUNDATION MODELS -->
+          <rect x="30" y="280" width="900" height="120" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+          <text x="50" y="305" fill="#34d399" font-size="12" font-weight="bold" letter-spacing="1">TIER 3: HIGH-PERFORMANCE FOUNDATION AI MODELS</text>
+
+          <!-- Model 1 -->
+          <rect x="50" y="320" width="200" height="65" rx="8" fill="#1e293b" stroke="#3b82f6" />
+          <text x="60" y="340" fill="#93c5fd" font-size="11" font-weight="bold">Meta Llama 3.3 70B Fast</text>
+          <text x="60" y="358" fill="#94a3b8" font-size="9.5">• NPC CTO Roleplay</text>
+          <text x="60" y="372" fill="#94a3b8" font-size="9.5">• Fix My English (C-Level)</text>
+
+          <!-- Model 2 -->
+          <rect x="270" y="320" width="200" height="65" rx="8" fill="#1e293b" stroke="#ec4899" />
+          <text x="280" y="340" fill="#f472b6" font-size="11" font-weight="bold">Llama 3.2 11B Vision</text>
+          <text x="280" y="358" fill="#94a3b8" font-size="9.5">• Phân tích ảnh hoạt động bé</text>
+          <text x="280" y="372" fill="#94a3b8" font-size="9.5">• OCR tài liệu & bài tập</text>
+
+          <!-- Model 3 -->
+          <rect x="490" y="320" width="200" height="65" rx="8" fill="#1e293b" stroke="#10b981" />
+          <text x="500" y="340" fill="#6ee7b7" font-size="11" font-weight="bold">Voice STT & TTS</text>
+          <text x="500" y="358" fill="#94a3b8" font-size="9.5">• OpenAI Whisper (Bóc băng)</text>
+          <text x="500" y="372" fill="#94a3b8" font-size="9.5">• Deepgram Aura-2 (Giọng đọc)</text>
+
+          <!-- Model 4 -->
+          <rect x="710" y="320" width="200" height="65" rx="8" fill="#1e293b" stroke="#f59e0b" />
+          <text x="720" y="340" fill="#fcd34d" font-size="11" font-weight="bold">Flux 1 & BGE Embeddings</text>
+          <text x="720" y="358" fill="#94a3b8" font-size="9.5">• BGE-large-en (RAG Vector)</text>
+          <text x="720" y="372" fill="#94a3b8" font-size="9.5">• Flux 1 Schnell (Tạo ảnh AI)</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 6: TÍNH NĂNG CỐT LÕI (CORE FEATURES - PART 1)
+         ===================================================================== -->
+    <section class="slide" id="slide-6">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 2 / 2.2 · Tính năng sản phẩm (Phần 1)</div>
+        <h2 class="slide-title">2.4. Tính Năng Học Tập & Phản Xạ Giao Tiếp Tech Lead</h2>
+        <p class="slide-desc">Bộ công cụ rèn luyện chuyên biệt cho các tình huống làm việc thực tế, loại bỏ sự nhàm chán và nâng tầm vị thế của kỹ sư.</p>
+      </div>
+
+      <div class="grid-2">
+        <!-- Feature 1 -->
+        <div class="feature-pill">
+          <div class="feature-icon-box icon-indigo">📅</div>
+          <div>
+            <h4 style="font-size: 15px; font-weight: 700; color: #fff;">1. Lộ trình 30 Ngày Call Khách (Daily Sprint Checklist)</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+              Chia nhỏ thành 4 Sprint: Small Talk, Thuyết trình kiến trúc .NET/CapitaStar, Diplomatic Pushback và Xử lý khủng hoảng Outage. Có nút check-in hàng ngày, đo lường tiến độ và lưu tự động vào <code>localStorage</code>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-pill">
+          <div class="feature-icon-box icon-sky">🎙️</div>
+          <div>
+            <h4 style="font-size: 15px; font-weight: 700; color: #fff;">2. Speech Lab & Shadowing Studio</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+              Luyện khẩu hình và nhịp thở bản xứ thông qua các hội thoại Kickoff Call, Architecture Review, Standup. Tích hợp thanh sóng âm thanh (Waveform), chỉnh tốc độ 0.8x-1.0x và đối chiếu giọng nói người học với bản chuẩn.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-pill">
+          <div class="feature-icon-box icon-emerald">🤖</div>
+          <div>
+            <h4 style="font-size: 15px; font-weight: 700; color: #fff;">3. NPC Roleplay với AI CTO (Llama 3.3 70B Fast)</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+              Mô phỏng cuộc họp 1-on-1 với Marcus Sterling (Enterprise Architect). AI sẽ đưa ra câu hỏi hóc búa, phản biện giải pháp kỹ thuật để thử thách sự điềm tĩnh và độ chắc chắn của lập trình viên.
+            </p>
+          </div>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-pill">
+          <div class="feature-icon-box icon-amber">✍️</div>
+          <div>
+            <h4 style="font-size: 15px; font-weight: 700; color: #fff;">4. Fix My English Co-Pilot (Chuẩn C-Level)</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+              Nhập câu tiếng Anh thô của lập trình viên, AI phân tích lỗi ngữ pháp và viết lại theo 3 phong cách chuyên nghiệp: <em>Executive (Ngoại giao)</em>, <em>Slack (Ngắn gọn)</em> và <em>Incident (Khẩn cấp)</em> kèm giải thích tiếng Việt.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 7: TÍNH NĂNG AI GATEWAY TOÀN NĂNG (CORE FEATURES - PART 2)
+         ===================================================================== -->
+    <section class="slide" id="slide-7">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 2 / 2.2 · Tính năng sản phẩm (Phần 2)</div>
+        <h2 class="slide-title">2.5. Hệ Sinh Thái AI Edge Gateway Mở Rộng</h2>
+        <p class="slide-desc">Không chỉ dừng lại ở học tập, Gateway còn là trung tâm dịch vụ AI Serverless phục vụ cho cả cuộc sống gia đình và các dự án nội bộ công ty.</p>
+      </div>
+
+      <div class="grid-2">
+        <!-- Feature 5 -->
+        <div class="card">
+          <div class="card-title">
+            <span style="color: var(--secondary);">📷 5. Phân Tích Ảnh Bé & OCR Tài Liệu (Llama 3.2 Vision)</span>
+          </div>
+          <div class="card-text">
+            • <strong>Chụp ảnh bé:</strong> Lưu ảnh vào R2 Bucket, AI phân tích hành động, biểu cảm, gợi ý an toàn tâm lý và ghi nhật ký vào bảng D1 <code>child_photos</code>.<br/>
+            • <strong>OCR tài liệu:</strong> Trích xuất văn bản từ ảnh chụp sách, tài liệu kiến trúc kỹ thuật với độ chính xác cao.
+          </div>
+          <div class="code-box" style="margin-top: 10px;">
+POST /vision/analyze (Upload image -> R2 + Llama Vision + D1)
+POST /vision/ocr     (Extract text from technical diagram)
+          </div>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="card">
+          <div class="card-title">
+            <span style="color: var(--emerald);">🔍 6. Vector Search & Semantic RAG (Cloudflare Vectorize)</span>
+          </div>
+          <div class="card-text">
+            • Đánh chỉ mục tài liệu vào không gian Vector 1024 chiều bằng <code>bge-large-en</code>.<br/>
+            • Tìm kiếm thông minh bằng câu hỏi tự nhiên thay vì từ khóa cứng nhắc, tìm chính xác bài học và tài liệu kỹ thuật liên quan trong tích tắc.
+          </div>
+          <div class="code-box" style="margin-top: 10px;">
+POST /search/index   (Embedding -> Vectorize Index)
+POST /search/vector  (Semantic similarity search topK)
+          </div>
+        </div>
+
+        <!-- Feature 7 -->
+        <div class="card">
+          <div class="card-title">
+            <span style="color: var(--primary-light);">🎨 7. Flux 1 AI Image Studio</span>
+          </div>
+          <div class="card-text">
+            Tạo ảnh minh họa nghệ thuật, hình ảnh bài học và banner công nghệ trực tiếp từ mô tả văn bản bằng model <strong>Black Forest Labs Flux 1 Schnell</strong> hàng đầu thế giới.
+          </div>
+        </div>
+
+        <!-- Feature 8 -->
+        <div class="card">
+          <div class="card-title">
+            <span style="color: var(--amber);">🗄️ 8. Serverless D1 SQL Database & SDK Độc Lập</span>
+          </div>
+          <div class="card-text">
+            Cung cấp bộ RESTful API và file SDK TypeScript (<code>ai-client-sdk.ts</code>) giúp bất kỳ app nào của công ty đều có thể tận dụng AI, lưu trữ dữ liệu SQL và Key-Value Store mà không cần server riêng.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 8: ĐÁNH GIÁ LƯU LOÁT & NHẬT KÝ CALL (ASSESSMENT & DEBRIEF)
+         ===================================================================== -->
+    <section class="slide" id="slide-8">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 2 / 2.2 · Đo lường tiến bộ</div>
+        <h2 class="slide-title">2.6. Đo Lường Độ Lưu Loát & Nhật Ký Tự Rút Kinh Nghiệm</h2>
+        <p class="slide-desc">Cách tiếp cận định lượng giúp người học tự nhìn thấy sự tiến bộ rõ rệt qua từng cuộc họp thực tế.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title" style="color: var(--secondary);">📊 4 Trụ Cột Đánh Giá Lưu Loát (Fluency Scorecard)</h3>
+          
+          <div style="margin-top: 14px; space-y: 12px;">
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;">
+                <span>1. Tốc độ nói & Giảm ngập ngừng (Speech Flow)</span>
+                <span style="color: var(--primary-light);">Mục tiêu: 110-130 WPM</span>
+              </div>
+              <div style="height: 6px; background: #334155; border-radius: 999px; margin-top: 4px; overflow: hidden;">
+                <div style="width: 82%; height: 100%; background: var(--primary);"></div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;">
+                <span>2. Thuật ngữ kiến trúc chính xác (Tech Lexicon)</span>
+                <span style="color: var(--secondary);">Mục tiêu: 85%+</span>
+              </div>
+              <div style="height: 6px; background: #334155; border-radius: 999px; margin-top: 4px; overflow: hidden;">
+                <div style="width: 88%; height: 100%; background: var(--secondary);"></div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;">
+                <span>3. Ngoại giao & Đàm phán đánh đổi (Diplomatic Pushback)</span>
+                <span style="color: var(--emerald);">Mục tiêu: Tự tin</span>
+              </div>
+              <div style="height: 6px; background: #334155; border-radius: 999px; margin-top: 4px; overflow: hidden;">
+                <div style="width: 76%; height: 100%; background: var(--emerald);"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;">
+                <span>4. Điềm tĩnh dưới áp lực (Under-Pressure Stability)</span>
+                <span style="color: var(--amber);">Mục tiêu: 80%+</span>
+              </div>
+              <div style="height: 6px; background: #334155; border-radius: 999px; margin-top: 4px; overflow: hidden;">
+                <div style="width: 80%; height: 100%; background: var(--amber);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title" style="color: var(--emerald);">📝 Nhật Ký Sau Call (Post-Call Debrief Journal)</h3>
+          <p class="card-text">
+            Chỉ mất 1 phút sau mỗi buổi họp với khách nước ngoài để ghi nhận:
+          </p>
+          <ul style="font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-left: 16px; line-height: 1.6;">
+            <li><strong>Điểm làm tốt:</strong> <em>"Giải thích cơ chế Redis cache mượt mà, khách gật đầu đồng ý."</em></li>
+            <li><strong>Điểm bị vấp:</strong> <em>"Bị khách hỏi dồn về chi phí Cosmos DB đứng hình mất 4 giây dịch nhẩm."</em></li>
+            <li><strong>AI phân tích & đưa giải pháp ngay:</strong> Gợi ý đúng mẫu câu phản xạ cho cuộc gọi tiếp theo: <em>"That's a valid financial concern. Let me pull up our tier breakdown..."</em></li>
+          </ul>
+          <span class="highlight-badge" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7; margin-top: 14px;">Lưu theo dòng thời gian để nhìn thấy rõ sự tự tin tăng dần</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 9: LỘ TRÌNH PHÁT TRIỂN & TIỀM NĂNG ỨNG DỤNG (ROADMAP & IMPACT)
+         ===================================================================== -->
+    <section class="slide" id="slide-9">
+      <div class="slide-header">
+        <div class="slide-tag">Mục 2 / 2.2 · Tiềm năng & Định hướng</div>
+        <h2 class="slide-title">2.7. Lộ Trình Phát Triển & Tiềm Năng Ứng Dụng Thực Tế</h2>
+        <p class="slide-desc">Chiến lược mở rộng từ công cụ cá nhân thành giải pháp đào tạo ngoại ngữ chuyên sâu cho các tập đoàn công nghệ.</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title">🚀 Lộ Trình 3 Giai Đoạn (Development Roadmap)</h3>
+          <div class="timeline" style="margin-top: 18px;">
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background: var(--emerald);"></div>
+              <div class="timeline-title" style="color: var(--emerald);">Giai đoạn 1 (Hiện tại · Đã hoàn thành 100%)</div>
+              <div class="timeline-desc">
+                Hoàn thiện Web App Next.js 14, Cloudflare AI Gateway Worker v3.0.0, D1 Database, Vectorize RAG và bộ kịch bản 30 Ngày Call Khách Hàng.
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background: var(--secondary);"></div>
+              <div class="timeline-title" style="color: var(--secondary);">Giai đoạn 2 (Q1/2027 · Realtime In-Call Assistant)</div>
+              <div class="timeline-desc">
+                Phát triển Chrome Extension & Zoom/Teams Plugin: Tự động lắng nghe audio cuộc họp, nhận diện câu hỏi của khách hàng và gợi ý mẫu câu phản xạ tiếng Anh trực tiếp trên màn hình theo thời gian thực.
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot" style="background: var(--primary-light);"></div>
+              <div class="timeline-title" style="color: var(--primary-light);">Giai đoạn 3 (Q3/2027 · Enterprise B2B EdTech)</div>
+              <div class="timeline-desc">
+                Đóng gói giải pháp SaaS cho các công ty phần mềm (FPT Software, VNG, Viettel, KMS...) để khảo sát, đào tạo và cấp chứng chỉ năng lực giao tiếp quốc tế cho đội ngũ Lead & Architect.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">💎 Tiềm Năng Ứng Dụng & Tác Động Thực Tế</h3>
+          <div class="card-text" style="space-y: 12px;">
+            <div style="margin-bottom: 12px;">
+              <strong style="color: #fff;">1. Thị trường mục tiêu rộng lớn:</strong><br/>
+              Hơn 500,000 lập trình viên tại Việt Nam và hàng triệu kỹ sư tại Đông Nam Á đang làm việc trong làn sóng Global Outsourcing và Product.
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <strong style="color: #fff;">2. Hiệu quả chi phí vượt trội:</strong><br/>
+              Chi phí học truyền thống: $200–$500/tháng/người.<br/>
+              Với Study-EN: Chi phí vận hành hạ tầng gần như <strong>0 đồng</strong> nhờ Cloudflare Workers Serverless và 10,000 Neurons miễn phí mỗi ngày.
+            </div>
+
+            <div>
+              <strong style="color: #fff;">3. Giá trị nhân sự & Kinh doanh:</strong><br/>
+              Giúp nâng cao tỷ lệ trúng thầu dự án (Win Rate) trong các buổi RFP / Solution Defense Call của doanh nghiệp trước khách hàng quốc tế.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SLIDE 10: TỔNG KẾT & DEMO LINKS (CONCLUSION & DEMO)
+         ===================================================================== -->
+    <section class="slide" id="slide-10">
+      <div class="hero-slide" style="min-height: calc(75vh - 100px);">
+        <div class="hero-pill" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: var(--emerald);">
+          ✓ SẢN PHẨM HOÀN THIỆN · SẴN SÀNG THỬ NGHIỆM TRỰC TIẾP
+        </div>
+
+        <h1 class="hero-title" style="font-size: 38px;">
+          Cảm Ơn Ban Giám Khảo & Quý Thầy Cô!<br/>
+          <span class="gradient-text">Study-EN · Empowering Vietnamese Tech Leaders</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          Toàn bộ mã nguồn, cơ sở dữ liệu D1, R2 Storage và các Endpoint AI Gateway đã hoạt động ổn định và sẵn sàng phục vụ kiểm thử.
+        </p>
+
+        <div class="meta-box" style="margin-bottom: 24px;">
+          <div class="meta-item">Web App: <strong>http://localhost:3000/tech-lead</strong></div>
+          <div class="meta-item">Live Gateway: <strong>https://ai-gateway-worker.trann46698.workers.dev</strong></div>
+          <div class="meta-item">Repository: <strong>huyentran1306/study-en (Branch: main)</strong></div>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+          <a href="/tech-lead" class="btn btn-primary" style="padding: 10px 20px; font-size: 14px; text-decoration: none;">
+            🚀 Trải Nghiệm Lộ Trình 30 Ngày Call Khách
+          </a>
+          <a href="https://ai-gateway-worker.trann46698.workers.dev" target="_blank" class="btn" style="padding: 10px 20px; font-size: 14px; text-decoration: none;">
+            🌐 Kiểm Tra AI Gateway Endpoints
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION FOR SLIDE MODE -->
+  <footer class="bottom-nav">
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="slide-counter">
+      Slide <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">10</span>
+    </div>
+
+    <div class="slide-dots" id="slideDotsContainer">
+      <!-- Generated via JS -->
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+      <button class="btn" id="btnPrev" onclick="prevSlide()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Trước
+      </button>
+      <button class="btn btn-primary" id="btnNext" onclick="nextSlide()">
+        Tiếp theo
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       INLINE JAVASCRIPT (ZERO EXTERNAL DEPENDENCY / 100% OFFLINE)
+       ========================================================================= -->
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 10;
+    let isDocMode = false;
+
+    // Initialize dots
+    const dotsContainer = document.getElementById("slideDotsContainer");
+    for (let i = 1; i <= totalSlides; i++) {
+      const dot = document.createElement("div");
+      dot.className = "dot" + (i === 1 ? " active" : "");
+      dot.onclick = () => goToSlide(i);
+      dotsContainer.appendChild(dot);
+    }
+
+    function updateSlide() {
+      // Hide all slides
+      for (let i = 1; i <= totalSlides; i++) {
+        const s = document.getElementById(`slide-${i}`);
+        if (s) s.classList.remove("active");
+      }
+
+      // Activate current
+      const activeSlide = document.getElementById(`slide-${currentSlide}`);
+      if (activeSlide) {
+        activeSlide.classList.add("active");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      // Update counters & progress
+      document.getElementById("currentSlideNum").innerText = currentSlide;
+      const pct = (currentSlide / totalSlides) * 100;
+      document.getElementById("progressBar").style.width = pct + "%";
+
+      // Update dots
+      const dots = dotsContainer.children;
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].classList.toggle("active", i === currentSlide - 1);
+      }
+
+      // Button state
+      document.getElementById("btnPrev").disabled = (currentSlide === 1);
+      document.getElementById("btnNext").innerHTML = (currentSlide === totalSlides)
+        ? `Hoàn tất <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `Tiếp theo <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(n) {
+      if (n >= 1 && n <= totalSlides) {
+        currentSlide = n;
+        updateSlide();
+      }
+    }
+
+    function setViewMode(mode) {
+      if (mode === "doc") {
+        document.body.classList.add("doc-mode");
+        document.getElementById("btnDocMode").classList.add("active");
+        document.getElementById("btnSlideMode").classList.remove("active");
+        isDocMode = true;
+      } else {
+        document.body.classList.remove("doc-mode");
+        document.getElementById("btnSlideMode").classList.add("active");
+        document.getElementById("btnDocMode").classList.remove("active");
+        isDocMode = false;
+        updateSlide();
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Keyboard Shortcuts for easy presentation
+    window.addEventListener("keydown", (e) => {
+      if (isDocMode) return;
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+        nextSlide();
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        prevSlide();
+      } else if (e.key === "Home") {
+        goToSlide(1);
+      } else if (e.key === "End") {
+        goToSlide(totalSlides);
+      } else if (e.key === "f" || e.key === "F") {
+        toggleFullscreen();
+      }
+    });
+
+    // Local Avatar persistence for offline presentation
+    function updateLeaderAvatar(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const base64 = evt.target.result;
+        try {
+          localStorage.setItem("leader_avatar_cache", base64);
+        } catch(err) {}
+        renderLeaderAvatar(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderLeaderAvatar(src) {
+      const container = document.getElementById("leaderAvatarContainer");
+      if (container) {
+        container.innerHTML = `<img src="${src}" alt="Leader Avatar">`;
+      }
+    }
+
+    // On Load
+    window.addEventListener("DOMContentLoaded", () => {
+      try {
+        const cached = localStorage.getItem("leader_avatar_cache");
+        if (cached) renderLeaderAvatar(cached);
+      } catch(err) {}
+      updateSlide();
+    });
+  </script>
+</body>
+</html>
