@@ -414,9 +414,27 @@
     }
     .svg-arch-diagram {
       width: 100%;
-      max-width: 900px;
+      max-width: 940px;
       margin: 0 auto;
       display: block;
+      user-select: none;
+    }
+    .flow-node-btn {
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .flow-node-btn:hover {
+      filter: drop-shadow(0 6px 14px rgba(234, 88, 12, 0.25));
+      transform: translateY(-2px);
+    }
+    .flow-line-active {
+      stroke-dasharray: 6 5;
+      animation: flowDash 1.2s linear infinite;
+    }
+    @keyframes flowDash {
+      to {
+        stroke-dashoffset: -22;
+      }
     }
 
     /* WORKFLOW STEPS */
@@ -753,74 +771,213 @@
       </div>
 
       <div class="arch-wrapper">
-        <!-- SVG ARCHITECTURE DIAGRAM -->
-        <svg class="svg-arch-diagram" viewBox="0 0 880 340" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Layer 1: Client Web App -->
-          <rect x="20" y="20" width="840" height="70" rx="12" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5" />
-          <text x="40" y="45" fill="#ea580c" font-size="12" font-weight="bold">LỚP TRẢI NGHIỆM NGƯỜI DÙNG (FRONTEND CLIENT)</text>
-          <text x="40" y="65" fill="#7c2d12" font-size="11">React + Tailwind CSS · Giao diện pastel dịu dàng tối ưu cho điện thoại & máy tính bảng của bố mẹ</text>
+        <!-- HEADER OVERVIEW BADGE -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
+            <span style="font-size: 13px; font-weight: 800; color: #1a202c;">SƠ ĐỒ LUỒNG DỮ LIỆU TỰ ĐỘNG HÓA TỪ CAMERA ĐẾN PHẢN HỒI SƯ PHẠM</span>
+          </div>
+          <div style="display: flex; gap: 8px; font-size: 11.5px; font-weight: 700;">
+            <span style="background: #eff6ff; color: #0284c7; padding: 4px 10px; border-radius: 6px; border: 1px solid #bae6fd;">Edge Latency: ~280ms</span>
+            <span style="background: #ecfdf5; color: #059669; padding: 4px 10px; border-radius: 6px; border: 1px solid #a7f3d0;">Chi Phí: 0 VNĐ / Tháng</span>
+          </div>
+        </div>
 
-          <rect x="630" y="35" width="210" height="38" rx="8" fill="#fff" stroke="#f97316" />
-          <text x="645" y="58" fill="#ea580c" font-size="11" font-weight="bold">📸 Chụp vở bài tập ô ly</text>
+        <!-- ADVANCED SVG FLOW DIAGRAM -->
+        <svg class="svg-arch-diagram" viewBox="0 0 940 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gradPeach" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fff7ed" />
+              <stop offset="100%" stop-color="#ffedd5" />
+            </linearGradient>
+            <linearGradient id="gradSky" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f0f9ff" />
+              <stop offset="100%" stop-color="#e0f2fe" />
+            </linearGradient>
+            <linearGradient id="gradMint" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f0fdf4" />
+              <stop offset="100%" stop-color="#dcfce7" />
+            </linearGradient>
+            <linearGradient id="gradRose" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fff1f2" />
+              <stop offset="100%" stop-color="#ffe4e6" />
+            </linearGradient>
+            <linearGradient id="lineGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#ea580c" />
+              <stop offset="100%" stop-color="#0284c7" />
+            </linearGradient>
+            <linearGradient id="lineGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#0284c7" />
+              <stop offset="100%" stop-color="#059669" />
+            </linearGradient>
+            <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.04" />
+            </filter>
+          </defs>
 
-          <!-- Arrow Down -->
-          <path d="M 440 90 L 440 125" stroke="#f97316" stroke-width="2" stroke-dasharray="4 4" />
+          <!-- STAGE 1: CLIENT CAMERA (X: 20 -> 210) -->
+          <g class="flow-node-btn" onclick="inspectFlowStage(1)">
+            <rect x="20" y="50" width="190" height="270" rx="16" fill="url(#gradPeach)" stroke="#fed7aa" stroke-width="2" filter="url(#cardShadow)" />
+            <rect x="35" y="65" width="85" height="22" rx="6" fill="#ea580c" />
+            <text x="43" y="80" fill="#fff" font-size="10" font-weight="bold">BƯỚC 1: CLIENT</text>
 
-          <!-- Layer 2: Cloudflare AI Gateway Worker -->
-          <rect x="20" y="130" width="840" height="85" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="2" />
-          <text x="40" y="155" fill="#0284c7" font-size="12" font-weight="bold">LỚP HẠ TẦNG BIÊN (CLOUDFLARE EDGE AI GATEWAY)</text>
-          <text x="40" y="172" fill="#0369a1" font-size="10.5">ai-gateway-worker.trann46698.workers.dev · 330+ Edge PoPs toàn cầu · Phản hồi &lt;300ms · 10,000 Neurons Free</text>
+            <circle cx="115" cy="130" r="28" fill="#fff" stroke="#fdba74" stroke-width="2" />
+            <text x="103" y="137" font-size="22">📸</text>
 
-          <rect x="40" y="182" width="180" height="24" rx="5" fill="#fff" stroke="#38bdf8" />
-          <text x="50" y="198" fill="#0284c7" font-size="9.5" font-weight="bold">🗄️ D1 Database (Lưu bài tập)</text>
+            <text x="115" y="180" text-anchor="middle" fill="#9a3412" font-size="13" font-weight="bold">Chụp Ảnh Bài Vở</text>
+            <text x="115" y="198" text-anchor="middle" fill="#7c2d12" font-size="10.5">Vở ô ly bài tập tiểu học</text>
 
-          <rect x="235" y="182" width="200" height="24" rx="5" fill="#fff" stroke="#38bdf8" />
-          <text x="245" y="198" fill="#0284c7" font-size="9.5" font-weight="bold">🗂️ R2 Storage (Lưu ảnh bài & bé)</text>
+            <rect x="35" y="215" width="160" height="42" rx="8" fill="#fff" stroke="#fed7aa" />
+            <text x="45" y="232" fill="#431407" font-size="10" font-weight="bold">• Căn góc tự động</text>
+            <text x="45" y="247" fill="#7c2d12" font-size="9.5">• Nén ảnh Base64 &lt; 800KB</text>
 
-          <rect x="450" y="182" width="200" height="24" rx="5" fill="#fff" stroke="#38bdf8" />
-          <text x="460" y="198" fill="#0284c7" font-size="9.5" font-weight="bold">🧠 Vectorize (Ngân hàng đề bài)</text>
+            <rect x="35" y="270" width="160" height="30" rx="8" fill="#ffedd5" />
+            <text x="115" y="290" text-anchor="middle" fill="#c2410c" font-size="10" font-weight="bold">👉 Click để xem payload</text>
+          </g>
 
-          <rect x="665" y="182" width="180" height="24" rx="5" fill="#e0e7ff" stroke="#6366f1" />
-          <text x="675" y="198" fill="#4338ca" font-size="9.5" font-weight="bold">🔒 CORS & Bảo mật phụ huynh</text>
+          <!-- CONNECTING FLOW LINE 1 -> 2 (ANIMATED DASH) -->
+          <path d="M 210 185 L 265 185" stroke="url(#lineGrad1)" stroke-width="3" stroke-dasharray="6 4" class="flow-line-active" />
+          <polygon points="270,185 260,180 260,190" fill="#0284c7" />
+          <text x="240" y="175" text-anchor="middle" fill="#0284c7" font-size="9" font-weight="bold">HTTPS</text>
 
-          <!-- Arrow Down -->
-          <path d="M 440 215 L 440 245" stroke="#0284c7" stroke-width="2" stroke-dasharray="4 4" />
+          <!-- STAGE 2: CLOUDFLARE EDGE ROUTING (X: 270 -> 470) -->
+          <g class="flow-node-btn" onclick="inspectFlowStage(2)">
+            <rect x="270" y="30" width="200" height="310" rx="16" fill="url(#gradSky)" stroke="#93c5fd" stroke-width="2" filter="url(#cardShadow)" />
+            <rect x="285" y="45" width="125" height="22" rx="6" fill="#0284c7" />
+            <text x="293" y="60" fill="#fff" font-size="10" font-weight="bold">BƯỚC 2: EDGE GATEWAY</text>
 
-          <!-- Layer 3: Foundation AI Models -->
-          <rect x="20" y="250" width="840" height="70" rx="12" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1.5" />
-          <text x="40" y="275" fill="#059669" font-size="12" font-weight="bold">LỚP MÔ HÌNH TRÍ TUỆ NHÂN TẠO (FOUNDATION AI MODELS)</text>
-          
-          <rect x="40" y="285" width="250" height="26" rx="6" fill="#fff" stroke="#10b981" />
-          <text x="50" y="302" fill="#047857" font-size="10" font-weight="bold">📷 Llama 3.2 11B Vision (OCR vở ô ly)</text>
+            <circle cx="370" cy="105" r="26" fill="#fff" stroke="#7dd3fc" stroke-width="2" />
+            <text x="358" y="113" font-size="20">⚡</text>
 
-          <rect x="305" y="285" width="280" height="26" rx="6" fill="#fff" stroke="#10b981" />
-          <text x="315" y="302" fill="#047857" font-size="10" font-weight="bold">🤖 Llama 3.3 70B (Tư vấn sư phạm & tâm lý)</text>
+            <text x="370" y="150" text-anchor="middle" fill="#0369a1" font-size="13" font-weight="bold">Cloudflare Worker v3</text>
+            <text x="370" y="166" text-anchor="middle" fill="#0284c7" font-size="10">330+ Data Centers toàn cầu</text>
 
-          <rect x="600" y="285" width="245" height="26" rx="6" fill="#fff" stroke="#10b981" />
-          <text x="615" y="302" fill="#047857" font-size="10" font-weight="bold">🗄️ Cloudflare D1 (KV & Tiến độ)</text>
+            <!-- SUB-BLOCKS -->
+            <rect x="285" y="180" width="170" height="32" rx="6" fill="#fff" stroke="#bae6fd" />
+            <text x="295" y="196" fill="#0369a1" font-size="10" font-weight="bold">🛡️ CORS & Security Shield</text>
+            <text x="295" y="206" fill="#0284c7" font-size="8.5">Bảo vệ quyền riêng tư gia đình</text>
+
+            <rect x="285" y="220" width="170" height="32" rx="6" fill="#fff" stroke="#bae6fd" />
+            <text x="295" y="236" fill="#0369a1" font-size="10" font-weight="bold">🚦 Dispatcher Phân Luồng</text>
+            <text x="295" y="246" fill="#0284c7" font-size="8.5">Vision OCR + Chat Reasoning</text>
+
+            <rect x="285" y="260" width="170" height="32" rx="6" fill="#fff" stroke="#bae6fd" />
+            <text x="295" y="276" fill="#0369a1" font-size="10" font-weight="bold">⚡ 0ms Cold Start</text>
+            <text x="295" y="286" fill="#0284c7" font-size="8.5">Khởi động tức thì trên V8 isolate</text>
+          </g>
+
+          <!-- DUAL BRANCHING ARROWS 2 -> 3A & 3B -->
+          <path d="M 470 145 C 500 145, 500 100, 530 100" stroke="#059669" stroke-width="2.5" stroke-dasharray="6 4" class="flow-line-active" />
+          <polygon points="535,100 526,96 526,104" fill="#059669" />
+
+          <path d="M 470 225 C 500 225, 500 260, 530 260" stroke="#059669" stroke-width="2.5" stroke-dasharray="6 4" class="flow-line-active" />
+          <polygon points="535,260 526,256 526,264" fill="#059669" />
+
+          <!-- STAGE 3A: LLAMA 3.2 VISION (X: 535 -> 725, Y: 35 -> 170) -->
+          <g class="flow-node-btn" onclick="inspectFlowStage(3)">
+            <rect x="535" y="35" width="190" height="135" rx="14" fill="url(#gradMint)" stroke="#86efac" stroke-width="2" filter="url(#cardShadow)" />
+            <text x="550" y="58" fill="#15803d" font-size="11" font-weight="bold">BƯỚC 3A: VISION OCR</text>
+            <text x="550" y="76" fill="#166534" font-size="12.5" font-weight="bold">📷 Llama 3.2 11B Vision</text>
+            <rect x="550" y="85" width="160" height="40" rx="6" fill="#fff" stroke="#bbf7d0" />
+            <text x="558" y="100" fill="#15803d" font-size="9.5" font-weight="600">• Nhận diện chữ viết tay bé</text>
+            <text x="558" y="114" fill="#15803d" font-size="9.5" font-weight="600">• Tách bảng biểu & hình vẽ</text>
+            <text x="550" y="145" fill="#166534" font-size="9" font-weight="bold">⏱️ Thời gian OCR: ~220ms</text>
+          </g>
+
+          <!-- STAGE 3B: LLAMA 3.3 70B SOCRATIC (X: 535 -> 725, Y: 195 -> 330) -->
+          <g class="flow-node-btn" onclick="inspectFlowStage(4)">
+            <rect x="535" y="195" width="190" height="135" rx="14" fill="url(#gradRose)" stroke="#fca5a5" stroke-width="2" filter="url(#cardShadow)" />
+            <text x="550" y="218" fill="#b91c1c" font-size="11" font-weight="bold">BƯỚC 3B: SƯ PHẠM SOCRATIC</text>
+            <text x="550" y="236" fill="#991b1b" font-size="12.5" font-weight="bold">🤖 Llama 3.3 70B Fast</text>
+            <rect x="550" y="245" width="160" height="40" rx="6" fill="#fff" stroke="#fecdd3" />
+            <text x="558" y="260" fill="#b91c1c" font-size="9.5" font-weight="600">• Sinh 3 câu hỏi bậc thang</text>
+            <text x="558" y="274" fill="#b91c1c" font-size="9.5" font-weight="600">• Gợi ý dùng đồ vật thật</text>
+            <text x="550" y="305" fill="#991b1b" font-size="9" font-weight="bold">🚫 Tuyệt đối không đọc đáp số</text>
+          </g>
+
+          <!-- MERGING ARROWS 3A & 3B -> STAGE 4 (STORAGE & RESULT) -->
+          <path d="M 725 100 C 745 100, 745 155, 765 155" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="6 4" class="flow-line-active" />
+          <path d="M 725 260 C 745 260, 745 205, 765 205" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="6 4" class="flow-line-active" />
+          <polygon points="770,180 760,174 760,186" fill="#7c3aed" />
+
+          <!-- STAGE 4: CLOUDFLARE D1 & R2 + OUTPUT (X: 770 -> 925) -->
+          <g class="flow-node-btn" onclick="inspectFlowStage(5)">
+            <rect x="770" y="50" width="155" height="270" rx="16" fill="#faf5ff" stroke="#d8b4fe" stroke-width="2" filter="url(#cardShadow)" />
+            <rect x="782" y="65" width="100" height="22" rx="6" fill="#7c3aed" />
+            <text x="790" y="80" fill="#fff" font-size="10" font-weight="bold">BƯỚC 4: DỮ LIỆU</text>
+
+            <circle cx="847" cy="120" r="24" fill="#fff" stroke="#c084fc" stroke-width="2" />
+            <text x="836" y="127" font-size="18">🌸</text>
+
+            <text x="847" y="160" text-anchor="middle" fill="#6b21a8" font-size="12" font-weight="bold">Trả Về Cho Mẹ</text>
+
+            <rect x="782" y="175" width="130" height="34" rx="6" fill="#fff" stroke="#e9d5ff" />
+            <text x="790" y="190" fill="#6b21a8" font-size="9" font-weight="bold">🗄️ Cloudflare D1</text>
+            <text x="790" y="202" fill="#7e22ce" font-size="8">Lưu sticker & bài tập</text>
+
+            <rect x="782" y="215" width="130" height="34" rx="6" fill="#fff" stroke="#e9d5ff" />
+            <text x="790" y="230" fill="#6b21a8" font-size="9" font-weight="bold">🗂️ Cloudflare R2</text>
+            <text x="790" y="242" fill="#7e22ce" font-size="8">Lưu ảnh vở học sinh</text>
+
+            <rect x="782" y="260" width="130" height="38" rx="8" fill="#f3e8ff" />
+            <text x="847" y="278" text-anchor="middle" fill="#581c87" font-size="9.5" font-weight="bold">💖 Giờ Học Êm Đềm</text>
+            <text x="847" y="290" text-anchor="middle" fill="#7e22ce" font-size="8.5">Không còn tiếng quát</text>
+          </g>
         </svg>
 
+        <!-- INTERACTIVE LIVE INSPECTOR BOX -->
+        <div style="background: #fff; border: 1px solid #fed7aa; border-radius: 16px; padding: 20px; margin-top: 24px; box-shadow: var(--shadow-soft);" id="flowInspectorCard">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="inspectStagePill" style="background: var(--pastel-peach); color: var(--brand-peach); font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px;">
+                BƯỚC ĐANG CHỌN: 2 · CLOUDFLARE EDGE WORKER
+              </span>
+              <span id="inspectStageTitle" style="font-size: 14px; font-weight: 800; color: #1a202c;">
+                Điều Phối & Bảo Mật Biên (ai-gateway-worker.trann46698.workers.dev)
+              </span>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">Click vào các khối trên sơ đồ để xem payload & thông số</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;" id="inspectDetailsGrid">
+            <div>
+              <div style="font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 4px;">Nhiệm vụ & Chức năng thực tế:</div>
+              <p id="inspectDescription" style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+                Nhận request từ web app `kem-con-hoc-1.vercel.app`, phân giải CORS, giải mã ảnh Base64, và phân phối đồng thời sang Llama 3.2 Vision và Llama 3.3 70B mà không làm trễ giao diện.
+              </p>
+            </div>
+            <div>
+              <div style="font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 4px;">Code gọi API thực tế trên Edge:</div>
+              <pre id="inspectCodeSnippet" style="background: #0f172a; color: #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: 11px; font-family: monospace; overflow-x: auto; margin: 0;">// Gọi trực tiếp Cloudflare Edge:
+const res = await fetch("https://ai-gateway-worker.trann46698.workers.dev/vision/ocr", {
+  method: "POST",
+  body: JSON.stringify({ image: base64Data })
+});</pre>
+            </div>
+          </div>
+        </div>
+
         <!-- 4 WORKFLOW STEPS -->
-        <div class="workflow-steps">
+        <div class="workflow-steps" style="margin-top: 24px;">
           <div class="wf-step">
-            <div class="wf-step-num">Bước 1</div>
-            <div class="wf-step-title">Khảo Sát Thực Tế</div>
-            <div class="wf-step-desc">Phỏng vấn 50 phụ huynh tiểu học về nguyên nhân nổi nóng và khó khăn khi dạy con học.</div>
+            <div class="wf-step-num">Giai Đoạn 1</div>
+            <div class="wf-step-title">Khảo Sát Tâm Lý Bàn Học</div>
+            <div class="wf-step-desc">Khảo sát 50 phụ huynh tiểu học về lý do hay nổi nóng và những dạng toán hay gây bế tắc nhất mỗi tối.</div>
           </div>
           <div class="wf-step">
-            <div class="wf-step-num">Bước 2</div>
-            <div class="wf-step-title">Kiến Trúc AI Edge</div>
-            <div class="wf-step-desc">Tích hợp Cloudflare Worker v3.0.0 với Llama 3.2 Vision, D1 SQL và R2 Storage.</div>
+            <div class="wf-step-num">Giai Đoạn 2</div>
+            <div class="wf-step-title">Kiến Trúc AI Gateway Biên</div>
+            <div class="wf-step-desc">Triển khai Cloudflare Worker v3.0.0 kết hợp Llama 3.2 Vision, D1 Database và R2 Storage với độ trễ dưới 300ms.</div>
           </div>
           <div class="wf-step">
-            <div class="wf-step-num">Bước 3</div>
-            <div class="wf-step-title">Prompt Sư Phạm</div>
-            <div class="wf-step-desc">Tinh chỉnh prompt chuẩn Socratic: cấm đọc đáp án, chỉ mớm câu hỏi bậc thang.</div>
+            <div class="wf-step-num">Giai Đoạn 3</div>
+            <div class="wf-step-title">Prompt Engineering Sư Phạm</div>
+            <div class="wf-step-desc">Huấn luyện Llama 3.3 áp dụng phương pháp Socratic: không giải hộ, chỉ đặt câu hỏi gợi mở và mẹo đồ vật thật.</div>
           </div>
           <div class="wf-step">
-            <div class="wf-step-num">Bước 4</div>
-            <div class="wf-step-title">UI/UX Dịu Dàng</div>
-            <div class="wf-step-desc">Thiết kế màu sắc pastel xoa dịu thị giác, tối ưu cho bố mẹ xem trên điện thoại.</div>
+            <div class="wf-step-num">Giai Đoạn 4</div>
+            <div class="wf-step-title">Thiết Kế UI/UX Dịu Dàng</div>
+            <div class="wf-step-desc">Áp dụng bảng màu pastel (Warm Cream, Peach, Mint) đạt tiêu chuẩn "Beauty Can Code", êm dịu cho mắt phụ huynh.</div>
           </div>
         </div>
       </div>
@@ -1057,6 +1214,85 @@
       document.querySelectorAll(".emot-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById("calmAdviceText").innerHTML = emotionAdvices[idx];
+    }
+
+    // 3. ARCHITECTURE FLOW INSPECTOR LOGIC
+    const flowStageData = {
+      1: {
+        pill: "BƯỚC 1: CLIENT CAMERA & TIỀN XỬ LÝ TRÊN THIẾT BỊ",
+        title: "Chụp Vở Ô Ly & Nén Ảnh Cục Bộ (kem-con-hoc-1.vercel.app)",
+        desc: "Phụ huynh chụp vở bài tập qua camera điện thoại. Ứng dụng tự động căn chỉnh góc nghiêng và nén ảnh thành Base64 dưới 800KB để đảm bảo tốc độ truyền tải nhanh nhất qua mạng di động 4G/5G.",
+        code: `// Chụp ảnh và chuyển sang Base64:
+const reader = new FileReader();
+reader.onload = () => {
+  const base64 = reader.result;
+  sendToEdgeGateway(base64);
+};
+reader.readAsDataURL(imageFile);`
+      },
+      2: {
+        pill: "BƯỚC 2: CLOUDFLARE EDGE WORKER GATEWAY",
+        title: "Điều Phối & Bảo Mật Biên (ai-gateway-worker.trann46698.workers.dev)",
+        desc: "Request được chuyển đến PoP (Point of Presence) Cloudflare gần nhất tại Việt Nam. Worker v3.0.0 chịu tải đồng thời, thiết lập CORS an toàn, kiểm tra rate limit và phân phối song song tới 2 mô hình AI chuyên trách.",
+        code: `// Cloudflare Worker Router:
+export default {
+  async fetch(request, env) {
+    if (pathname === "/vision/ocr") {
+      return handleVisionOcr(request, env);
+    }
+  }
+};`
+      },
+      3: {
+        pill: "BƯỚC 3A: META LLAMA 3.2 11B VISION INSTRUCT",
+        title: "Bóc Tách Nét Chữ Viết Tay & Hình Vẽ Hình Học (OCR Engine)",
+        desc: "Mô hình thị giác đa phương thức của Meta đọc trực tiếp nét chữ viết bút chì, bút mực trên giấy kẻ ô ly tiểu học, trích xuất đề bài, số đo và bảng số liệu một cách chuẩn xác mà không cần qua Google Vision API trả phí.",
+        code: `// Gọi mô hình Llama Vision trên Cloudflare:
+const visionResponse = await env.AI.run(
+  "@cf/meta/llama-3.2-11b-vision-instruct",
+  { prompt: ocrPrompt, image: [...imageBytes] }
+);`
+      },
+      4: {
+        pill: "BƯỚC 3B: META LLAMA 3.3 70B FAST",
+        title: "Suy Luận Sư Phạm Socratic (Tạo 3 Câu Hỏi Bậc Thang)",
+        desc: "Nhận văn bản đề bài đã bóc tách từ Llama 3.2, mô hình Llama 3.3 70B tiến hành phân tích tâm lý: nhận diện lỗi sai con hay mắc, tạo 3 câu hỏi gợi mở bậc thang để mẹ hỏi con, và chuẩn bị đáp án đối chiếu cho cha mẹ.",
+        code: `// Huấn luyện Prompt Socratic:
+const prompt = "Hãy đóng vai cô giáo tiểu học dịu dàng.
+CẤM giải hộ đề bài. Hãy viết:
+1. Câu hỏi gợi mở nhẹ nhàng cho con.
+2. Mẹo trực quan dùng chén/hạt đậu.
+3. Đáp án đối chiếu cho mẹ.";`
+      },
+      5: {
+        pill: "BƯỚC 4: CLOUDFLARE D1 DATABASE & R2 STORAGE",
+        title: "Lưu Trữ Bền Vững & Hiển Thị Kết Quả Ngọt Ngào",
+        desc: "Kết quả bài tập được ghi nhận vào D1 Database (/db/kv/ & /db/query) để tích lũy điểm thưởng sticker cho bé. Ảnh vở học sinh được lưu trữ bảo mật trên R2 Storage mà không phát sinh bất kỳ chi phí egress nào.",
+        code: `// Lưu tiến độ & sticker vào D1 Database:
+await env.DB.prepare(
+  "INSERT INTO child_progress (child_id, subject, stickers, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)"
+).bind(childId, "Toán", 1).run();`
+      }
+    };
+
+    function inspectFlowStage(stageNum) {
+      const data = flowStageData[stageNum];
+      if (!data) return;
+      document.getElementById("inspectStagePill").innerText = data.pill;
+      document.getElementById("inspectStageTitle").innerText = data.title;
+      document.getElementById("inspectDescription").innerText = data.desc;
+      document.getElementById("inspectCodeSnippet").innerText = data.code;
+      
+      // Smooth scroll slightly if on mobile
+      const inspector = document.getElementById("flowInspectorCard");
+      if (inspector) {
+        inspector.style.borderColor = "#ea580c";
+        inspector.style.boxShadow = "0 8px 24px rgba(234, 88, 12, 0.15)";
+        setTimeout(() => {
+          inspector.style.borderColor = "#fed7aa";
+          inspector.style.boxShadow = "var(--shadow-soft)";
+        }, 1200);
+      }
     }
   </script>
 </body>
