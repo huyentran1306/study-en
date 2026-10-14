@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kèm Con Học – Bạn đồng hành dịu dàng của bố mẹ · Beauty Can Code</title>
+  <title>Kèm Con Học – Bạn đồng hành dịu dàng của bố mẹ · Báo Cáo Sản Phẩm (Beauty Can Code)</title>
   <style>
     /* =========================================================================
        BEAUTY CAN CODE · SOFT PASTEL & WARM LIGHT DESIGN SYSTEM
        Dành riêng cho sản phẩm: "Kèm Con Học – Bạn đồng hành dịu dàng của bố mẹ"
        100% Tự chứa tài nguyên (Offline-ready, Zero External CDN Dependency)
+       Đi sát 100% barem yêu cầu dự thi: Painpoint -> Solution -> Cách làm -> Tính năng -> Lộ trình
        ========================================================================= */
     :root {
       --bg-cream: #fdfbf7;
@@ -66,6 +67,7 @@
       overflow-x: hidden;
       position: relative;
       -webkit-font-smoothing: antialiased;
+      scroll-behavior: smooth;
     }
 
     /* BACKGROUND WARM RADIANT ORBS */
@@ -82,25 +84,25 @@
     }
     .bg-radiant-2 {
       position: absolute;
-      top: 900px;
+      top: 1000px;
       right: 5%;
       width: 500px;
       height: 500px;
-      background: radial-gradient(circle, rgba(237, 233, 254, 0.4) 0%, rgba(209, 250, 229, 0.2) 60%, transparent 70%);
+      background: radial-gradient(circle, rgba(237, 233, 254, 0.35) 0%, rgba(209, 250, 229, 0.2) 60%, transparent 70%);
       pointer-events: none;
       z-index: 0;
       filter: blur(60px);
     }
 
-    /* TOP BAR */
+    /* STICKY TOP BAR */
     .top-nav {
       position: sticky;
       top: 0;
-      background: rgba(253, 251, 247, 0.88);
+      background: rgba(253, 251, 247, 0.92);
       backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border-subtle);
       z-index: 100;
-      padding: 12px 24px;
+      padding: 10px 24px;
     }
     .top-nav-inner {
       max-width: 1140px;
@@ -129,7 +131,7 @@
       box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
     }
     .brand-name {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: -0.3px;
     }
@@ -139,23 +141,43 @@
       font-weight: 500;
       display: block;
     }
+    
+    /* BTC TOC QUICK NAV LINKS */
+    .btc-nav-links {
+      display: flex;
+      gap: 16px;
+      list-style: none;
+    }
+    .btc-nav-link {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btc-nav-link:hover {
+      color: var(--brand-rose);
+    }
+
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .beauty-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       background: #fff;
       border: 1px solid var(--pastel-rose-border);
-      padding: 5px 12px;
+      padding: 4px 10px;
       border-radius: 999px;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--brand-rose);
-      box-shadow: 0 2px 6px rgba(225, 29, 72, 0.08);
     }
     .btn-live-app {
       display: inline-flex;
@@ -163,17 +185,16 @@
       gap: 6px;
       background: linear-gradient(135deg, #fb923c 0%, #f43f5e 100%);
       color: #fff;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 700;
-      padding: 7px 16px;
+      padding: 6px 14px;
       border-radius: 10px;
       text-decoration: none;
-      box-shadow: 0 4px 12px rgba(251, 146, 60, 0.3);
+      box-shadow: 0 4px 10px rgba(251, 146, 60, 0.3);
       transition: all 0.2s ease;
     }
     .btn-live-app:hover {
       transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(251, 146, 60, 0.4);
     }
 
     /* CONTAINER */
@@ -185,9 +206,9 @@
       z-index: 1;
     }
 
-    /* HERO SHOWCASE SECTION */
+    /* HERO SECTION */
     .hero {
-      padding: 50px 0 40px;
+      padding: 40px 0 30px;
       text-align: center;
     }
     .gentle-pill {
@@ -201,16 +222,16 @@
       font-weight: 700;
       padding: 4px 14px;
       border-radius: 999px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
     .hero-title {
-      font-size: 42px;
+      font-size: 38px;
       font-weight: 900;
-      line-height: 1.2;
+      line-height: 1.25;
       letter-spacing: -1px;
       color: #1a202c;
-      max-width: 860px;
-      margin: 0 auto 18px;
+      max-width: 900px;
+      margin: 0 auto 16px;
     }
     .highlight-gradient {
       background: linear-gradient(135deg, #e11d48 0%, #ea580c 60%, #d97706 100%);
@@ -218,402 +239,345 @@
       -webkit-text-fill-color: transparent;
     }
     .hero-desc {
-      font-size: 16px;
+      font-size: 15.5px;
       color: var(--text-muted);
-      max-width: 720px;
-      margin: 0 auto 36px;
+      max-width: 760px;
+      margin: 0 auto 30px;
       line-height: 1.6;
     }
 
-    /* LIVE METRICS CAROUSEL */
-    .metrics-bar {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      background: var(--bg-surface);
+    /* QUICK NAVIGATION BANNER MATCHING BTC OUTLINE */
+    .outline-toc-bar {
+      background: #fff;
       border: 1px solid var(--border-card);
-      border-radius: 20px;
-      padding: 20px 28px;
-      box-shadow: var(--shadow-soft);
-      margin-bottom: 60px;
-    }
-    .metric-card {
-      text-align: left;
-      border-right: 1px solid var(--border-subtle);
-      padding-right: 16px;
-    }
-    .metric-card:last-child {
-      border-right: none;
-      padding-right: 0;
-    }
-    .metric-val {
-      font-size: 26px;
-      font-weight: 900;
-      color: var(--text-main);
+      border-radius: 16px;
+      padding: 14px 20px;
       display: flex;
-      align-items: baseline;
-      gap: 4px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: var(--shadow-soft);
+      margin-bottom: 48px;
+      flex-wrap: wrap;
     }
-    .metric-val span {
-      font-size: 13px;
-      color: var(--brand-rose);
-      font-weight: 700;
-    }
-    .metric-title {
-      font-size: 11.5px;
+    .toc-title {
+      font-size: 12px;
+      font-weight: 800;
       color: var(--text-muted);
-      font-weight: 600;
-      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .toc-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .toc-pill-item {
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .toc-pill-1 { background: var(--pastel-rose); color: var(--brand-rose); }
+    .toc-pill-2 { background: var(--pastel-peach); color: var(--brand-peach); }
+    .toc-pill-3 { background: var(--pastel-sky); color: var(--brand-sky); }
+    .toc-pill-4 { background: var(--pastel-mint); color: var(--brand-mint); }
+    .toc-pill-5 { background: var(--pastel-lavender); color: var(--brand-purple); }
+    .toc-pill-item:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.95);
     }
 
-    /* SECTION LAYOUT */
+    /* SECTION HEADERS (EXPLICIT BTC NUMBERING) */
     .section-wrap {
-      margin-bottom: 70px;
+      margin-bottom: 64px;
+      scroll-margin-top: 80px;
     }
     .section-head {
-      text-align: center;
-      max-width: 680px;
-      margin: 0 auto 36px;
+      margin-bottom: 28px;
     }
-    .pill-tag {
-      display: inline-block;
-      font-size: 11px;
+    .btc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      padding: 3px 12px;
+      padding: 4px 14px;
       border-radius: 999px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
-    .pill-rose { background: var(--pastel-rose); color: var(--brand-rose); border: 1px solid var(--pastel-rose-border); }
-    .pill-peach { background: var(--pastel-peach); color: var(--brand-peach); border: 1px solid var(--pastel-peach-border); }
-    .pill-mint { background: var(--pastel-mint); color: var(--brand-mint); border: 1px solid var(--pastel-mint-border); }
-    .pill-lavender { background: var(--pastel-lavender); color: var(--brand-purple); border: 1px solid var(--pastel-lavender-border); }
-    .pill-sky { background: var(--pastel-sky); color: var(--brand-sky); border: 1px solid var(--pastel-sky-border); }
+    .badge-rose { background: var(--pastel-rose); color: var(--brand-rose); border: 1px solid var(--pastel-rose-border); }
+    .badge-peach { background: var(--pastel-peach); color: var(--brand-peach); border: 1px solid var(--pastel-peach-border); }
+    .badge-sky { background: var(--pastel-sky); color: var(--brand-sky); border: 1px solid var(--pastel-sky-border); }
+    .badge-mint { background: var(--pastel-mint); color: var(--brand-mint); border: 1px solid var(--pastel-mint-border); }
+    .badge-lavender { background: var(--pastel-lavender); color: var(--brand-purple); border: 1px solid var(--pastel-lavender-border); }
 
     .sec-title {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 800;
       letter-spacing: -0.5px;
       color: #1a202c;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
     .sec-desc {
-      font-size: 14.5px;
+      font-size: 14px;
       color: var(--text-muted);
-    }
-
-    /* PAINPOINT VS SOLUTION COMPARISON */
-    .comparison-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-    .box-card {
-      background: var(--bg-surface);
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: var(--shadow-soft);
-      position: relative;
-      border: 1px solid var(--border-card);
-    }
-    .box-bad {
-      border-top: 5px solid #f43f5e;
-      background: #fffafa;
-    }
-    .box-good {
-      border-top: 5px solid #10b981;
-      background: #fcfdfd;
-    }
-    .box-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 17px;
-      font-weight: 800;
-      margin-bottom: 16px;
-    }
-    .pain-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 13.5px;
-      color: #4a5568;
-      margin-bottom: 14px;
       line-height: 1.5;
     }
-    .icon-cross {
-      color: #f43f5e;
-      font-weight: 800;
-      font-size: 16px;
-      line-height: 1;
+
+    /* PAINPOINT CARDS */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
-    .icon-heart {
-      color: #10b981;
-      font-weight: 800;
-      font-size: 16px;
-      line-height: 1;
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 860px) {
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .hero-title { font-size: 28px; }
+      .btc-nav-links { display: none; }
     }
 
-    /* LIVE PLAYGROUND: INTERACTIVE EXERCISE TUTOR */
-    .tutor-playground {
+    .card-beauty {
       background: var(--bg-surface);
       border: 1px solid var(--border-card);
-      border-radius: 24px;
-      padding: 32px;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .card-beauty:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+    .card-head-pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .card-title-main {
+      font-size: 16.5px;
+      font-weight: 800;
+      color: #1a202c;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-body-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* SOLUTION HIGHLIGHT CARD BANNER */
+    .solution-hero-banner {
+      background: linear-gradient(135deg, #fff7ed 0%, #fff1f2 50%, #faf5ff 100%);
+      border: 1px solid var(--pastel-peach-border);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-soft);
+    }
+    .solution-quote {
+      font-size: 16px;
+      font-weight: 700;
+      color: #9a3412;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .solution-subquote {
+      font-size: 13px;
+      color: #7c2d12;
+      line-height: 1.5;
+    }
+
+    /* ARCHITECTURE DIAGRAM WRAPPER */
+    .arch-wrapper {
+      background: #fff;
+      border: 1px solid var(--border-card);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow-soft);
+    }
+    .svg-arch-diagram {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    /* WORKFLOW STEPS */
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    @media (max-width: 860px) {
+      .workflow-steps { grid-template-columns: 1fr; }
+    }
+    .wf-step {
+      background: var(--bg-surface-soft);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .wf-step-num {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--brand-sky);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .wf-step-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 4px;
+    }
+    .wf-step-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* INTERACTIVE PLAYGROUND TUTOR */
+    .playground-box {
+      background: #fff;
+      border: 1px solid var(--border-card);
+      border-radius: 20px;
+      padding: 28px;
       box-shadow: var(--shadow-hover);
     }
-    .tab-pills {
+    .tab-pills-row {
       display: flex;
-      gap: 10px;
-      margin-bottom: 24px;
+      gap: 8px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
     }
-    .tutor-tab {
-      padding: 8px 16px;
-      border-radius: 12px;
-      font-size: 12.5px;
+    .demo-tab-btn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       border: 1px solid var(--border-card);
       background: var(--bg-surface-soft);
       color: var(--text-muted);
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
     }
-    .tutor-tab.active {
+    .demo-tab-btn.active {
       background: #fff;
       border-color: var(--brand-peach);
       color: var(--brand-peach);
       box-shadow: var(--shadow-soft);
     }
 
-    .demo-columns {
+    .demo-2col {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 20px;
     }
-    @media (max-width: 860px) {
-      .demo-columns, .comparison-grid, .metrics-bar { grid-template-columns: 1fr; }
-      .hero-title { font-size: 30px; }
+    @media (max-width: 800px) {
+      .demo-2col { grid-template-columns: 1fr; }
     }
 
-    /* LEFT: CAMERA / PROBLEM NOTEBOOK SIMULATION */
-    .notebook-card {
+    .problem-scan-card {
       background: #fffbf0;
       border: 1px solid #fed7aa;
-      border-radius: 16px;
-      padding: 22px;
-      position: relative;
+      border-radius: 14px;
+      padding: 20px;
     }
-    .notebook-card::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 20px;
-      right: 20px;
-      height: 6px;
-      background: repeating-linear-gradient(90deg, #ea580c, #ea580c 10px, transparent 10px, transparent 16px);
-      border-radius: 0 0 4px 4px;
-    }
-    .notebook-badge {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 800;
-      background: #fed7aa;
-      color: #9a3412;
-      padding: 2px 8px;
-      border-radius: 6px;
-      margin-top: 8px;
-      margin-bottom: 12px;
-    }
-    .notebook-question {
-      font-size: 15px;
-      font-weight: 700;
-      color: #431407;
-      margin-bottom: 12px;
-      line-height: 1.5;
-    }
-    .notebook-note {
-      font-size: 12px;
-      color: #9a3412;
-      background: rgba(254, 215, 170, 0.4);
-      padding: 10px;
-      border-radius: 8px;
-    }
-
-    /* RIGHT: AI STEP-BY-STEP SCAFFOLDING TUTOR */
-    .ai-tutor-card {
+    .tutor-response-card {
       background: #fdfbf7;
       border: 1px solid var(--pastel-rose-border);
-      border-radius: 16px;
-      padding: 22px;
+      border-radius: 14px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
     }
-    .tutor-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11.5px;
-      font-weight: 800;
-      color: var(--brand-rose);
-      margin-bottom: 10px;
-    }
-    .step-item {
+    .tutor-step-box {
       background: #fff;
       border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      font-size: 13px;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 12.5px;
     }
-    .step-label {
-      font-size: 10.5px;
-      font-weight: 800;
-      text-transform: uppercase;
-      color: var(--brand-peach);
-      margin-bottom: 2px;
-    }
-    .encouragement-bubble {
+    .encouragement-tag {
       background: var(--pastel-mint);
       border: 1px solid var(--pastel-mint-border);
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-size: 12.5px;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
       color: #065f46;
       font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
-    /* FEATURE GALLERY CARDS */
-    .feature-grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-    @media (max-width: 900px) {
-      .feature-grid-3 { grid-template-columns: 1fr; }
-    }
-    .feat-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-card);
-      border-radius: 20px;
-      padding: 24px;
-      box-shadow: var(--shadow-soft);
-      transition: all 0.2s ease;
-    }
-    .feat-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-hover);
-      border-color: var(--pastel-peach-border);
-    }
-    .feat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      margin-bottom: 16px;
-    }
-    .feat-title {
-      font-size: 17px;
-      font-weight: 800;
-      color: #1a202c;
-      margin-bottom: 8px;
-    }
-    .feat-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* INTERACTIVE PARENTING CALM-DOWN SIMULATOR */
-    .calm-box {
-      background: linear-gradient(135deg, #fff7ed 0%, #fff1f2 100%);
+    /* EMOTION CALM DOWN BOX */
+    .calm-simulator-box {
+      background: #fff;
       border: 1px solid var(--pastel-rose-border);
-      border-radius: 20px;
-      padding: 28px;
+      border-radius: 18px;
+      padding: 24px;
+      margin-top: 20px;
       box-shadow: var(--shadow-soft);
     }
-    .emotion-buttons {
+    .emotion-tags-row {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
-      margin: 16px 0;
+      margin: 14px 0;
     }
-    .emotion-btn {
-      padding: 8px 16px;
+    .emot-btn {
+      padding: 7px 14px;
       border-radius: 999px;
       background: #fff;
       border: 1px solid var(--pastel-rose-border);
-      color: #881337;
-      font-size: 12.5px;
+      color: #9f1239;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    .emotion-btn.active {
+    .emot-btn.active {
       background: var(--brand-rose);
       color: #fff;
       border-color: var(--brand-rose);
     }
-    .calm-advice-panel {
-      background: #fff;
-      border-radius: 14px;
-      padding: 18px;
-      border: 1px solid rgba(225, 29, 72, 0.15);
-      font-size: 13.5px;
-      color: #4a5568;
+    .emot-result-box {
+      background: #fff1f2;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid rgba(225, 29, 72, 0.2);
+      font-size: 13px;
+      color: #374151;
       line-height: 1.6;
-    }
-
-    /* ARCHITECTURE SVG & GATEWAY INTEGRATION */
-    .gateway-spec-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-card);
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: var(--shadow-soft);
-    }
-    .gateway-pills-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-    .gw-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 14px;
-      border-radius: 10px;
     }
 
     /* FOOTER */
     .footer {
       border-top: 1px solid var(--border-card);
       background: #fff;
-      padding: 40px 0;
+      padding: 36px 0;
       text-align: center;
       color: var(--text-muted);
       font-size: 13px;
-    }
-    .footer-heart {
-      color: #f43f5e;
-      display: inline-block;
-      animation: heartbeat 1.5s infinite;
-    }
-    @keyframes heartbeat {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.2); }
     }
   </style>
 </head>
@@ -634,12 +598,21 @@
         </div>
       </a>
 
+      <!-- DIRECT QUICK LINKS TO BAN TỔ CHỨC RUBRIC -->
+      <ul class="btc-nav-links">
+        <li><a class="btc-nav-link" href="#painpoint">1. Painpoint</a></li>
+        <li><a class="btc-nav-link" href="#solution">2. Solution</a></li>
+        <li><a class="btc-nav-link" href="#cachtao">3. Cách Làm</a></li>
+        <li><a class="btc-nav-link" href="#tinhnang">4. Tính Năng</a></li>
+        <li><a class="btc-nav-link" href="#tiemnang">5. Lộ Trình</a></li>
+      </ul>
+
       <div class="nav-actions">
         <div class="beauty-badge">
-          ✨ Beauty Can Code Showcase
+          ✨ Beauty Can Code
         </div>
         <a href="https://kem-con-hoc-1.vercel.app/" target="_blank" class="btn-live-app">
-          🌐 Mở Web App Trực Tiếp ↗
+          🌐 Xem Web Thật ↗
         </a>
       </div>
     </div>
@@ -647,177 +620,304 @@
 
   <main class="container">
 
-    <!-- HERO SECTION -->
+    <!-- HERO INTRODUCTION -->
     <section class="hero">
       <div class="gentle-pill">
-        🧡 Không Quát Mắng · Không Nước Mắt · Học Tập Trong Yêu Thương
+        🧡 Hồ Sơ Giới Thiệu Sản Phẩm Dự Thi Cuộc Thi "Beauty Can Code"
       </div>
 
       <h1 class="hero-title">
-        Biến Giờ Kèm Con Học Bài Thành <br/>
-        <span class="highlight-gradient">Khoảnh Khắc Gắn Kết Dịu Dàng Của Cả Gia Đình</span>
+        Kèm Con Học – <span class="highlight-gradient">Bạn Đồng Hành Dịu Dàng Của Bố Mẹ</span>
       </h1>
 
       <p class="hero-desc">
-        Ứng dụng trợ lý sư phạm AI dành riêng cho phụ huynh tiểu học. Chụp ảnh bài tập, AI nhận diện dạng bài, gợi ý cách giải thích bằng câu hỏi khơi gợi và giúp bố mẹ giữ bình tĩnh khi đồng hành cùng con mỗi tối.
+        Hệ thống trợ lý sư phạm AI thấu cảm, biến giờ học mỗi tối từ "chiến trường nước mắt" thành không gian gắn kết yêu thương giữa bố mẹ và con trẻ.
       </p>
 
-      <!-- LIVE METRICS BAR -->
-      <div class="metrics-bar">
-        <div class="metric-card">
-          <div class="metric-val">100% <span>Dịu dàng</span></div>
-          <div class="metric-title">Phương pháp Socratic không giải hộ</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-val">1 Giây <span>Scan</span></div>
-          <div class="metric-title">Vision AI Llama 3.2 nhận diện bài</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-val">3 Bước <span>Sư phạm</span></div>
-          <div class="metric-title">Gợi mở từng bước cho con tự hiểu</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-val">0 Đồng <span>Vận hành</span></div>
-          <div class="metric-title">Cloudflare Edge AI Serverless Gateway</div>
+      <!-- TOC JUMP BAR ACCORDING TO BTC OUTLINE -->
+      <div class="outline-toc-bar">
+        <span class="toc-title">Mục Lục Báo Cáo Chuẩn Barem:</span>
+        <div class="toc-pills">
+          <a href="#painpoint" class="toc-pill-item toc-pill-1">1. Painpoint & Mục Đích</a>
+          <a href="#solution" class="toc-pill-item toc-pill-2">2. Solution & Khác Biệt</a>
+          <a href="#cachtao" class="toc-pill-item toc-pill-3">3. Cách Làm & Kiến Trúc</a>
+          <a href="#tinhnang" class="toc-pill-item toc-pill-4">4. Tính Năng & Live Demo</a>
+          <a href="#tiemnang" class="toc-pill-item toc-pill-5">5. Tiềm Năng & Lộ Trình</a>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 1: PAINPOINT & GIẢI PHÁP THỰC TẾ -->
-    <section class="section-wrap">
+    <!-- =====================================================================
+         MỤC 1: PAINPOINT / MỤC ĐÍCH
+         ===================================================================== -->
+    <section class="section-wrap" id="painpoint">
       <div class="section-head">
-        <span class="pill-tag pill-rose">Vấn đề thực tế</span>
-        <h2 class="sec-title">Tại Sao Bố Mẹ Rất Yêu Con Nhưng Lại Hay "Nổi Nóng" Giờ Học?</h2>
-        <p class="sec-desc">Sự khác biệt giữa cách học truyền thống gây căng thẳng và giải pháp đồng hành dịu dàng của ứng dụng.</p>
+        <span class="btc-badge badge-rose">Mục 1 / 2.2 · Painpoint & Mục Đích</span>
+        <h2 class="sec-title">1. Painpoint: Vấn Đề Thực Tế & Vì Sao Chọn Đề Tài Này?</h2>
+        <p class="sec-desc">Hơn 8.5 triệu gia đình có con tiểu học tại Việt Nam đang phải trải qua áp lực nặng nề trong giờ học tối.</p>
       </div>
 
-      <div class="comparison-grid">
-        <!-- The Struggle -->
-        <div class="box-card box-bad">
-          <div class="box-header" style="color: #e11d48;">
-            <span>⚡ "Chiến Tranh Giờ Học" Mỗi Tối</span>
-          </div>
-          <div class="pain-item">
-            <span class="icon-cross">✕</span>
-            <span><strong>Bố mẹ mệt mỏi sau giờ làm:</strong> Dễ mất kiên nhẫn khi con viết chậm, tẩy xóa, hỏi mãi một phép toán đơn giản không hiểu.</span>
-          </div>
-          <div class="pain-item">
-            <span class="icon-cross">✕</span>
-            <span><strong>Bế tắc phương pháp sư phạm:</strong> Bố mẹ giải theo cách người lớn (dùng ẩn số x, y), con học theo phương pháp tiểu học mới nên cãi nhau.</span>
-          </div>
-          <div class="pain-item">
-            <span class="icon-cross">✕</span>
-            <span><strong>Hậu quả tâm lý nặng nề:</strong> Bố mẹ tăng huyết áp, con bật khóc, sợ hãi bàn học và mất dần niềm vui học tập tự nhiên.</span>
-          </div>
+      <div class="grid-3">
+        <!-- Pain 1 -->
+        <div class="card-beauty" style="border-top: 4px solid var(--brand-rose);">
+          <span class="card-head-pill" style="background: var(--pastel-rose); color: var(--brand-rose);">Nỗi đau 1: Căng thẳng bàn học</span>
+          <h3 class="card-title-main">⚡ "Chiến Tranh Giờ Học" Mỗi Tối</h3>
+          <p class="card-body-text">
+            Bố mẹ đi làm cả ngày mệt mỏi, tối về lại đối diện với cảnh con viết chậm, tẩy xóa, hỏi mãi không hiểu. Cơn giận bộc phát khiến bố mẹ quát mắng, con òa khóc sợ hãi, không khí gia đình ngột ngạt và căng thẳng.
+          </p>
         </div>
 
-        <!-- The Solution -->
-        <div class="box-card box-good">
-          <div class="box-header" style="color: #059669;">
-            <span>🌸 Lời Giải Dịu Dàng Từ "Kèm Con Học"</span>
+        <!-- Pain 2 -->
+        <div class="card-beauty" style="border-top: 4px solid var(--brand-amber);">
+          <span class="card-head-pill" style="background: var(--pastel-amber); color: var(--brand-amber);">Nỗi đau 2: Bế tắc sư phạm</span>
+          <h3 class="card-title-main">🧩 Bố Mẹ Không Biết Cách Giải Thích</h3>
+          <p class="card-body-text">
+            Phương pháp dạy tiểu học hiện đại (Toán tư duy, mô hình sơ đồ đoạn thẳng) khác hoàn toàn cách học ngày xưa. Bố mẹ giải theo cách người lớn (dùng ẩn số đại số x, y), con không hiểu dẫn đến tranh cãi gay gắt.
+          </p>
+        </div>
+
+        <!-- Pain 3 -->
+        <div class="card-beauty" style="border-top: 4px solid var(--brand-purple);">
+          <span class="card-head-pill" style="background: var(--pastel-lavender); color: var(--brand-purple);">Nỗi đau 3: Các app giải hộ gây hại</span>
+          <h3 class="card-title-main">📱 Trẻ Bị Ỷ Lại & Chép Lời Giải</h3>
+          <p class="card-body-text">
+            Các ứng dụng scan bài tập hiện nay (Photomath, QANDA) đưa ngay lời giải và đáp án hoàn chỉnh. Trẻ chỉ chép đối phó mà không hề động não tư duy, làm triệt tiêu khả năng tự học lâu dài.
+          </p>
+        </div>
+      </div>
+
+      <div style="background: #fff; border: 1px dashed var(--pastel-rose-border); border-radius: 14px; padding: 16px 20px; margin-top: 20px; font-size: 13.5px; color: #4b5563;">
+        💡 <strong>Vì sao lại chọn vấn đề này?</strong> Bàn học là nơi ươm mầm sự tự tin đầu đời của trẻ. Chúng tôi muốn tạo ra một công cụ không chỉ giúp con giải bài, mà quan trọng hơn là <em>bảo vệ sự bình yên trong gia đình và tình yêu thương giữa bố mẹ và con</em>.
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         MỤC 2: SOLUTION (GIẢI PHÁP CỦA ĐỘI & CÁCH TIẾP CẬN KHÁC BIỆT)
+         ===================================================================== -->
+    <section class="section-wrap" id="solution">
+      <div class="section-head">
+        <span class="btc-badge badge-peach">Mục 2 / 2.2 · Solution & Cách Tiếp Cận Khác Biệt</span>
+        <h2 class="sec-title">2. Solution: Giải Pháp Của Đội Là Gì & Cách Tiếp Cận Khác Biệt?</h2>
+        <p class="sec-desc">Phương pháp đồng hành thấu cảm kết hợp trí tuệ nhân tạo biên (Edge AI) để định hình lại trải nghiệm dạy con.</p>
+      </div>
+
+      <!-- SOLUTION CORE STATEMENT -->
+      <div class="solution-hero-banner">
+        <div class="solution-quote">
+          🌸 Giải pháp cốt lõi: "Kèm Con Học" đóng vai trò là một người Cố Vấn Sư Phạm Dịu Dàng cho cha mẹ và Người Bạn Đồng Hành Kiên Nhẫn cho con trẻ.
+        </div>
+        <div class="solution-subquote">
+          Không đưa đáp số cho con chép. Thay vào đó, AI hướng dẫn bố mẹ cách đặt câu hỏi khơi gợi từng bước và nhắc nhở bố mẹ giữ bình tĩnh khi con gặp bế tắc.
+        </div>
+      </div>
+
+      <!-- 3 DISTINCT DIFFERENTIATORS -->
+      <div class="grid-3">
+        <!-- Diff 1 -->
+        <div class="card-beauty" style="border-left: 4px solid var(--brand-peach);">
+          <span class="card-head-pill" style="background: var(--pastel-peach); color: var(--brand-peach);">Khác biệt #1: Socratic Scaffolding</span>
+          <h3 class="card-title-main">🚫 Tuyệt Đối KHÔNG Giải Hộ Con</h3>
+          <p class="card-body-text">
+            Khác biệt 180 độ so với Photomath: AI chỉ phân tích đề bài, tóm tắt cách giải ngắn cho mẹ đọc hiểu, rồi sinh ra <strong>bộ 3 câu hỏi gợi mở bậc thang</strong> để con tự tìm ra manh mối và tự giải quyết vấn đề.
+          </p>
+        </div>
+
+        <!-- Diff 2 -->
+        <div class="card-beauty" style="border-left: 4px solid var(--brand-rose);">
+          <span class="card-head-pill" style="background: var(--pastel-rose); color: var(--brand-rose);">Khác biệt #2: Điều hòa cảm xúc</span>
+          <h3 class="card-title-main">💖 Góc "Hạ Hỏa" Phụ Huynh</h3>
+          <p class="card-body-text">
+            Sản phẩm <strong>DUY NHẤT</strong> trên thị trường nhận diện cảm xúc của cha mẹ. Khi phát hiện con khóc hoặc mất tập trung, AI đưa ra lời khuyên tâm lý: nhắc mẹ uống nước, đổi sang dùng đồ vật thật (cái chén, hạt đậu) thay vì quát mắng.
+          </p>
+        </div>
+
+        <!-- Diff 3 -->
+        <div class="card-beauty" style="border-left: 4px solid var(--brand-mint);">
+          <span class="card-head-pill" style="background: var(--pastel-mint); color: var(--brand-mint);">Khác biệt #3: Trực quan & Khen ngợi</span>
+          <h3 class="card-title-main">🌟 Giáo Dục Tích Cực (Positive)</h3>
+          <p class="card-body-text">
+            Luôn chuẩn bị sẵn các câu khen ngợi ngọt ngào và hệ thống sticker dán thưởng khi con làm xong bài, xây dựng niềm vui học tập tự giác thay vì ép buộc bằng đòn roi hay điểm số.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         MỤC 3: CÁCH LÀM (CÔNG NGHỆ, KIẾN TRÚC & QUY TRÌNH XÂY DỰNG)
+         ===================================================================== -->
+    <section class="section-wrap" id="cachtao">
+      <div class="section-head">
+        <span class="btc-badge badge-sky">Mục 3 / 2.2 · Cách Làm & Kiến Trúc</span>
+        <h2 class="sec-title">3. Cách Làm: Công Nghệ Sử Dụng, Kiến Trúc & Quy Trình</h2>
+        <p class="sec-desc">Ứng dụng nền tảng Cloudflare Edge AI Serverless thế hệ mới, mang lại tốc độ cực nhanh và chi phí xấp xỉ 0 đồng.</p>
+      </div>
+
+      <div class="arch-wrapper">
+        <!-- SVG ARCHITECTURE DIAGRAM -->
+        <svg class="svg-arch-diagram" viewBox="0 0 880 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Layer 1: Client Web App -->
+          <rect x="20" y="20" width="840" height="70" rx="12" fill="#fff7ed" stroke="#fed7aa" stroke-width="1.5" />
+          <text x="40" y="45" fill="#ea580c" font-size="12" font-weight="bold">LỚP TRẢI NGHIỆM NGƯỜI DÙNG (FRONTEND CLIENT)</text>
+          <text x="40" y="65" fill="#7c2d12" font-size="11">React + Tailwind CSS · Giao diện pastel dịu dàng tối ưu cho điện thoại & máy tính bảng của bố mẹ</text>
+
+          <rect x="630" y="35" width="210" height="38" rx="8" fill="#fff" stroke="#f97316" />
+          <text x="645" y="58" fill="#ea580c" font-size="11" font-weight="bold">📸 Chụp vở bài tập ô ly</text>
+
+          <!-- Arrow Down -->
+          <path d="M 440 90 L 440 125" stroke="#f97316" stroke-width="2" stroke-dasharray="4 4" />
+
+          <!-- Layer 2: Cloudflare AI Gateway Worker -->
+          <rect x="20" y="130" width="840" height="85" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="2" />
+          <text x="40" y="155" fill="#0284c7" font-size="12" font-weight="bold">LỚP HẠ TẦNG BIÊN (CLOUDFLARE EDGE AI GATEWAY)</text>
+          <text x="40" y="172" fill="#0369a1" font-size="10.5">ai-gateway-worker.trann46698.workers.dev · 330+ Edge PoPs toàn cầu · Phản hồi &lt;300ms · 10,000 Neurons Free</text>
+
+          <rect x="40" y="182" width="180" height="24" rx="5" fill="#fff" stroke="#38bdf8" />
+          <text x="50" y="198" fill="#0284c7" font-size="9.5" font-weight="bold">🗄️ D1 Database (Lưu bài tập)</text>
+
+          <rect x="235" y="182" width="200" height="24" rx="5" fill="#fff" stroke="#38bdf8" />
+          <text x="245" y="198" fill="#0284c7" font-size="9.5" font-weight="bold">🗂️ R2 Storage (Lưu ảnh bài & bé)</text>
+
+          <rect x="450" y="182" width="200" height="24" rx="5" fill="#fff" stroke="#38bdf8" />
+          <text x="460" y="198" fill="#0284c7" font-size="9.5" font-weight="bold">🧠 Vectorize (Ngân hàng đề bài)</text>
+
+          <rect x="665" y="182" width="180" height="24" rx="5" fill="#e0e7ff" stroke="#6366f1" />
+          <text x="675" y="198" fill="#4338ca" font-size="9.5" font-weight="bold">🔒 CORS & Bảo mật phụ huynh</text>
+
+          <!-- Arrow Down -->
+          <path d="M 440 215 L 440 245" stroke="#0284c7" stroke-width="2" stroke-dasharray="4 4" />
+
+          <!-- Layer 3: Foundation AI Models -->
+          <rect x="20" y="250" width="840" height="70" rx="12" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1.5" />
+          <text x="40" y="275" fill="#059669" font-size="12" font-weight="bold">LỚP MÔ HÌNH TRÍ TUỆ NHÂN TẠO (FOUNDATION AI MODELS)</text>
+          
+          <rect x="40" y="285" width="250" height="26" rx="6" fill="#fff" stroke="#10b981" />
+          <text x="50" y="302" fill="#047857" font-size="10" font-weight="bold">📷 Llama 3.2 11B Vision (OCR vở ô ly)</text>
+
+          <rect x="305" y="285" width="280" height="26" rx="6" fill="#fff" stroke="#10b981" />
+          <text x="315" y="302" fill="#047857" font-size="10" font-weight="bold">🤖 Llama 3.3 70B (Tư vấn sư phạm & tâm lý)</text>
+
+          <rect x="600" y="285" width="245" height="26" rx="6" fill="#fff" stroke="#10b981" />
+          <text x="610" y="302" fill="#047857" font-size="10" font-weight="bold">🎙️ Deepgram TTS + Whisper STT</text>
+        </svg>
+
+        <!-- 4 WORKFLOW STEPS -->
+        <div class="workflow-steps">
+          <div class="wf-step">
+            <div class="wf-step-num">Bước 1</div>
+            <div class="wf-step-title">Khảo Sát Thực Tế</div>
+            <div class="wf-step-desc">Phỏng vấn 50 phụ huynh tiểu học về nguyên nhân nổi nóng và khó khăn khi dạy con học.</div>
           </div>
-          <div class="pain-item">
-            <span class="icon-heart">✓</span>
-            <span><strong>Chụp ảnh là có phương pháp:</strong> AI phân tích đề bài, tóm tắt cách giải ngắn cho mẹ và bộ câu hỏi gợi mở cho con.</span>
+          <div class="wf-step">
+            <div class="wf-step-num">Bước 2</div>
+            <div class="wf-step-title">Kiến Trúc AI Edge</div>
+            <div class="wf-step-desc">Tích hợp Cloudflare Worker v3.0.0 với Llama 3.2 Vision, D1 SQL và R2 Storage.</div>
           </div>
-          <div class="pain-item">
-            <span class="icon-heart">✓</span>
-            <span><strong>Không giải hộ, giúp con tự giác:</strong> Hướng dẫn con dùng đồ thật (cái chén, hạt đậu, que tính) để tự tìm ra đáp số.</span>
+          <div class="wf-step">
+            <div class="wf-step-num">Bước 3</div>
+            <div class="wf-step-title">Prompt Sư Phạm</div>
+            <div class="wf-step-desc">Tinh chỉnh prompt chuẩn Socratic: cấm đọc đáp án, chỉ mớm câu hỏi bậc thang.</div>
           </div>
-          <div class="pain-item">
-            <span class="icon-heart">✓</span>
-            <span><strong>Đồng hành cảm xúc phụ huynh:</strong> Lời nhắc nhở tinh tế: <em>"Bài này khó thật, mẹ cũng phải nghĩ. Mình uống nước rồi vẽ lại nha!"</em></span>
+          <div class="wf-step">
+            <div class="wf-step-num">Bước 4</div>
+            <div class="wf-step-title">UI/UX Dịu Dàng</div>
+            <div class="wf-step-desc">Thiết kế màu sắc pastel xoa dịu thị giác, tối ưu cho bố mẹ xem trên điện thoại.</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 2: LIVE INTERACTIVE PLAYGROUND TUTOR -->
-    <section class="section-wrap">
+    <!-- =====================================================================
+         MỤC 4: TÍNH NĂNG CHÍNH & DEMO MINH HỌA
+         ===================================================================== -->
+    <section class="section-wrap" id="tinhnang">
       <div class="section-head">
-        <span class="pill-tag pill-peach">Trải nghiệm tương tác</span>
-        <h2 class="sec-title">Thử Nghiệm Trực Tiếp: AI Hướng Dẫn Sư Phạm Cho Mẹ</h2>
-        <p class="sec-desc">Bấm chọn 1 dạng bài tập bên dưới để trải nghiệm cách AI phân tích và gợi ý câu hỏi dẫn dắt dịu dàng:</p>
+        <span class="btc-badge badge-mint">Mục 4 / 2.2 · Tính Năng & Live Demo</span>
+        <h2 class="sec-title">4. Tính Năng Chính: Thử Nghiệm Live Playground</h2>
+        <p class="sec-desc">Trải nghiệm trực tiếp cách AI gợi ý phương pháp sư phạm cho mẹ và giải tỏa cảm xúc trong giờ học:</p>
       </div>
 
-      <div class="tutor-playground">
-        <div class="tab-pills">
-          <button class="tutor-tab active" onclick="switchExercise(0, this)">📐 Bài 1: Toán Đố Tiểu Học (Nhiều Bước)</button>
-          <button class="tutor-tab" onclick="switchExercise(1, this)">🇬🇧 Bài 2: Tiếng Anh Tiểu Học (Ngữ Cảnh)</button>
-          <button class="tutor-tab" onclick="switchExercise(2, this)">✍️ Bài 3: Tiếng Việt (Tập Làm Văn Gợi Mở)</button>
+      <!-- PLAYGROUND COMPONENT -->
+      <div class="playground-box">
+        <div class="tab-pills-row">
+          <button class="demo-tab-btn active" onclick="switchExercise(0, this)">📐 Demo 1: Toán Đố Tiểu Học (Nhiều Bước)</button>
+          <button class="demo-tab-btn" onclick="switchExercise(1, this)">🇬🇧 Demo 2: Tiếng Anh Tiểu Học (Ngữ Cảnh)</button>
+          <button class="demo-tab-btn" onclick="switchExercise(2, this)">✍️ Demo 3: Tiếng Việt (Tập Làm Văn Gợi Mở)</button>
         </div>
 
-        <div class="demo-columns">
-          <!-- LEFT: PROBLEM SCAN -->
-          <div class="notebook-card">
-            <span class="notebook-badge" id="demoSubjectTag">Vở Bài Tập Toán Lớp 3</span>
-            <div class="notebook-question" id="demoQuestionText">
+        <div class="demo-2col">
+          <!-- LEFT -->
+          <div class="problem-scan-card">
+            <span style="font-size: 11px; font-weight: 800; background: #fed7aa; color: #9a3412; padding: 2px 8px; border-radius: 6px;" id="demoSubjectTag">
+              Vở Bài Tập Toán Lớp 3
+            </span>
+            <div style="font-size: 15px; font-weight: 700; color: #431407; margin: 10px 0;" id="demoQuestionText">
               "Mẹ mua 3 hộp bút chì màu, mỗi hộp có 8 cây bút. Mẹ lấy ra 5 cây bút cho bạn Na mượn. Hỏi mẹ còn lại tất cả bao nhiêu cây bút chì màu?"
             </div>
-            <div class="notebook-note" id="demoCommonError">
+            <div style="font-size: 12px; color: #9a3412; background: rgba(254, 215, 170, 0.4); padding: 8px; border-radius: 6px;" id="demoCommonError">
               ⚠️ <strong>Lỗi con hay mắc:</strong> Lấy 8 trừ 5 luôn vì không nhận ra mẹ mua tận 3 hộp (quên tính tổng số bút trước).
             </div>
           </div>
 
-          <!-- RIGHT: AI GUIDANCE FOR PARENTS -->
-          <div class="ai-tutor-card">
+          <!-- RIGHT -->
+          <div class="tutor-response-card">
             <div>
-              <div class="tutor-badge">
-                <span>🤖 AI Trợ Lý Sư Phạm · Gợi ý cho mẹ:</span>
+              <div style="font-size: 11.5px; font-weight: 800; color: var(--brand-rose); margin-bottom: 8px;">
+                🤖 AI Cố Vấn Sư Phạm Gợi Ý Cho Mẹ:
               </div>
 
-              <div class="step-item">
-                <div class="step-label">Bước 1: Câu hỏi khơi gợi (Hỏi con nhẹ nhàng)</div>
-                <div id="demoStep1" style="color: #1a202c; font-weight: 600;">
+              <div class="tutor-step-box">
+                <div style="font-size: 10px; font-weight: 800; color: var(--brand-peach); text-transform: uppercase;">
+                  Bước 1: Hỏi khơi gợi nhẹ nhàng
+                </div>
+                <div id="demoStep1" style="font-weight: 600; color: #1f2937;">
                   "Con đọc lại câu đầu, mẹ mua mấy hộp? Mỗi hộp có mấy cây bút? Vậy trước khi cho bạn Na, mẹ có tất cả bao nhiêu cây?"
                 </div>
               </div>
 
-              <div class="step-item">
-                <div class="step-label">Bước 2: Mẹo trực quan bằng đồ vật</div>
-                <div id="demoStep2" style="color: #4a5568;">
+              <div class="tutor-step-box">
+                <div style="font-size: 10px; font-weight: 800; color: var(--brand-peach); text-transform: uppercase;">
+                  Bước 2: Mẹo dùng đồ vật thật
+                </div>
+                <div id="demoStep2" style="color: #4b5563;">
                   Nếu con lúng túng: Lấy 3 cái chén, mỗi chén bỏ 8 hạt đậu hoặc que tính. Cho con tự đếm tổng số, rồi bốc 5 hạt đưa mẹ.
                 </div>
               </div>
 
-              <div class="step-item" style="background: #f0fdf4; border-color: #bbf7d0;">
-                <div class="step-label" style="color: #166534;">Đáp án đối chiếu cho mẹ (Không đọc cho con)</div>
-                <div id="demoAnswer" style="color: #15803d; font-weight: 700;">
+              <div class="tutor-step-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <div style="font-size: 10px; font-weight: 800; color: #166534; text-transform: uppercase;">
+                  Đáp án đối chiếu cho mẹ (Không đọc cho con)
+                </div>
+                <div id="demoAnswer" style="font-weight: 700; color: #15803d;">
                   Số bút mẹ mua: 3 × 8 = 24 (cây). Số bút còn lại: 24 - 5 = 19 (cây).
                 </div>
               </div>
             </div>
 
-            <div class="encouragement-bubble" id="demoEncouragement">
-              <span>🌟 Lời khen khi con làm xong: <em>"Con tự tìm ra phép nhân trước rồi mới trừ giỏi quá! Mẹ thưởng sticker nhé!"</em></span>
+            <div class="encouragement-tag" id="demoEncouragement">
+              🌟 Lời khen khi con làm xong: <em>"Con tự tìm ra phép nhân trước rồi mới trừ giỏi quá! Mẹ thưởng sticker nhé!"</em>
             </div>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- SECTION 3: TƯ VẤN TÂM LÝ & HẠ HỎA PHỤ HUYNH -->
-    <section class="section-wrap">
-      <div class="section-head">
-        <span class="pill-tag pill-lavender">Đồng hành cảm xúc</span>
-        <h2 class="sec-title">Góc "Hạ Hỏa" & Kịch Bản Giao Tiếp Yêu Thương</h2>
-        <p class="sec-desc">Khi con gặp khó khăn, mẹ chỉ cần chọn biểu cảm của con để nhận ngay lời khuyên tâm lý từ AI Llama 3.3:</p>
-      </div>
-
-      <div class="calm-box">
-        <div style="font-weight: 800; font-size: 15px; color: #881337;">
-          Tình huống tối nay của bạn: Con đang biểu hiện thế nào?
+      <!-- EMOTION CALM DOWN SIMULATOR -->
+      <div class="calm-simulator-box">
+        <div style="font-weight: 800; font-size: 15px; color: #9f1239; display: flex; align-items: center; gap: 8px;">
+          <span>💖 Tính Năng Độc Đáo: Góc "Hạ Hỏa" & Tư Vấn Cảm Xúc Cho Phụ Huynh</span>
+        </div>
+        <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
+          Bấm chọn tình huống cảm xúc tối nay của con để xem AI hướng dẫn cách ứng xử dịu dàng:
         </div>
 
-        <div class="emotion-buttons">
-          <button class="emotion-btn active" onclick="switchEmotionAdvice(0, this)">😭 Con òa khóc vì bài khó quá</button>
-          <button class="emotion-btn" onclick="switchEmotionAdvice(1, this)">🥱 Con mất tập trung, vẽ linh tinh ra vở</button>
-          <button class="emotion-btn" onclick="switchEmotionAdvice(2, this)">😤 Con cáu kỉnh nói: "Con ghét học Toán!"</button>
-          <button class="emotion-btn" onclick="switchEmotionAdvice(3, this)">🐢 Con tẩy xóa liên tục sợ bị sai</button>
+        <div class="emotion-tags-row">
+          <button class="emot-btn active" onclick="switchEmotionAdvice(0, this)">😭 Con òa khóc vì bài khó quá</button>
+          <button class="emot-btn" onclick="switchEmotionAdvice(1, this)">🥱 Con mất tập trung, vẽ bậy ra vở</button>
+          <button class="emot-btn" onclick="switchEmotionAdvice(2, this)">😤 Con cáu kỉnh: "Con ghét học Toán!"</button>
+          <button class="emot-btn" onclick="switchEmotionAdvice(3, this)">🐢 Con tẩy xóa liên tục vì sợ bị sai</button>
         </div>
 
-        <div class="calm-advice-panel" id="calmAdviceText">
-          <strong style="color: #e11d48; display: block; margin-bottom: 6px;">💡 Lời khuyên vàng cho mẹ:</strong>
+        <div class="emot-result-box" id="calmAdviceText">
+          <strong style="color: #e11d48; display: block; margin-bottom: 4px;">💡 Lời khuyên vàng cho mẹ:</strong>
           Đừng vội quát: <em>"Dễ thế này sao khóc!"</em>. Bộ não của trẻ khi khóc bị đóng chặt cửa tiếp nhận logic. Mẹ hãy:
           <br/>1. Ôm nhẹ con 10 giây và nói: <em>"Mẹ biết bài này làm con mệt rồi. Mình gấp sách lại 5 phút uống nước cam nha."</em>
           <br/>2. Khi con bình tĩnh: <em>"Không sao cả, mẹ con mình cùng đi tìm manh mối từng câu một."</em>
@@ -825,82 +925,61 @@
       </div>
     </section>
 
-    <!-- SECTION 4: TÍNH NĂNG NỔI BẬT KHÁC -->
-    <section class="section-wrap">
+    <!-- =====================================================================
+         MỤC 5: LỘ TRÌNH PHÁT TRIỂN & TIỀM NĂNG ỨNG DỤNG THỰC TẾ
+         ===================================================================== -->
+    <section class="section-wrap" id="tiemnang">
       <div class="section-head">
-        <span class="pill-tag pill-mint">Hệ sinh thái tính năng</span>
-        <h2 class="sec-title">4 Trụ Cột Tính Năng Hoàn Chỉnh Của Ứng Dụng</h2>
-        <p class="sec-desc">Được xây dựng chỉn chu từ giao diện đến thuật toán giáo dục tích cực.</p>
+        <span class="btc-badge badge-lavender">Mục 5 / 2.2 · Tiềm Năng & Lộ Trình</span>
+        <h2 class="sec-title">5. Lộ Trình Phát Triển Tiếp Theo & Tiềm Năng Ứng Dụng</h2>
+        <p class="sec-desc">Định hướng đưa sản phẩm đến hàng triệu mái ấm gia đình tại Việt Nam và Đông Nam Á.</p>
       </div>
 
-      <div class="feature-grid-3">
-        <div class="feat-card">
-          <div class="feat-icon" style="background: var(--pastel-peach); color: var(--brand-peach);">📷</div>
-          <h3 class="feat-title">Scan Bài Vở & OCR Nhanh</h3>
-          <p class="feat-desc">
-            Chụp trực tiếp vở ô ly tiểu học, nhận diện nét chữ viết tay của bé bằng Llama 3.2 Vision, bóc tách chính xác đề bài và tự động phân loại môn học.
-          </p>
-        </div>
+      <div class="grid-2">
+        <div class="card-beauty">
+          <h3 class="card-title-main" style="color: var(--brand-purple);">🚀 Lộ Trình Phát Triển (Development Roadmap)</h3>
+          
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="padding-left: 12px; border-left: 3px solid var(--brand-mint);">
+              <strong style="font-size: 13.5px; color: var(--brand-mint);">Giai đoạn 1 (Hiện tại · Đã chạy Live 100%)</strong>
+              <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                Hoàn thiện web app, AI Vision Llama 3.2 nhận diện đề bài, phương pháp Socratic 3 bước và Góc Hạ Hỏa phụ huynh.
+              </p>
+            </div>
 
-        <div class="feat-card">
-          <div class="feat-icon" style="background: var(--pastel-rose); color: var(--brand-rose);">🎙️</div>
-          <h3 class="feat-title">Giọng Đọc AI Dịu Dàng (TTS)</h3>
-          <p class="feat-desc">
-            Sử dụng Deepgram Aura-2 để đọc diễn cảm đề bài, kể chuyện bài học và hướng dẫn phát âm tiếng Anh với ngữ điệu ấm áp như giọng người mẹ.
-          </p>
-        </div>
+            <div style="padding-left: 12px; border-left: 3px solid var(--brand-sky);">
+              <strong style="font-size: 13.5px; color: var(--brand-sky);">Giai đoạn 2 (Q1/2027 · Realtime Voice Assistant)</strong>
+              <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                Trò chuyện giọng nói hai chiều trực tiếp: Bé có thể nói chuyện với AI như một cô giáo gia sư kiên nhẫn qua giọng Deepgram TTS.
+              </p>
+            </div>
 
-        <div class="feat-card">
-          <div class="feat-icon" style="background: var(--pastel-mint); color: var(--brand-mint);">🏆</div>
-          <h3 class="feat-title">Nhật Ký Sticker & Tiến Bộ</h3>
-          <p class="feat-desc">
-            Mỗi bài tập hoàn thành con đều được nhận sticker ảo đáng yêu, lưu lại album kỷ niệm học tập trên Cloudflare R2 và bảng D1 Database.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 5: KIẾN TRÚC EDGE AI GATEWAY -->
-    <section class="section-wrap">
-      <div class="section-head">
-        <span class="pill-tag pill-sky">Công nghệ & Hạ tầng</span>
-        <h2 class="sec-title">Sức Mạnh Từ Cloudflare AI Edge Gateway</h2>
-        <p class="sec-desc">Ứng dụng hoạt động mượt mà với độ trễ dưới 300ms và chi phí hạ tầng tối ưu nhờ kiến trúc Serverless hiện đại:</p>
-      </div>
-
-      <div class="gateway-spec-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px;">
-          <div>
-            <h4 style="font-size: 16px; font-weight: 800; color: #1a202c;">Hệ Thống AI Gateway v3.0.0 Triển Khai Thực Tế</h4>
-            <span style="font-size: 12px; color: var(--text-muted);">ai-gateway-worker.trann46698.workers.dev · 330+ Trung tâm dữ liệu toàn cầu</span>
-          </div>
-          <span style="background: #ecfdf5; color: #059669; font-weight: 700; font-size: 11.5px; padding: 4px 10px; border-radius: 999px;">
-            ● Online 99.99% Uptime
-          </span>
-        </div>
-
-        <div class="gateway-pills-row">
-          <div class="gw-pill" style="background: var(--pastel-peach); color: var(--brand-peach);">
-            📷 Llama 3.2 11B Vision (Scan vở bài tập)
-          </div>
-          <div class="gw-pill" style="background: var(--pastel-rose); color: var(--brand-rose);">
-            🤖 Llama 3.3 70B Fast (Tư vấn sư phạm & tâm lý)
-          </div>
-          <div class="gw-pill" style="background: var(--pastel-mint); color: var(--brand-mint);">
-            🗄️ D1 Database (Lưu lịch sử bài làm & album bé)
-          </div>
-          <div class="gw-pill" style="background: var(--pastel-sky); color: var(--brand-sky);">
-            🗂️ R2 Storage (Lưu trữ ảnh bài tập không mất phí egress)
-          </div>
-          <div class="gw-pill" style="background: var(--pastel-lavender); color: var(--brand-purple);">
-            🎙️ Whisper STT + Deepgram TTS (Nghe & Đọc dịu dàng)
+            <div style="padding-left: 12px; border-left: 3px solid var(--brand-purple);">
+              <strong style="font-size: 13.5px; color: var(--brand-purple);">Giai đoạn 3 (Q3/2027 · Ngân Hàng Bộ Sách Giáo Khoa Mới)</strong>
+              <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                Đánh chỉ mục toàn bộ bộ sách Kết Nối Tri Thức, Cánh Diều, Chân Trời Sáng Tạo qua Cloudflare Vectorize để trả lời chuẩn từng bài.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div style="background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 12px; padding: 14px; font-family: ui-monospace, monospace; font-size: 12px; color: #44403c; margin-top: 18px;">
-          // Endpoint phân tích bài tập & lưu nhật ký bé:<br/>
-          POST https://ai-gateway-worker.trann46698.workers.dev/vision/analyze<br/>
-          Payload: { image: base64, childName: "Bé An", context: "Toán lớp 3" }
+        <div class="card-beauty">
+          <h3 class="card-title-main" style="color: var(--brand-peach);">💎 Tiềm Năng Ứng Dụng & Giá Trị Xã Hội</h3>
+          
+          <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <strong style="color: #1a202c;">1. Thị trường rộng lớn:</strong><br/>
+              Hơn 8.5 triệu học sinh tiểu học tại Việt Nam. 92% phụ huynh thừa nhận từng nổi cáu hoặc bất lực khi dạy con học buổi tối.
+            </div>
+            <div>
+              <strong style="color: #1a202c;">2. Chi phí tiếp cận bình dân:</strong><br/>
+              Nhờ kiến trúc Cloudflare Serverless, chi phí vận hành máy chủ gần như 0 đồng, cho phép phổ cập miễn phí tới mọi gia đình vùng sâu vùng xa.
+            </div>
+            <div>
+              <strong style="color: #1a202c;">3. Giá trị nhân văn to lớn:</strong><br/>
+              Chấm dứt bạo lực tinh thần trong gia đình, nuôi dưỡng sự tự tin và đam mê khám phá tri thức tự nhiên cho thế hệ mầm non tương lai.
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -913,16 +992,16 @@
       <div style="font-weight: 800; font-size: 16px; color: #1a202c; margin-bottom: 6px;">
         Kèm Con Học – Bạn đồng hành dịu dàng của bố mẹ
       </div>
-      <p style="margin-bottom: 12px;">
-        Dự thi <strong>Beauty Can Code</strong> · Tác phẩm sáng tạo kết hợp thiết kế thẩm mỹ dịu dàng & Trí tuệ nhân tạo nhân văn.
+      <p style="margin-bottom: 8px;">
+        Tác phẩm dự thi <strong>"Beauty Can Code"</strong> · Tự hào kết hợp thiết kế thẩm mỹ dịu dàng & Công nghệ AI Edge nhân văn.
       </p>
       <div style="font-size: 12px; color: var(--text-light);">
-        Làm bằng cả yêu thương <span class="footer-heart">❤️</span> dành tặng các bậc phụ huynh và các em nhỏ
+        URL Web App: <a href="https://kem-con-hoc-1.vercel.app/" target="_blank" style="color: var(--brand-rose); font-weight: 700; text-decoration: none;">https://kem-con-hoc-1.vercel.app/</a>
       </div>
     </div>
   </footer>
 
-  <!-- INTERACTIVE SCRIPT (100% OFFLINE) -->
+  <!-- INTERACTIVE LOGIC (100% OFFLINE) -->
   <script>
     // 1. EXERCISE DEMO DATA
     const exercises = [
@@ -956,7 +1035,7 @@
     ];
 
     function switchExercise(idx, btn) {
-      document.querySelectorAll(".tutor-tab").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".demo-tab-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       const e = exercises[idx];
       document.getElementById("demoSubjectTag").innerText = e.subject;
@@ -988,7 +1067,7 @@
     ];
 
     function switchEmotionAdvice(idx, btn) {
-      document.querySelectorAll(".emotion-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".emot-btn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById("calmAdviceText").innerHTML = emotionAdvices[idx];
     }
