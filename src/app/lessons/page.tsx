@@ -4,434 +4,265 @@ import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Search,
   ChevronLeft,
   ChevronRight,
   Folder,
-  FolderOpen,
   Volume2,
   CheckCircle2,
-  Circle,
-  Play,
   ArrowRight,
   BookOpen,
   Sparkles,
   Repeat,
   MessageSquare,
-  X,
-  Share2,
+  ShieldCheck,
   Flame,
   Award,
-  Layers,
-  ArrowUpRight,
-  FileText,
+  Calendar,
+  CheckSquare,
+  Copy,
+  Check,
+  Radio,
   User,
   Plus,
+  Play,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DAILY_ROADMAP_DATA, DayPlan, DailyTask } from "@/data/daily-roadmap-data";
 import { useGame } from "@/contexts/game-context";
 
-// Chinese HSK 1+2 Dataset matching reference site phamletanthinh.vercel.app/chinese/lessons
-interface ChineseLesson {
-  id: number;
-  lessonNumber: number;
-  titleZh: string;
-  pinyin: string;
-  meaningVi: string;
-  totalWords: number;
-  knownWords: number;
-  tasks: {
-    id: string;
-    title: string;
-    detail: string;
-    pinyin?: string;
-    meaning?: string;
-  }[];
-}
-
-const HSK_LESSONS_DATA: ChineseLesson[] = [
-  {
-    id: 1,
-    lessonNumber: 1,
-    titleZh: "你叫什么名字?",
-    pinyin: "Nǐ jiào shénme míngzi?",
-    meaningVi: "Bạn tên là gì?",
-    totalWords: 39,
-    knownWords: 0,
-    tasks: [
-      { id: "h1-1", title: "Chào hỏi & Hỏi tên", detail: "你叫什么名字? / 我叫李朋。", pinyin: "Nǐ jiào shénme míngzi? / Wǒ jiào Lǐ Péng.", meaning: "Bạn tên gì? / Tôi tên là Lý Bằng." },
-      { id: "h1-2", title: "Đại từ nhân xưng", detail: "你, 我, 他, 她, 我们, 你们", pinyin: "nǐ, wǒ, tā, tā, wǒmen, nǐmen", meaning: "Bạn, tôi, anh ấy, cô ấy, chúng tôi, các bạn" },
-      { id: "h1-3", title: "Luyện phát âm thanh mẫu", detail: "b, p, m, f, d, t, n, l", pinyin: "Thanh mẫu cơ bản", meaning: "Luyện phát âm chuẩn pinyin" },
-    ],
-  },
-  {
-    id: 2,
-    lessonNumber: 2,
-    titleZh: "你家都有什么人?",
-    pinyin: "Nǐ jiā dōu yǒu shénme rén?",
-    meaningVi: "Nhà bạn có những ai?",
-    totalWords: 57,
-    knownWords: 0,
-    tasks: [
-      { id: "h2-1", title: "Thành viên gia đình", detail: "爸爸, 妈妈, 哥哥, 姐姐, 弟弟, 妹妹", pinyin: "bàba, māma, gēge, jiějie, dìdi, mèimei", meaning: "Bố, mẹ, anh, chị, em trai, em gái" },
-      { id: "h2-2", title: "Lượng từ 口 & 个", detail: "我家有四口人。", pinyin: "Wǒ jiā yǒu sì kǒu rén.", meaning: "Nhà tôi có 4 người." },
-    ],
-  },
-  {
-    id: 3,
-    lessonNumber: 3,
-    titleZh: "这是什么书?",
-    pinyin: "Zhè shì shénme shū?",
-    meaningVi: "Đây là sách gì?",
-    totalWords: 39,
-    knownWords: 0,
-    tasks: [
-      { id: "h3-1", title: "Hỏi đồ vật", detail: "这是什么? / 这是汉语书。", pinyin: "Zhè shì shénme? / Zhè shì Hànyǔ shū.", meaning: "Đây là gì? / Đây là sách tiếng Hán." },
-      { id: "h3-2", title: "Chỉ thị 这 & 那", detail: "这 (đây) vs 那 (kia, đó)", pinyin: "zhè vs nà", meaning: "Chỉ vị trí gần và xa" },
-    ],
-  },
-  {
-    id: 4,
-    lessonNumber: 4,
-    titleZh: "你会说汉语吗?",
-    pinyin: "Nǐ huì shuō Hànyǔ ma?",
-    meaningVi: "Bạn biết nói tiếng Trung không?",
-    totalWords: 35,
-    knownWords: 0,
-    tasks: [
-      { id: "h4-1", title: "Trợ động từ 会", detail: "我会说一点儿汉语。", pinyin: "Wǒ huì shuō yìdiǎnr Hànyǔ.", meaning: "Tôi biết nói một chút tiếng Trung." },
-      { id: "h4-2", title: "Cấu trúc nghi vấn 吗", detail: "你会写汉字吗?", pinyin: "Nǐ huì xiě hànzì ma?", meaning: "Bạn biết viết chữ Hán không?" },
-    ],
-  },
-  {
-    id: 5,
-    lessonNumber: 5,
-    titleZh: "今天是几月几号?",
-    pinyin: "Jīntiān shì jǐ yuè jǐ hào?",
-    meaningVi: "Hôm nay là ngày mấy tháng mấy?",
-    totalWords: 44,
-    knownWords: 0,
-    tasks: [
-      { id: "h5-1", title: "Ngày tháng & Thứ", detail: "今天是9月15号, 星期三。", pinyin: "Jīntiān shì jiǔ yuè shíwǔ hào, xīngqīsān.", meaning: "Hôm nay là ngày 15 tháng 9, thứ Tư." },
-      { id: "h5-2", title: "Hỏi ngày sinh nhật", detail: "你的生日是几月几号?", pinyin: "Nǐ de shēngrì shì jǐ yuè jǐ hào?", meaning: "Sinh nhật của bạn là ngày mấy tháng mấy?" },
-      { id: "h5-3", title: "Hôm qua, Hôm nay, Ngày mai", detail: "昨天, 今天, 明天", pinyin: "zuótiān, jīntiān, míngtiān", meaning: "Thời gian biểu trong tuần" },
-    ],
-  },
-  {
-    id: 6,
-    lessonNumber: 6,
-    titleZh: "现在几点了?",
-    pinyin: "Xiànzài jǐ diǎn le?",
-    meaningVi: "Bây giờ là mấy giờ rồi?",
-    totalWords: 48,
-    knownWords: 0,
-    tasks: [
-      { id: "h6-1", title: "Hỏi giờ giấc", detail: "现在八点半。", pinyin: "Xiànzài bā diǎn bàn.", meaning: "Bây giờ là 8 giờ rưỡi." },
-      { id: "h6-2", title: "Các mốc thời gian trong ngày", detail: "早上, 中午, 下午, 晚上", pinyin: "zǎoshang, zhōngwǔ, xiàwǔ, wǎnshang", meaning: "Sáng, trưa, chiều, tối" },
-    ],
-  },
-  {
-    id: 7,
-    lessonNumber: 7,
-    titleZh: "苹果多少钱一斤?",
-    pinyin: "Píngguǒ duōshao qián yì jīn?",
-    meaningVi: "Táo bao nhiêu tiền một cân?",
-    totalWords: 44,
-    knownWords: 0,
-    tasks: [
-      { id: "h7-1", title: "Mua sắm & Trả giá", detail: "太贵了, 便宜一点儿吧!", pinyin: "Tài guì le, piányi yìdiǎnr ba!", meaning: "Đắt quá, bớt một chút đi!" },
-      { id: "h7-2", title: "Đơn vị tiền tệ", detail: "块 (đồng), 毛 (hào), 分 (xu)", pinyin: "kuài, máo, fēn", meaning: "Cách nói tiền mặt Trung Quốc" },
-    ],
-  },
-  {
-    id: 8,
-    lessonNumber: 8,
-    titleZh: "今天的天气怎么样?",
-    pinyin: "Jīntiān de tiānqì zěnmeyàng?",
-    meaningVi: "Thời tiết hôm nay thế nào?",
-    totalWords: 39,
-    knownWords: 0,
-    tasks: [
-      { id: "h8-1", title: "Miêu tả thời tiết", detail: "今天天气很好, 不冷也不热。", pinyin: "Jīntiān tiānqì hěn hǎo, bù lěng yě bú rè.", meaning: "Hôm nay thời tiết rất đẹp, không lạnh cũng không nóng." },
-      { id: "h8-2", title: "Trạng thái mưa nắng", detail: "下雨, 刮风, 晴天", pinyin: "xià yǔ, guā fēng, qíngtiān", meaning: "Trời mưa, gió thổi, trời nắng" },
-    ],
-  },
-  {
-    id: 9,
-    lessonNumber: 9,
-    titleZh: "请问, 医院在哪儿?",
-    pinyin: "Qǐngwèn, yīyuàn zài nǎr?",
-    meaningVi: "Xin hỏi, bệnh viện ở đâu?",
-    totalWords: 44,
-    knownWords: 0,
-    tasks: [
-      { id: "h9-1", title: "Hỏi đường & Phương hướng", detail: "一直往前走, 就在左边。", pinyin: "Yìzhí wǎng qián zǒu, jiù zài zuǒbiān.", meaning: "Đi thẳng về phía trước, ở ngay bên trái." },
-      { id: "h9-2", title: "Các địa điểm công cộng", detail: "医院, 学校, 银行, 商店", pinyin: "yīyuàn, xuéxiào, yínháng, shāngdiàn", meaning: "Bệnh viện, trường học, ngân hàng, cửa hàng" },
-    ],
-  },
-  {
-    id: 10,
-    lessonNumber: 10,
-    titleZh: "你在做什么呢?",
-    pinyin: "Nǐ zài zuò shénme ne?",
-    meaningVi: "Bạn đang làm gì thế?",
-    totalWords: 44,
-    knownWords: 0,
-    tasks: [
-      { id: "h10-1", title: "Thì hiện tại tiếp diễn 在...呢", detail: "我在看书呢。", pinyin: "Wǒ zài kàn shū ne.", meaning: "Tôi đang đọc sách." },
-      { id: "h10-2", title: "Các hoạt động hàng ngày", detail: "睡觉, 看电影, 做饭, 工作", pinyin: "shuìjiào, kàn diànyǐng, zuò fàn, gōngzuò", meaning: "Ngủ, xem phim, nấu cơm, làm việc" },
-    ],
-  },
-  {
-    id: 11,
-    lessonNumber: 11,
-    titleZh: "你们买了什么?",
-    pinyin: "Nǐmen mǎi le shénme?",
-    meaningVi: "Các bạn đã mua gì?",
-    totalWords: 41,
-    knownWords: 0,
-    tasks: [
-      { id: "h11-1", title: "Trợ từ động thái 了 (đã xong)", detail: "我买了一点儿苹果。", pinyin: "Wǒ mǎi le yìdiǎnr píngguǒ.", meaning: "Tôi đã mua một ít táo." },
-    ],
-  },
-  {
-    id: 12,
-    lessonNumber: 12,
-    titleZh: "他是坐飞机来的",
-    pinyin: "Tā shì zuò fēijī lái de",
-    meaningVi: "Anh ấy đi máy bay đến",
-    totalWords: 45,
-    knownWords: 0,
-    tasks: [
-      { id: "h12-1", title: "Cấu trúc nhấn mạnh 是...的", detail: "我们是坐火车来的。", pinyin: "Wǒmen shì zuò huǒchē lái de.", meaning: "Chúng tôi đến bằng tàu hỏa." },
-    ],
-  },
-];
-
 function LessonsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { username, streak, level, addXP } = useGame();
 
-  // Track switcher: 'en' (Tech Lead 30 Days) vs 'zh' (HSK 1+2 Chinese)
-  const [track, setTrack] = useState<"en" | "zh">("en");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAccordionOpen, setIsAccordionOpen] = useState(true);
+  const [selectedSprint, setSelectedSprint] = useState<number | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(5);
-  const [copiedPhrase, setCopiedPhrase] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [completedDays, setCompletedDays] = useState<number[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Sync with URL query parameter ?open=... or ?track=...
+  // Load completed days from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("tran_daily_roadmap_completed");
+        if (saved) setCompletedDays(JSON.parse(saved));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  // Sync with URL query parameter ?open=...
   useEffect(() => {
     const openParam = searchParams.get("open");
-    const trackParam = searchParams.get("track");
-
-    if (trackParam === "zh" || openParam === "hsk12") {
-      setTrack("zh");
-    } else if (trackParam === "en") {
-      setTrack("en");
-    }
-
     if (openParam) {
-      if (openParam === "hsk12") {
-        setSelectedLessonId(5);
-      } else {
-        const num = parseInt(openParam, 10);
-        if (!isNaN(num)) setSelectedLessonId(num);
+      const num = parseInt(openParam, 10);
+      if (!isNaN(num) && num >= 1 && num <= 30) {
+        setSelectedDay(num);
       }
     }
   }, [searchParams]);
 
-  // Play audio preview
-  const playSpeech = (text: string, lang = track === "zh" ? "zh-CN" : "en-US") => {
+  // Audio speech preview
+  const playSpeech = (text: string) => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      utterance.rate = 0.9;
+      utterance.lang = "en-US";
+      utterance.rate = 0.95;
       window.speechSynthesis.speak(utterance);
     }
   };
 
-  // Filter lessons based on search query
-  const filteredEnglishLessons = useMemo(() => {
-    if (!searchQuery.trim()) return DAILY_ROADMAP_DATA;
-    const q = searchQuery.toLowerCase();
-    return DAILY_ROADMAP_DATA.filter(
-      (d) =>
+  const copyText = (text: string, id: string) => {
+    if (typeof navigator !== "undefined") {
+      navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
+
+  const toggleDayCompletion = (dayNum: number) => {
+    const next = completedDays.includes(dayNum)
+      ? completedDays.filter((d) => d !== dayNum)
+      : [...completedDays, dayNum];
+    setCompletedDays(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("tran_daily_roadmap_completed", JSON.stringify(next));
+    }
+    if (!completedDays.includes(dayNum)) {
+      addXP(50);
+    }
+  };
+
+  // Filter lessons based on search query and sprint filter
+  const filteredLessons = useMemo(() => {
+    return DAILY_ROADMAP_DATA.filter((d) => {
+      const matchesSprint = selectedSprint === "all" || d.sprint === selectedSprint;
+      if (!matchesSprint) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
         d.title.toLowerCase().includes(q) ||
         d.objectiveVi.toLowerCase().includes(q) ||
         d.targetCallSituation.toLowerCase().includes(q) ||
         d.sprintTitle.toLowerCase().includes(q)
-    );
-  }, [searchQuery]);
+      );
+    });
+  }, [selectedSprint, searchQuery]);
 
-  const filteredChineseLessons = useMemo(() => {
-    if (!searchQuery.trim()) return HSK_LESSONS_DATA;
-    const q = searchQuery.toLowerCase();
-    return HSK_LESSONS_DATA.filter(
-      (l) =>
-        l.titleZh.toLowerCase().includes(q) ||
-        l.pinyin.toLowerCase().includes(q) ||
-        l.meaningVi.toLowerCase().includes(q)
-    );
-  }, [searchQuery]);
+  const activeLesson = useMemo(() => {
+    return DAILY_ROADMAP_DATA.find((d) => d.day === selectedDay) || DAILY_ROADMAP_DATA[0];
+  }, [selectedDay]);
 
-  // Selected item details
-  const activeEnLesson = useMemo(() => {
-    return DAILY_ROADMAP_DATA.find((d) => d.day === selectedLessonId) || DAILY_ROADMAP_DATA[0];
-  }, [selectedLessonId]);
-
-  const activeZhLesson = useMemo(() => {
-    return HSK_LESSONS_DATA.find((l) => l.id === selectedLessonId) || HSK_LESSONS_DATA[4];
-  }, [selectedLessonId]);
-
-  const selectLesson = (id: number) => {
-    setSelectedLessonId(id);
+  const selectDay = (dayNum: number) => {
+    setSelectedDay(dayNum);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("open", id.toString());
-    params.set("track", track);
+    params.set("open", dayNum.toString());
     router.replace(`/lessons?${params.toString()}`, { scroll: false });
   };
 
   return (
-    <div className="min-h-screen bg-[#fcf9f5] dark:bg-slate-950 text-[#2d2321] dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
-      {/* Top Breadcrumb & Actions Bar */}
-      <header className="sticky top-0 z-40 bg-[#fcf9f5]/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-[#eedcd5]/80 dark:border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-        {/* Left: Track Switcher & Breadcrumb */}
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-300">
+      {/* Top Header Bar Harmonized with TranTech Talk Theme */}
+      <header className="sticky top-0 z-40 bg-white/85 dark:bg-slate-950/85 backdrop-blur-2xl border-b border-slate-200/80 dark:border-slate-800/80 px-4 sm:px-6 py-3 flex items-center justify-between gap-3 sm:gap-4">
+        {/* Left: Sidebar Toggle & Sprint Filter Pills */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-[#eedcd5] dark:border-slate-800 text-[#78645e] dark:text-slate-300 hover:text-[#991b1b] hover:border-[#991b1b]/40 transition-all shadow-2xs"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-xs"
             title={isSidebarOpen ? "Thu gọn thanh bên" : "Mở rộng thanh bên"}
           >
             <BookOpen className="w-4 h-4" />
           </button>
 
-          <div className="flex items-center gap-1.5 bg-[#f5ebe6] dark:bg-slate-900 p-1 rounded-2xl border border-[#eedcd5] dark:border-slate-800">
+          {/* Sprint Select Pills */}
+          <div className="hidden lg:flex items-center gap-1 bg-slate-100/90 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-800">
             <button
-              onClick={() => {
-                setTrack("en");
-                setSelectedLessonId(1);
-              }}
+              onClick={() => setSelectedSprint("all")}
               className={cn(
-                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5",
-                track === "en"
-                  ? "bg-white dark:bg-slate-800 text-[#991b1b] dark:text-red-400 shadow-xs"
-                  : "text-[#78645e] dark:text-slate-400 hover:text-foreground"
+                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                selectedSprint === "all"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-foreground"
               )}
             >
-              <span className="w-2 h-2 rounded-full bg-[#991b1b]" />
-              Tech Lead 30D
+              Tất cả 30 ngày
             </button>
-
-            <button
-              onClick={() => {
-                setTrack("zh");
-                setSelectedLessonId(5);
-              }}
-              className={cn(
-                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5",
-                track === "zh"
-                  ? "bg-white dark:bg-slate-800 text-[#991b1b] dark:text-red-400 shadow-xs"
-                  : "text-[#78645e] dark:text-slate-400 hover:text-foreground"
-              )}
-            >
-              <span className="font-extrabold text-[11px] text-[#991b1b]">中</span>
-              HSK 1+2
-            </button>
+            {[1, 2, 3, 4].map((sp) => (
+              <button
+                key={sp}
+                onClick={() => setSelectedSprint(sp)}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                  selectedSprint === sp
+                    ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-foreground"
+                )}
+              >
+                Sprint {sp}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Center: Search pill */}
         <div className="flex-1 max-w-md relative">
-          <Search className="w-4 h-4 text-[#a08d87] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              track === "zh"
-                ? "Tìm theo Hán tự, pinyin hoặc nghĩa..."
-                : "Tìm theo bài học, tình huống hoặc mẫu câu..."
-            }
-            className="w-full bg-white dark:bg-slate-900 border border-[#ecdcd5] dark:border-slate-800 rounded-full pl-9 pr-4 py-2 text-xs sm:text-sm text-[#2d2321] dark:text-slate-100 placeholder-[#a08d87] focus:outline-none focus:border-[#991b1b]/60 focus:ring-2 focus:ring-[#991b1b]/15 shadow-2xs transition-all"
+            placeholder="Tìm theo bài học, tình huống hoặc mẫu câu..."
+            className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-full pl-9 pr-4 py-2 text-xs sm:text-sm text-foreground placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-xs transition-all"
           />
         </div>
 
-        {/* Right: Quick actions */}
+        {/* Right: User Status & Navigation */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Link href="/vocab">
+          <Link href="/voice">
             <Button
               variant="outline"
               size="sm"
-              className="hidden sm:inline-flex rounded-full border-[#ecdcd5] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#2d2321] dark:text-slate-200 text-xs font-semibold hover:bg-[#faf4ee] dark:hover:bg-slate-800"
+              className="hidden sm:inline-flex rounded-full border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 text-foreground text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 gap-1.5"
             >
-              <Plus className="w-3.5 h-3.5 mr-1 text-[#991b1b]" />
-              Thêm thẻ
+              <Radio className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+              Voice Studio
             </Button>
           </Link>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-slate-900 border border-[#ecdcd5] dark:border-slate-800 text-xs font-semibold shadow-2xs">
-            <User className="w-3.5 h-3.5 text-[#991b1b]" />
-            <span className="font-bold text-[#2d2321] dark:text-slate-200">{username || "Trân"}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#fdf0f0] text-[#991b1b] font-bold">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-semibold shadow-xs">
+            <User className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="font-bold text-foreground">{username || "Trân"}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
               Lv.{level}
             </span>
           </div>
         </div>
       </header>
 
-      {/* Main Body with Collapsible Sidebar & Grid */}
+      {/* Main Body with Collapsible Sidebar & 2-Column Grid */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* ======================================================== */}
-        {/* COLLAPSIBLE LEFT SIDEBAR                                 */}
+        {/* 1. COLLAPSIBLE LEFT SIDEBAR                              */}
         {/* ======================================================== */}
         <AnimatePresence initial={false}>
           {isSidebarOpen && (
             <motion.aside
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 300, opacity: 1 }}
+              animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="flex-shrink-0 border-r border-[#eedcd5]/80 dark:border-slate-800 bg-[#fcf9f6] dark:bg-slate-900/60 overflow-hidden flex flex-col z-20"
+              className="flex-shrink-0 border-r border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl overflow-hidden flex flex-col z-20"
             >
-              <div className="w-[300px] h-full flex flex-col p-3.5 space-y-3 overflow-y-auto">
+              <div className="w-[320px] h-full flex flex-col p-4 space-y-3.5 overflow-y-auto">
                 {/* Category Header Card */}
-                <div className="rounded-2xl bg-[#fdf2f2] dark:bg-red-950/30 border border-[#f8dede] dark:border-red-900/40 p-3.5 flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-900 border border-[#f4dcd6] flex items-center justify-center text-xl font-black text-[#991b1b] shadow-2xs flex-shrink-0">
-                    {track === "zh" ? "学" : "EN"}
+                <div className="rounded-2xl bg-gradient-to-br from-indigo-50 via-purple-50/40 to-sky-50/60 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-slate-900 border border-indigo-200/70 dark:border-indigo-800/60 p-3.5 flex items-center gap-3 shadow-xs">
+                  <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-850 border border-indigo-200 dark:border-indigo-800/80 flex items-center justify-center p-1.5 shadow-xs flex-shrink-0">
+                    <Image
+                      src="/mascot-logo.png"
+                      alt="TranTech Talk Mascot"
+                      width={38}
+                      height={38}
+                      className="w-full h-full object-contain"
+                      unoptimized
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#991b1b]">
-                      {track === "zh" ? "学中文" : "TranTech Talk"}
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      TranTech Talk Studio
                     </div>
-                    <div className="text-sm font-extrabold text-[#2d2321] dark:text-slate-100 truncate font-heading">
-                      {track === "zh" ? "HSK 1+2" : "30 Ngày Call Khách"}
+                    <div className="text-sm font-extrabold text-foreground truncate font-heading">
+                      Lộ trình 30 Ngày Call Khách
                     </div>
                   </div>
                 </div>
 
-                {/* Accordion Item: Kiến thức bài học */}
+                {/* Accordion Item: Kiến thức 30 bài */}
                 <div className="space-y-1">
                   <button
                     onClick={() => setIsAccordionOpen(!isAccordionOpen)}
-                    className="w-full flex items-center justify-between p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-900 border border-[#eedcd5]/70 dark:border-slate-800 text-xs font-bold transition-all"
+                    className="w-full flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800 text-xs font-bold transition-all shadow-2xs"
                   >
-                    <div className="flex items-center gap-2 text-[#2d2321] dark:text-slate-200">
-                      <Folder className="w-4 h-4 text-[#991b1b]" />
-                      <span>{track === "zh" ? "Kiến thức HSK" : "Kiến thức Call Khách"}</span>
-                      <span className="text-[10px] text-[#78645e] font-normal">
-                        ({track === "zh" ? HSK_LESSONS_DATA.length : DAILY_ROADMAP_DATA.length} bài)
+                    <div className="flex items-center gap-2 text-foreground">
+                      <Folder className="w-4 h-4 text-indigo-500" />
+                      <span>Danh mục 30 ngày luyện Call</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        ({completedDays.length}/30 xong)
                       </span>
                     </div>
                     <ChevronRight
                       className={cn(
-                        "w-3.5 h-3.5 text-[#a08d87] transition-transform duration-200",
-                        isAccordionOpen && "rotate-90 text-[#991b1b]"
+                        "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200",
+                        isAccordionOpen && "rotate-90 text-indigo-500"
                       )}
                     />
                   </button>
@@ -439,81 +270,46 @@ function LessonsContent() {
                   {/* Sidebar Lesson Items List */}
                   {isAccordionOpen && (
                     <div className="space-y-1 pl-1 pt-1 max-h-[calc(100vh-250px)] overflow-y-auto pr-1">
-                      {track === "zh"
-                        ? filteredChineseLessons.map((l) => {
-                            const isSelected = selectedLessonId === l.id;
-                            return (
-                              <button
-                                key={l.id}
-                                onClick={() => selectLesson(l.id)}
-                                className={cn(
-                                  "w-full text-left p-2 rounded-xl text-xs flex items-center gap-2.5 transition-all",
-                                  isSelected
-                                    ? "bg-[#fdf0f0] dark:bg-red-950/50 border border-[#f5d5ce] dark:border-red-900/60 shadow-2xs"
-                                    : "hover:bg-white/80 dark:hover:bg-slate-900/80 text-[#5c4a45] dark:text-slate-300"
-                                )}
-                              >
-                                <span
-                                  className={cn(
-                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0",
-                                    isSelected
-                                      ? "bg-[#991b1b] text-white"
-                                      : "bg-[#fdf0f0] text-[#991b1b]"
-                                  )}
-                                >
-                                  {l.lessonNumber}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-bold text-[#2d2321] dark:text-slate-100 truncate">
-                                    {l.titleZh}
-                                  </div>
-                                  <div className="text-[10px] text-[#78645e] dark:text-slate-400 truncate italic">
-                                    {l.meaningVi}
-                                  </div>
-                                </div>
-                                <span className="text-[10px] text-[#a08d87] px-1.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-[#eedcd5]/60 flex-shrink-0">
-                                  0
-                                </span>
-                              </button>
-                            );
-                          })
-                        : filteredEnglishLessons.map((d) => {
-                            const isSelected = selectedLessonId === d.day;
-                            return (
-                              <button
-                                key={d.day}
-                                onClick={() => selectLesson(d.day)}
-                                className={cn(
-                                  "w-full text-left p-2 rounded-xl text-xs flex items-center gap-2.5 transition-all",
-                                  isSelected
-                                    ? "bg-[#fdf0f0] dark:bg-red-950/50 border border-[#f5d5ce] dark:border-red-900/60 shadow-2xs"
-                                    : "hover:bg-white/80 dark:hover:bg-slate-900/80 text-[#5c4a45] dark:text-slate-300"
-                                )}
-                              >
-                                <span
-                                  className={cn(
-                                    "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0",
-                                    isSelected
-                                      ? "bg-[#991b1b] text-white"
-                                      : "bg-[#fdf0f0] text-[#991b1b]"
-                                  )}
-                                >
-                                  {d.day}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-bold text-[#2d2321] dark:text-slate-100 truncate">
-                                    {d.title}
-                                  </div>
-                                  <div className="text-[10px] text-[#78645e] dark:text-slate-400 truncate italic">
-                                    {d.sprintBadge}
-                                  </div>
-                                </div>
-                                <span className="text-[10px] text-[#a08d87] px-1.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-[#eedcd5]/60 flex-shrink-0">
-                                  0
-                                </span>
-                              </button>
-                            );
-                          })}
+                      {filteredLessons.map((d) => {
+                        const isSelected = selectedDay === d.day;
+                        const isDone = completedDays.includes(d.day);
+                        return (
+                          <button
+                            key={d.day}
+                            onClick={() => selectDay(d.day)}
+                            className={cn(
+                              "w-full text-left p-2 rounded-xl text-xs flex items-center gap-2.5 transition-all select-none",
+                              isSelected
+                                ? "bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/90 dark:border-indigo-800/80 shadow-xs"
+                                : "hover:bg-slate-100/80 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-colors",
+                                isSelected
+                                  ? "bg-gradient-to-tr from-indigo-600 to-sky-500 text-white shadow-xs"
+                                  : isDone
+                                  ? "bg-emerald-500 text-white"
+                                  : "bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400"
+                              )}
+                            >
+                              {d.day}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-foreground truncate">
+                                {d.title}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate italic">
+                                {d.sprintBadge}
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700 flex-shrink-0 font-medium">
+                              {isDone ? "✓" : `0/${d.tasks.length}`}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -525,8 +321,8 @@ function LessonsContent() {
         {/* Floating Toggle Button On Sidebar Edge */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="absolute top-1/2 -translate-y-1/2 z-30 w-6 h-6 rounded-full bg-white dark:bg-slate-900 border border-[#eedcd5] dark:border-slate-800 shadow-md flex items-center justify-center text-[#78645e] hover:text-[#991b1b] transition-all"
-          style={{ left: isSidebarOpen ? "288px" : "8px" }}
+          className="absolute top-1/2 -translate-y-1/2 z-30 w-6 h-6 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md flex items-center justify-center text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all hover:scale-110"
+          style={{ left: isSidebarOpen ? "308px" : "8px" }}
           title={isSidebarOpen ? "Đóng thanh bên" : "Mở thanh bên"}
         >
           {isSidebarOpen ? (
@@ -537,285 +333,262 @@ function LessonsContent() {
         </button>
 
         {/* ======================================================== */}
-        {/* MAIN LESSONS GRID & DETAIL DRAWER                        */}
+        {/* 2. MAIN 2-COLUMN LESSON GRID & TASK DRAWER               */}
         {/* ======================================================== */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-6">
-          {/* Header Banner Card (Exactly as in screenshot) */}
-          <div className="rounded-3xl bg-white/95 dark:bg-slate-900/90 border border-[#eedcd5] dark:border-slate-800 p-6 sm:p-8 shadow-xs flex items-center gap-5 sm:gap-6">
-            <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-[#fdf0f0] dark:bg-red-950/40 border border-[#f5d5ce] dark:border-red-900/60 flex items-center justify-center text-3xl font-black text-[#991b1b] dark:text-red-400 shadow-2xs flex-shrink-0">
-              {track === "zh" ? "学" : "EN"}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-7 lg:p-8 space-y-6">
+          {/* Header Banner Card Styled in TranTech Talk Aesthetic */}
+          <div className="rounded-3xl bg-gradient-to-br from-white via-indigo-50/20 to-sky-50/30 dark:from-slate-900 dark:via-slate-900/95 dark:to-indigo-950/40 border border-slate-200/90 dark:border-slate-800 p-6 sm:p-8 shadow-[0_4px_30px_rgba(0,0,0,0.03),0_20px_40px_-20px_rgba(99,102,241,0.1)] flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-indigo-500/10 via-sky-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-center gap-5 sm:gap-6 relative z-10">
+              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white dark:bg-slate-850 border border-indigo-200/80 dark:border-indigo-800/80 flex items-center justify-center p-2 shadow-md shadow-indigo-500/15 flex-shrink-0">
+                <Image
+                  src="/mascot-logo.png"
+                  alt="TranTech Talk Mascot"
+                  width={56}
+                  height={56}
+                  className="w-full h-full object-contain"
+                  unoptimized
+                />
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold mb-1 border border-indigo-500/20">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Chương trình thực chiến Tech Lead
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground font-heading">
+                  Lộ trình 30 Ngày Call Khách
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  30 bài học thiết kế theo micro-learning 15 phút mỗi ngày · Chọn bài để bắt đầu luyện tập
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#2d2321] dark:text-slate-100 font-heading">
-                {track === "zh" ? "Kiến thức HSK 1+2" : "Kiến thức 30 Ngày Call Khách"}
-              </h1>
-              <p className="text-xs sm:text-sm text-[#78645e] dark:text-slate-400 mt-1">
-                {track === "zh"
-                  ? `${HSK_LESSONS_DATA.length} bài học · chọn một bài để bắt đầu`
-                  : `${DAILY_ROADMAP_DATA.length} bài học thực chiến · chọn một bài để bắt đầu`}
-              </p>
+
+            {/* Quick Completion Telemetry */}
+            <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-850/80 border border-slate-200/80 dark:border-slate-750 px-4 py-3 rounded-2xl backdrop-blur-md flex-shrink-0 shadow-xs relative z-10">
+              <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                <Flame className="w-5 h-5 fill-orange-500" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-foreground">
+                  {completedDays.length} / 30 Ngày
+                </div>
+                <div className="text-[10px] text-muted-foreground font-medium">
+                  Đã hoàn thành check-in
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 2-Column Grid of Lesson Cards */}
+          {/* 2-Column Grid of Lesson Cards Matching Reference Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {track === "zh"
-              ? filteredChineseLessons.map((l) => {
-                  const isSelected = selectedLessonId === l.id;
-                  return (
-                    <motion.div
-                      key={l.id}
-                      whileHover={{ y: -2 }}
-                      onClick={() => selectLesson(l.id)}
+            {filteredLessons.map((d) => {
+              const isSelected = selectedDay === d.day;
+              const isDone = completedDays.includes(d.day);
+              return (
+                <motion.div
+                  key={d.day}
+                  whileHover={{ y: -3 }}
+                  onClick={() => selectDay(d.day)}
+                  className={cn(
+                    "pro-card card-spring-hover p-4 sm:p-5 flex items-center justify-between cursor-pointer select-none transition-all duration-200",
+                    isSelected
+                      ? "border-2 border-indigo-500 dark:border-indigo-400 shadow-[0_8px_30px_rgba(99,102,241,0.22)] bg-gradient-to-r from-indigo-50/60 via-white to-sky-50/40 dark:from-indigo-950/50 dark:via-slate-900 dark:to-slate-900"
+                      : "hover:border-indigo-300 dark:hover:border-indigo-800 hover:shadow-md"
+                  )}
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    {/* Big Number Box (Left Side) */}
+                    <div
                       className={cn(
-                        "rounded-2xl transition-all duration-200 cursor-pointer p-4 sm:p-5 flex items-center justify-between group select-none",
+                        "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black flex-shrink-0 transition-all",
                         isSelected
-                          ? "bg-[#fffbfb] dark:bg-red-950/20 border-2 border-[#b91c1c] shadow-[0_4px_24px_rgba(185,28,28,0.18)]"
-                          : "bg-white/95 dark:bg-slate-900/90 border border-[#eedcd5] dark:border-slate-800 hover:border-[#d99f9f] hover:shadow-md"
+                          ? "bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-500 text-white shadow-md shadow-indigo-500/30 scale-102"
+                          : isDone
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                          : "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-900/60"
                       )}
                     >
-                      <div className="flex items-center gap-4 min-w-0">
-                        {/* Large Number Box on the left */}
-                        <div
-                          className={cn(
-                            "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black flex-shrink-0 transition-colors",
-                            isSelected
-                              ? "bg-[#991b1b] text-white shadow-md shadow-red-950/20"
-                              : "bg-[#fdf0f0] dark:bg-red-950/40 text-[#991b1b] dark:text-red-400"
-                          )}
-                        >
-                          {l.lessonNumber}
-                        </div>
+                      {d.day}
+                    </div>
 
-                        {/* Text Information */}
-                        <div className="min-w-0">
-                          <div className="text-[11px] font-bold uppercase tracking-wider text-[#b91c1c] mb-0.5">
-                            BÀI {l.lessonNumber}
-                          </div>
-                          <h3 className="text-base sm:text-lg font-bold text-[#2d2321] dark:text-slate-100 truncate">
-                            {l.titleZh}
-                          </h3>
-                          <div className="text-xs sm:text-sm text-[#78645e] dark:text-slate-400 truncate italic">
-                            {l.meaningVi}
-                          </div>
-                          <div className="text-[11px] text-[#a08d87] dark:text-slate-500 mt-1">
-                            0/{l.totalWords} thuộc
-                          </div>
-                        </div>
+                    {/* Card Content Information */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                          BÀI {d.day}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground px-2 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800">
+                          Sprint {d.sprint}
+                        </span>
                       </div>
+                      <h3 className="text-base sm:text-lg font-bold text-foreground truncate font-heading">
+                        {d.title}
+                      </h3>
+                      <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate italic">
+                        {d.objectiveVi}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-2">
+                        <span>{isDone ? "Đã check-in ✓" : `0/${d.tasks.length} nhiệm vụ`}</span>
+                        <span>·</span>
+                        <span className="truncate">{d.sprintBadge}</span>
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Right indicator: Arrow on selected card */}
-                      {isSelected ? (
-                        <div className="text-[#b91c1c] text-xl font-bold flex-shrink-0 pl-2">
-                          →
-                        </div>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            playSpeech(l.titleZh, "zh-CN");
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-[#78645e] hover:text-[#991b1b] hover:bg-[#fdf0f0] transition-all"
-                          title="Phát âm"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </motion.div>
-                  );
-                })
-              : filteredEnglishLessons.map((d) => {
-                  const isSelected = selectedLessonId === d.day;
-                  return (
-                    <motion.div
-                      key={d.day}
-                      whileHover={{ y: -2 }}
-                      onClick={() => selectLesson(d.day)}
-                      className={cn(
-                        "rounded-2xl transition-all duration-200 cursor-pointer p-4 sm:p-5 flex items-center justify-between group select-none",
-                        isSelected
-                          ? "bg-[#fffbfb] dark:bg-red-950/20 border-2 border-[#b91c1c] shadow-[0_4px_24px_rgba(185,28,28,0.18)]"
-                          : "bg-white/95 dark:bg-slate-900/90 border border-[#eedcd5] dark:border-slate-800 hover:border-[#d99f9f] hover:shadow-md"
-                      )}
+                  {/* Right Side Indicator */}
+                  {isSelected ? (
+                    <div className="text-indigo-600 dark:text-indigo-400 text-xl font-bold flex-shrink-0 pl-2">
+                      →
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playSpeech(d.title);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all"
+                      title="Nghe tiêu đề"
                     >
-                      <div className="flex items-center gap-4 min-w-0">
-                        {/* Large Number Box on the left */}
-                        <div
-                          className={cn(
-                            "w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black flex-shrink-0 transition-colors",
-                            isSelected
-                              ? "bg-[#991b1b] text-white shadow-md shadow-red-950/20"
-                              : "bg-[#fdf0f0] dark:bg-red-950/40 text-[#991b1b] dark:text-red-400"
-                          )}
-                        >
-                          {d.day}
-                        </div>
-
-                        {/* Text Information */}
-                        <div className="min-w-0">
-                          <div className="text-[11px] font-bold uppercase tracking-wider text-[#b91c1c] mb-0.5">
-                            BÀI {d.day}
-                          </div>
-                          <h3 className="text-base sm:text-lg font-bold text-[#2d2321] dark:text-slate-100 truncate font-heading">
-                            {d.title}
-                          </h3>
-                          <div className="text-xs sm:text-sm text-[#78645e] dark:text-slate-400 truncate italic">
-                            {d.objectiveVi}
-                          </div>
-                          <div className="text-[11px] text-[#a08d87] dark:text-slate-500 mt-1">
-                            0/{d.tasks.length} nhiệm vụ · {d.sprintBadge}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right indicator */}
-                      {isSelected ? (
-                        <div className="text-[#b91c1c] text-xl font-bold flex-shrink-0 pl-2">
-                          →
-                        </div>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            playSpeech(d.title, "en-US");
-                          }}
-                          className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-[#78645e] hover:text-[#991b1b] hover:bg-[#fdf0f0] transition-all"
-                          title="Phát âm"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </motion.div>
-                  );
-                })}
+                      <Volume2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* ======================================================== */}
-          {/* EXPANDED ACTIVE LESSON STUDY DRAWER                      */}
+          {/* 3. EXPANDED ACTIVE LESSON STUDY DRAWER                   */}
           {/* ======================================================== */}
-          {selectedLessonId && (
+          {selectedDay && (
             <motion.section
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8 rounded-3xl bg-white dark:bg-slate-900 border border-[#eedcd5] dark:border-slate-800 p-6 sm:p-8 shadow-lg space-y-6"
+              className="mt-8 rounded-3xl bg-white dark:bg-slate-900 border border-indigo-500/30 dark:border-indigo-900/50 p-6 sm:p-8 shadow-xl space-y-6"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#eedcd5]/70 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#991b1b] text-white flex items-center justify-center text-xl font-black">
-                    {selectedLessonId}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200/80 dark:border-slate-800">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white flex items-center justify-center text-xl font-black shadow-md shadow-indigo-500/25">
+                    {selectedDay}
                   </div>
                   <div>
-                    <div className="text-xs font-bold uppercase tracking-wider text-[#991b1b]">
-                      Chi tiết bài học {selectedLessonId}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                        Chi tiết bài học {selectedDay} · {activeLesson.sprintTitle}
+                      </span>
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-[#2d2321] dark:text-slate-100 font-heading">
-                      {track === "zh" ? activeZhLesson.titleZh : activeEnLesson.title}
+                    <h2 className="text-xl sm:text-2xl font-bold text-foreground font-heading">
+                      {activeLesson.title}
                     </h2>
-                    <p className="text-xs text-[#78645e] dark:text-slate-400 italic">
-                      {track === "zh" ? activeZhLesson.meaningVi : activeEnLesson.objectiveVi}
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 italic">
+                      Mục tiêu: {activeLesson.objectiveVi}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Button
-                    onClick={() => {
-                      if (track === "zh") {
-                        playSpeech(activeZhLesson.titleZh, "zh-CN");
-                      } else {
-                        playSpeech(activeEnLesson.title, "en-US");
-                      }
-                    }}
+                    onClick={() => playSpeech(activeLesson.title)}
                     variant="outline"
                     size="sm"
-                    className="rounded-xl border-[#eedcd5] text-[#991b1b] font-semibold gap-1.5"
+                    className="rounded-xl border-slate-200 dark:border-slate-800 text-foreground font-semibold gap-1.5"
                   >
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className="w-4 h-4 text-indigo-500" />
                     Nghe mẫu
+                  </Button>
+
+                  <Button
+                    onClick={() => toggleDayCompletion(selectedDay)}
+                    className={cn(
+                      "rounded-xl text-xs font-bold gap-1.5 transition-all",
+                      completedDays.includes(selectedDay)
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/25"
+                    )}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {completedDays.includes(selectedDay) ? "Đã hoàn thành bài này" : "Đánh dấu hoàn thành (+50 XP)"}
                   </Button>
                 </div>
               </div>
 
-              {/* Tasks List for the Active Lesson */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#78645e]">
-                  Nhiệm vụ rèn luyện bài này
-                </h4>
+              {/* Tasks List for the Active Day */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-indigo-500" />
+                    3 Micro-Tasks cho buổi luyện 15 phút hôm nay
+                  </h4>
+                  <span className="text-xs text-sky-600 dark:text-sky-400 font-semibold">
+                    {activeLesson.targetCallSituation}
+                  </span>
+                </div>
 
-                {track === "zh" ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {activeZhLesson.tasks.map((task, idx) => (
-                      <div
-                        key={task.id}
-                        className="p-4 rounded-2xl bg-[#fcf9f6] dark:bg-slate-850 border border-[#eedcd5]/80 dark:border-slate-800 space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#991b1b]">
-                            Phần {idx + 1}: {task.title}
+                <div className="space-y-3.5">
+                  {activeLesson.tasks.map((t, idx) => (
+                    <div
+                      key={t.id}
+                      className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-850/80 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-indigo-400/50 transition-colors"
+                    >
+                      <div className="space-y-2 max-w-2xl">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                            Nhiệm vụ {idx + 1} · {t.duration}
                           </span>
-                          <button
-                            onClick={() => playSpeech(task.detail, "zh-CN")}
-                            className="p-1 rounded text-[#78645e] hover:text-[#991b1b]"
-                          >
-                            <Volume2 className="w-4 h-4" />
-                          </button>
+                          <span className="text-xs font-bold text-foreground">
+                            {t.title}
+                          </span>
                         </div>
-                        <div className="text-base font-bold text-[#2d2321] dark:text-slate-100">
-                          {task.detail}
-                        </div>
-                        {task.pinyin && (
-                          <div className="text-xs text-[#991b1b] font-mono">{task.pinyin}</div>
-                        )}
-                        {task.meaning && (
-                          <div className="text-xs text-[#78645e] italic">{task.meaning}</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {activeEnLesson.tasks.map((t, idx) => (
-                      <div
-                        key={t.id}
-                        className="p-4 sm:p-5 rounded-2xl bg-[#fcf9f6] dark:bg-slate-850 border border-[#eedcd5]/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                      >
-                        <div className="space-y-1.5 max-w-xl">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#fdf0f0] text-[#991b1b]">
-                              Nhiệm vụ {idx + 1} · {t.duration}
-                            </span>
-                            <span className="text-xs font-semibold text-[#2d2321] dark:text-slate-200">
-                              {t.title}
-                            </span>
-                          </div>
-                          <p className="text-xs text-[#78645e] dark:text-slate-400">
-                            {t.description}
-                          </p>
-                          {t.keyPhrase && (
-                            <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-[#eedcd5]/60 text-xs font-mono text-[#991b1b] flex items-center justify-between gap-2">
-                              <span>{t.keyPhrase}</span>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                          {t.description}
+                        </p>
+                        {t.keyPhrase && (
+                          <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-750 text-xs text-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs">
+                            <div className="space-y-0.5 min-w-0">
+                              <div className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                                “{t.keyPhrase}”
+                              </div>
+                              {t.keyPhraseVi && (
+                                <div className="text-[11px] text-muted-foreground italic">
+                                  {t.keyPhraseVi}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
                               <button
-                                onClick={() => {
-                                  playSpeech(t.keyPhrase || "");
-                                }}
-                                className="p-1 hover:text-[#991b1b]"
+                                onClick={() => playSpeech(t.keyPhrase || "")}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 transition-colors"
+                                title="Phát âm câu"
                               >
-                                <Volume2 className="w-3.5 h-3.5" />
+                                <Volume2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => copyText(t.keyPhrase || "", t.id)}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 transition-colors"
+                                title="Sao chép"
+                              >
+                                {copiedId === t.id ? (
+                                  <Check className="w-4 h-4 text-emerald-500" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
                               </button>
                             </div>
-                          )}
-                        </div>
-
-                        <Link href={t.actionHref}>
-                          <Button className="bg-[#991b1b] hover:bg-[#831717] text-white text-xs font-bold rounded-xl gap-1.5 flex-shrink-0 shadow-sm">
-                            {t.actionLabel}
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </Button>
-                        </Link>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+
+                      <Link href={t.actionHref} className="flex-shrink-0">
+                        <Button className="bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl gap-1.5 shadow-md shadow-indigo-500/20 hover:scale-102 transition-all">
+                          {t.actionLabel}
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.section>
           )}
@@ -829,8 +602,9 @@ export default function LessonsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#fcf9f5] flex items-center justify-center text-[#991b1b] font-bold text-sm">
-          Đang tải phòng học...
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+          <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+          <span>Đang nạp không gian bài học...</span>
         </div>
       }
     >
