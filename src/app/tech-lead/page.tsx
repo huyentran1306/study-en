@@ -844,7 +844,7 @@ export default function TechLeadPage() {
                 ].map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => setActiveSprintFilter(s.id as any)}
+                    onClick={() => setActiveSprintFilter(s.id as number)}
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all",
                       activeSprintFilter === s.id

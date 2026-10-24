@@ -37,12 +37,17 @@ function AppContent({ children }: { children: ReactNode }) {
   const { onboardingComplete, isAuthenticated, authLoading, authLoginUser, authRegisterUser } = useGame();
   const { current: currentAchievement, dismiss } = useAchievementToastManager();
   const pathname = usePathname();
-  const [guestMode, setGuestMode] = useState(false);
+  const [guestMode, setGuestMode] = useState(true);
 
   // Load guest mode from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setGuestMode(!!localStorage.getItem('studyen-guest-mode'));
+      const stored = localStorage.getItem('studyen-guest-mode');
+      if (stored === '0') {
+        setGuestMode(false);
+      } else {
+        setGuestMode(true);
+      }
     }
   }, []);
 
@@ -76,7 +81,7 @@ function AppContent({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!onboardingComplete) {
+  if (!onboardingComplete && !guestMode) {
     return <OnboardingFlow />;
   }
 
