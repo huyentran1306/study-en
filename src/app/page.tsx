@@ -206,26 +206,26 @@ export default function Home() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.1 }}
-        className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-indigo-500/40 p-6 sm:p-8 shadow-2xl text-white relative overflow-hidden"
+        className="rounded-3xl bg-gradient-to-br from-indigo-50/90 via-white to-sky-50/80 dark:from-slate-900 dark:via-slate-900/95 dark:to-indigo-950/60 border border-indigo-200/90 dark:border-indigo-800/70 p-6 sm:p-8 shadow-xl text-foreground relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-80 h-80 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 dark:bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-sky-500/10 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/30 border border-indigo-400/50 text-xs font-bold text-indigo-200">
-                <Calendar className="w-3.5 h-3.5 text-sky-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/25 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                <Calendar className="w-3.5 h-3.5 text-indigo-500 dark:text-sky-400" />
                 Lộ trình 30 Ngày Call Khách · 15 phút mỗi ngày
               </span>
-              <span className="text-xs text-sky-300 font-semibold px-2 py-0.5 rounded bg-sky-500/10 border border-sky-400/20">
+              <span className="text-xs text-sky-600 dark:text-sky-400 font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-400/20">
                 Dành riêng cho Lead & Architect
               </span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white font-heading">
+            <h3 className="text-xl sm:text-2xl font-black tracking-tight text-foreground font-heading">
               Chuẩn bị phản xạ trước giờ Call với Khách Nước Ngoài
             </h3>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               Xóa bỏ 3 giây dịch nhẩm tiếng Việt trong đầu. Rèn luyện 15 phút hôm nay với 3 micro-tasks: Mẫu câu mở đầu, Shadowing nhịp thở tự nhiên và mô phỏng phản biện với AI CTO.
             </p>
           </div>
@@ -239,9 +239,9 @@ export default function Home() {
             <Link href="/tech-lead?tab=assessment">
               <Button
                 variant="outline"
-                className="rounded-xl border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-semibold px-4 py-3 text-xs sm:text-sm gap-1.5 hover:scale-102 transition-all"
+                className="rounded-xl border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground font-semibold px-4 py-3 text-xs sm:text-sm gap-1.5 hover:scale-102 transition-all shadow-xs"
               >
-                <BarChart3 className="w-4 h-4 text-sky-400" />
+                <BarChart3 className="w-4 h-4 text-sky-500" />
                 Nhật ký Call & Đánh giá
               </Button>
             </Link>

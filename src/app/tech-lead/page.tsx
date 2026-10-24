@@ -549,26 +549,26 @@ export default function TechLeadPage() {
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-indigo-900/50 p-6 sm:p-10 shadow-2xl text-white"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50/25 to-sky-50/35 dark:from-slate-900 dark:via-slate-900/95 dark:to-indigo-950/40 border border-slate-200/90 dark:border-slate-800 p-6 sm:p-10 shadow-[0_4px_30px_rgba(0,0,0,0.03),0_20px_40px_-20px_rgba(99,102,241,0.12)] text-foreground"
       >
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
           <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-xs font-semibold text-indigo-300">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/20 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-300" />
               <span>Chương trình chuyên biệt cho Trân · Tech Lead & Solution Architect</span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight font-heading">
               Tech Lead Client Call{" "}
-              <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 dark:from-sky-400 dark:via-indigo-300 dark:to-pink-400 bg-clip-text text-transparent">
                 Fluency Suite
               </span>
             </h1>
 
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed">
               Giải pháp thực chiến xóa tan cảm giác lúng túng khi call với khách nước ngoài. Lộ trình micro-learning 15 phút mỗi ngày, nhật ký tự rút kinh nghiệm sau mỗi buổi họp và bộ phản xạ bảo vệ kiến trúc tự tin.
             </p>
 
@@ -586,35 +586,35 @@ export default function TechLeadPage() {
                     document.getElementById("today-mission-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }, 50);
                 }}
-                className="bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-2.5 rounded-xl border border-white/15 backdrop-blur-md shadow-md text-xs sm:text-sm gap-2 transition-all"
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white font-bold px-5 py-2.5 rounded-xl border border-slate-200/80 dark:border-white/15 backdrop-blur-md shadow-xs text-xs sm:text-sm gap-2 transition-all"
               >
-                <Calendar className="w-4 h-4 text-indigo-300" />
+                <Calendar className="w-4 h-4 text-indigo-500 dark:text-indigo-300" />
                 Lộ trình 30 Ngày hôm nay
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setActiveTab("assessment")}
-                className="rounded-xl border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold px-4 py-2.5 text-xs sm:text-sm gap-2"
+                className="rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground font-semibold px-4 py-2.5 text-xs sm:text-sm gap-2 shadow-xs"
               >
-                <BarChart3 className="w-4 h-4 text-sky-400" />
+                <BarChart3 className="w-4 h-4 text-sky-500" />
                 Đánh giá lưu loát & Nhật ký Call
               </Button>
             </div>
           </div>
 
           {/* TELEMETRY KPI CARD */}
-          <div className="w-full lg:w-80 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/15 p-5 space-y-4">
+          <div className="w-full lg:w-80 rounded-2xl bg-white/90 dark:bg-slate-850/80 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 p-5 space-y-4 shadow-lg text-foreground">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Tiến độ 30 Ngày Sprint</span>
-              <span className="text-xs font-bold text-sky-400">{completedDays.length} / 30 Ngày</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tiến độ 30 Ngày Sprint</span>
+              <span className="text-xs font-bold text-sky-600 dark:text-sky-400">{completedDays.length} / 30 Ngày</span>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-semibold">
-                <span className="text-white">Hoàn thành Sprint</span>
-                <span className="text-sky-300 font-bold">{daysPercent}%</span>
+                <span className="text-foreground">Hoàn thành Sprint</span>
+                <span className="text-indigo-600 dark:text-sky-300 font-bold">{daysPercent}%</span>
               </div>
-              <div className="h-2.5 w-full rounded-full bg-slate-800 overflow-hidden border border-slate-700/60">
+              <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200/80 dark:border-slate-700/60">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${daysPercent}%` }}
@@ -708,33 +708,33 @@ export default function TechLeadPage() {
       {activeTab === "daily" && (
         <div className="space-y-8">
           {/* TODAY'S SPOTLIGHT FOCUS CARD */}
-          <section id="today-mission-section" className="rounded-3xl bg-gradient-to-br from-indigo-900/90 via-slate-900 to-slate-950 border border-indigo-700/50 p-6 sm:p-8 text-white shadow-xl relative overflow-hidden scroll-mt-24">
+          <section id="today-mission-section" className="rounded-3xl bg-gradient-to-br from-white via-indigo-50/25 to-sky-50/35 dark:from-slate-900 dark:via-slate-900/95 dark:to-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/70 p-6 sm:p-8 text-foreground shadow-xl relative overflow-hidden scroll-mt-24">
             <div className="absolute top-0 right-0 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
               <div className="space-y-3 max-w-2xl">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-3 py-1 rounded-lg bg-indigo-500/30 border border-indigo-400/40 text-xs font-bold text-indigo-300">
+                  <span className="px-3 py-1 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/25 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                     Hôm nay của bạn · Ngày {selectedDayData.day} / 30
                   </span>
-                  <span className="text-xs text-sky-300 font-medium">{selectedDayData.sprintBadge}</span>
+                  <span className="text-xs text-sky-600 dark:text-sky-300 font-medium">{selectedDayData.sprintBadge}</span>
                   {completedDays.includes(selectedDayData.day) && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Đã hoàn thành
                     </span>
                   )}
                 </div>
 
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight font-heading">
                   {selectedDayData.title}
                 </h2>
 
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  <strong className="text-indigo-300 font-semibold">Tình huống thực tế: </strong>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <strong className="text-indigo-600 dark:text-indigo-300 font-semibold">Tình huống thực tế: </strong>
                   {selectedDayData.targetCallSituation}
                 </p>
 
-                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   {selectedDayData.objectiveVi}
                 </p>
               </div>
@@ -760,22 +760,22 @@ export default function TechLeadPage() {
                     </>
                   )}
                 </Button>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-muted-foreground">
                   {completedDays.includes(selectedDayData.day) ? "Click để hủy đánh dấu nếu cần" : "Mỗi ngày 15 phút đều đặn tạo nên sự lưu loát"}
                 </span>
               </div>
             </div>
 
             {/* 3 Micro-tasks for the selected day */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-indigo-800/50 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-200/80 dark:border-indigo-800/50 relative z-10">
               {selectedDayData.tasks.map((task, tIdx) => (
                 <div
                   key={task.id}
-                  className="rounded-2xl bg-slate-900/80 border border-indigo-900/60 p-4 flex flex-col justify-between space-y-3 hover:border-indigo-400/50 transition-all"
+                  className="rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-indigo-900/60 p-4 flex flex-col justify-between space-y-3 hover:border-indigo-400/50 transition-all shadow-xs"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300">
                         Nhiệm vụ {tIdx + 1} · {task.duration}
                       </span>
                       <span className="text-[11px] text-slate-400 uppercase font-semibold">
@@ -783,9 +783,9 @@ export default function TechLeadPage() {
                       </span>
                     </div>
 
-                    <h4 className="text-xs sm:text-sm font-bold text-white">{task.title}</h4>
+                    <h4 className="text-xs sm:text-sm font-bold text-foreground font-heading">{task.title}</h4>
 
-                    <p className="text-xs text-slate-300 leading-relaxed">{task.description}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{task.description}</p>
 
                     {/* Key phrase if present */}
                     {task.keyPhrase && (
