@@ -77,7 +77,7 @@ export function BrandLogo({
         </span>
 
         {showBadge && (
-          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-950/50 dark:to-pink-950/50 text-rose-600 dark:text-rose-300 border border-rose-200/70 dark:border-rose-800/60 shadow-xs">
+          <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-rose-50 to-pink-50 dark:from-rose-950/50 dark:to-pink-950/50 text-rose-600 dark:text-rose-300 border border-rose-200/70 dark:border-rose-800/60 shadow-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
             Studio
           </span>

@@ -258,23 +258,23 @@ export function Navbar() {
 
         {/* Center: Curated Streamlined Desktop Menu (Single Line, No Wrapping) */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 flex-1 justify-center max-w-2xl px-2">
-          {/* Lessons Bento Grid Flagship Button */}
+          {/* Lessons Flagship Button */}
           <Link href="/lessons" className="flex-shrink-0">
             <button
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
                 isLessonsActive
-                  ? "bg-[#991b1b] text-white font-bold shadow-xs"
-                  : "bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 border border-red-200/60 dark:border-red-800/60"
+                  ? "bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-bold shadow-sm shadow-indigo-500/20"
+                  : "text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40"
               )}
             >
-              <BookOpen className="w-3.5 h-3.5" />
+              <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>Bài học</span>
               <span className={cn(
-                "text-[9px] px-1.5 py-0.2 rounded font-black",
-                isLessonsActive ? "bg-white text-[#991b1b]" : "bg-[#991b1b] text-white"
+                "text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide",
+                isLessonsActive ? "bg-white text-indigo-600" : "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
               )}>
-                HOT
+                30D
               </span>
             </button>
           </Link>
@@ -285,15 +285,15 @@ export function Navbar() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
                 isTechLeadActive
-                  ? "bg-indigo-600 text-white font-bold shadow-xs"
-                  : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 border border-indigo-200/60 dark:border-indigo-800/60"
+                  ? "bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/20"
+                  : "text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-850"
               )}
             >
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-              <span>Tech Lead 90D</span>
+              <span>Tech Lead</span>
               <span className={cn(
-                "text-[9px] px-1.5 py-0.2 rounded font-black",
-                isTechLeadActive ? "bg-white text-indigo-600" : "bg-indigo-600 text-white"
+                "text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide",
+                isTechLeadActive ? "bg-white text-indigo-600" : "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
               )}>
                 PRO
               </span>
@@ -380,29 +380,21 @@ export function Navbar() {
                 if (next) soundFX.open();
                 profileDropdown.setOpen(next);
               }}
-              className="flex flex-col items-center bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 py-1 transition-all text-xs font-semibold select-none group"
+              className="flex items-center gap-2 h-9 bg-slate-100/90 dark:bg-slate-900/90 hover:bg-slate-200/80 dark:hover:bg-slate-850 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 transition-all text-xs font-semibold select-none group shadow-2xs"
             >
-              <div className="flex items-center gap-2 h-7">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-rose-400 via-pink-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-black shadow-xs flex-shrink-0 group-hover:shadow-md group-hover:shadow-pink-500/20 transition-shadow">
-                  {username?.[0]?.toUpperCase() || "T"}
-                </div>
-                <span className="max-w-[70px] truncate font-bold text-foreground">{username || "Trân"}</span>
-                <ChevronDown
-                  className={cn(
-                    "h-3 w-3 text-slate-400 transition-transform duration-200",
-                    profileDropdown.open && "rotate-180"
-                  )}
-                />
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400 flex items-center justify-center text-white text-[11px] font-black shadow-xs flex-shrink-0">
+                {username?.[0]?.toUpperCase() || "T"}
               </div>
-              {/* XP Micro Progress Bar */}
-              <div className="w-full h-1 bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden mt-0.5">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-sky-400 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, Math.max(2, xpProgress))}%` }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                />
-              </div>
+              <span className="max-w-[70px] truncate font-bold text-foreground">{username || "Trân"}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+                Lv.{level}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-3 w-3 text-slate-400 transition-transform duration-200",
+                  profileDropdown.open && "rotate-180"
+                )}
+              />
             </button>
 
             <AnimatePresence>

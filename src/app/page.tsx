@@ -136,9 +136,9 @@ export default function Home() {
             {/* Quick Action CTA Bar */}
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <Link href="/lessons">
-                <Button className="bg-[#991b1b] hover:bg-[#831717] text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold gap-2 shadow-lg shadow-red-950/20 hover:shadow-red-950/35 transition-all hover:scale-102">
-                  <BookOpen className="w-4 h-4 text-red-200" />
-                  Kho Bài Học (2 Cột xịn)
+                <Button className="bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold gap-2 shadow-lg shadow-indigo-500/25 transition-all hover:scale-102 border border-indigo-400/30">
+                  <BookOpen className="w-4 h-4 text-sky-200" />
+                  Kho Bài Học 30 Ngày
                 </Button>
               </Link>
               <Link href="/tech-lead">
@@ -231,9 +231,9 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
             <Link href="/lessons">
-              <Button className="bg-[#991b1b] hover:bg-[#831717] text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm gap-2 shadow-lg shadow-red-950/30 hover:scale-102 transition-all">
-                <CheckSquare className="w-4 h-4" />
-                Vào 30 Ngày Call Khách (2 Cột xịn)
+              <Button className="bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white font-bold px-5 py-3 rounded-xl text-xs sm:text-sm gap-2 shadow-lg shadow-indigo-500/30 hover:scale-102 transition-all border border-indigo-400/30">
+                <CheckSquare className="w-4 h-4 text-sky-200" />
+                Vào Lộ trình 30 Ngày Call Khách
               </Button>
             </Link>
             <Link href="/tech-lead?tab=assessment">

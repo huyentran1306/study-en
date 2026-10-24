@@ -574,17 +574,22 @@ export default function TechLeadPage() {
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link href="/lessons">
-                <Button className="bg-[#991b1b] hover:bg-[#831717] text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/25 text-xs sm:text-sm gap-2 transition-all hover:scale-102">
-                  <BookOpen className="w-4 h-4 text-red-200" />
-                  Mở Kho Bài Học (2 Cột xịn)
+                <Button className="bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-500/25 text-xs sm:text-sm gap-2 transition-all hover:scale-102 border border-indigo-400/30">
+                  <BookOpen className="w-4 h-4 text-sky-200" />
+                  Kho Bài Học 30 Ngày
                 </Button>
               </Link>
               <Button
-                onClick={() => setActiveTab("daily")}
-                className="bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-500/25 text-xs sm:text-sm gap-2"
+                onClick={() => {
+                  setActiveTab("daily");
+                  setTimeout(() => {
+                    document.getElementById("today-mission-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 50);
+                }}
+                className="bg-white/10 hover:bg-white/20 text-white font-bold px-5 py-2.5 rounded-xl border border-white/15 backdrop-blur-md shadow-md text-xs sm:text-sm gap-2 transition-all"
               >
-                <Calendar className="w-4 h-4" />
-                Vào Lộ trình 30 Ngày hôm nay
+                <Calendar className="w-4 h-4 text-indigo-300" />
+                Lộ trình 30 Ngày hôm nay
               </Button>
               <Button
                 variant="outline"
@@ -592,7 +597,7 @@ export default function TechLeadPage() {
                 className="rounded-xl border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold px-4 py-2.5 text-xs sm:text-sm gap-2"
               >
                 <BarChart3 className="w-4 h-4 text-sky-400" />
-                Đánh giá độ lưu loát & Nhật ký Call
+                Đánh giá lưu loát & Nhật ký Call
               </Button>
             </div>
           </div>
