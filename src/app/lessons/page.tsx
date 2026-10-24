@@ -67,6 +67,12 @@ function LessonsContent() {
       const num = parseInt(openParam, 10);
       if (!isNaN(num) && num >= 1 && num <= 30) {
         setSelectedDay(num);
+        setTimeout(() => {
+          const el = document.getElementById("lesson-detail-drawer");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 200);
       }
     }
   }, [searchParams]);
@@ -128,6 +134,12 @@ function LessonsContent() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("open", dayNum.toString());
     router.replace(`/lessons?${params.toString()}`, { scroll: false });
+    setTimeout(() => {
+      const el = document.getElementById("lesson-detail-drawer");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 80);
   };
 
   return (
@@ -437,23 +449,37 @@ function LessonsContent() {
                     </div>
                   </div>
 
-                  {/* Right Side Indicator */}
-                  {isSelected ? (
-                    <div className="text-indigo-600 dark:text-indigo-400 text-xl font-bold flex-shrink-0 pl-2">
-                      →
-                    </div>
-                  ) : (
+                  {/* Right Side Action Buttons */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         playSpeech(d.title);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all"
+                      className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all"
                       title="Nghe tiêu đề"
                     >
                       <Volume2 className="w-4 h-4" />
                     </button>
-                  )}
+
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectDay(d.day);
+                      }}
+                      className={cn(
+                        "rounded-xl text-xs font-bold px-3 py-1.5 transition-all gap-1 shadow-xs",
+                        isSelected
+                          ? "bg-indigo-600 text-white shadow-indigo-500/20"
+                          : "bg-slate-100 hover:bg-indigo-600 hover:text-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      )}
+                    >
+                      <span>{isSelected ? "Đang học" : "Vào bài học"}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </motion.div>
               );
             })}
@@ -464,9 +490,10 @@ function LessonsContent() {
           {/* ======================================================== */}
           {selectedDay && (
             <motion.section
+              id="lesson-detail-drawer"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8 rounded-3xl bg-white dark:bg-slate-900 border border-indigo-500/30 dark:border-indigo-900/50 p-6 sm:p-8 shadow-xl space-y-6"
+              className="mt-8 rounded-3xl bg-white dark:bg-slate-900 border-2 border-indigo-500/50 dark:border-indigo-600/60 p-6 sm:p-8 shadow-2xl space-y-6 scroll-mt-24 ring-4 ring-indigo-500/10"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200/80 dark:border-slate-800">
                 <div className="flex items-center gap-3.5">

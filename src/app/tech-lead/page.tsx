@@ -703,7 +703,7 @@ export default function TechLeadPage() {
       {activeTab === "daily" && (
         <div className="space-y-8">
           {/* TODAY'S SPOTLIGHT FOCUS CARD */}
-          <section className="rounded-3xl bg-gradient-to-br from-indigo-900/90 via-slate-900 to-slate-950 border border-indigo-700/50 p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+          <section id="today-mission-section" className="rounded-3xl bg-gradient-to-br from-indigo-900/90 via-slate-900 to-slate-950 border border-indigo-700/50 p-6 sm:p-8 text-white shadow-xl relative overflow-hidden scroll-mt-24">
             <div className="absolute top-0 right-0 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
@@ -873,9 +873,15 @@ export default function TechLeadPage() {
                 return (
                   <div
                     key={dayItem.day}
-                    onClick={() => setSelectedDayNumber(dayItem.day)}
+                    onClick={() => {
+                      setSelectedDayNumber(dayItem.day);
+                      const el = document.getElementById("today-mission-section");
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }
+                    }}
                     className={cn(
-                      "rounded-2xl border p-4 cursor-pointer transition-all flex flex-col justify-between space-y-3 relative overflow-hidden",
+                      "rounded-2xl border p-4 cursor-pointer transition-all flex flex-col justify-between space-y-3 relative overflow-hidden group",
                       isSelected && "ring-2 ring-indigo-500 shadow-md",
                       isCompleted
                         ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/80"
@@ -922,7 +928,7 @@ export default function TechLeadPage() {
                         </button>
                       </div>
 
-                      <h4 className="text-xs sm:text-sm font-bold text-foreground line-clamp-1">
+                      <h4 className="text-xs sm:text-sm font-bold text-foreground line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {dayItem.title}
                       </h4>
 
@@ -931,13 +937,22 @@ export default function TechLeadPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-                      <span className="text-indigo-600 dark:text-indigo-400 font-medium">
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] gap-2">
+                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">
                         {dayItem.tasks.length} bài tập (15p)
                       </span>
-                      <span className="text-slate-400 hover:text-foreground font-semibold flex items-center gap-0.5">
-                        {isSelected ? "Đang chọn" : "Xem chi tiết"} &rarr;
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-400 hover:text-foreground font-semibold flex items-center gap-0.5 text-[11px]">
+                          {isSelected ? "Đang chọn" : "Chi tiết"}
+                        </span>
+                        <Link
+                          href={`/lessons?open=${dayItem.day}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition-all shadow-xs hover:scale-105"
+                        >
+                          Vào học &rarr;
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );
