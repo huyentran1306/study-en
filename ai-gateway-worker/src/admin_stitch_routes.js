@@ -170,7 +170,7 @@ export async function handleAdminStitchRoutes(request, env, ctx, pathname, metho
 
   // Mở khoá bằng PIN (POST /api/v1/admin/auth/unlock)
   if (pathname === "/api/v1/admin/auth/unlock" && method === "POST") {
-    if (!adminSession || !adminSession.token_hash) {
+    if (!adminSession) {
       return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu đăng nhập quản trị" } }, 401, corsHeaders);
     }
 

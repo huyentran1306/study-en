@@ -127,6 +127,7 @@ export async function authenticateAdmin(request, env) {
       member_id: "adm_superadmin_01",
       role: "superadmin",
       email: "admin@kemconhoc.vn",
+      token_hash: "master_secret_session_token",
     };
   }
 
