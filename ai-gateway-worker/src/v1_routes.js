@@ -180,9 +180,15 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
   // ==========================================================
   if (pathname === "/api/v1/config/public" && method === "GET") {
     try {
-      const keys = ["team_prompts_sync:v1", "prompt_studio:ai_config", "app_config:scope_rules"];
+      const keys = [
+        "team_prompts_sync:v1",
+        "prompt_studio:ai_config",
+        "app_config:scope_rules",
+        "app_config:themes",
+        "app_config%3Athemes",
+      ];
       const rows = await env.DB.prepare(`
-        SELECT key, value FROM _kv_store WHERE key IN (?, ?, ?)
+        SELECT key, value FROM _kv_store WHERE key IN (?, ?, ?, ?, ?)
       `).bind(...keys).all();
 
       const configMap = {};
@@ -194,12 +200,15 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
         }
       }
 
+      const themesConfig = configMap["app_config:themes"] || configMap["app_config%3Athemes"] || null;
+
       return jsonResponse(
         {
           ok: true,
           prompts: configMap["team_prompts_sync:v1"] || null,
           aiConfig: configMap["prompt_studio:ai_config"] || null,
           scopeRules: configMap["app_config:scope_rules"] || null,
+          themesConfig,
           serverTime: new Date().toISOString(),
         },
         200,
