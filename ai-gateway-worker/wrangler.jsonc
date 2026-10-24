@@ -10,22 +10,13 @@
     {
       "binding": "DB",
       "database_name": "ai-gateway-db",
-      "database_id": "4e532c0d-ca33-49ac-83a5-a2be4f671c19"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "IMAGES",
-      "bucket_name": "ai-gateway-images"
-    }
-  ],
-  "vectorize": [
-    {
-      "binding": "VECTORIZE",
-      "index_name": "ai-search-index"
+      "database_id": "76611f4f-2e43-4dbb-b36c-858ff81298a3"
     }
   ],
   "observability": {
     "enabled": true
+  },
+  "triggers": {
+    "crons": ["0 3 * * *"]
   }
 }

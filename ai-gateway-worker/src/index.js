@@ -30,12 +30,23 @@
  *    - POST /db/query | POST /db/execute | GET /db/kv/:key | POST /db/kv/:key
  */
 
+import { handleV1Route, jsonResponse as v1JsonResponse } from "./v1_routes.js";
+
 export default {
   async fetch(request, env, ctx) {
+    const origin = request.headers.get("Origin") || "";
+    const isAllowedOrigin =
+      !origin ||
+      origin === "https://kem-con-hoc-5xf.pages.dev" ||
+      /^https:\/\/[a-z0-9-]+\.kem-con-hoc-5xf\.pages\.dev$/.test(origin) ||
+      origin === "http://localhost:5173" ||
+      origin === "http://localhost:3000";
+
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Origin": isAllowedOrigin && origin ? origin : "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id",
+      "Access-Control-Max-Age": "86400",
     };
 
     if (request.method === "OPTIONS") {
@@ -44,6 +55,14 @@ export default {
 
     const url = new URL(request.url);
     const pathname = url.pathname;
+
+    // =====================================================================
+    // 0. 🔐 API V1 PLATFORM ROUTES (Prompt 00: Auth, RBAC, Sessions, State)
+    // =====================================================================
+    if (pathname.startsWith("/api/v1/")) {
+      const v1Res = await handleV1Route(request, env, ctx, pathname, corsHeaders);
+      if (v1Res) return v1Res;
+    }
 
     try {
       // =====================================================================
@@ -245,16 +264,34 @@ export default {
         const imageUrl = `${url.origin}/images/${fileId}`;
 
         let aiAnalysis = "";
-        try {
-          const visionResponse = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
-            prompt: `${prompt}\n(Vui lòng trả lời bằng tiếng Việt thân thiện, tâm lý, xúc tích và rõ ràng).`,
+        const runVision = async (textPrompt) => {
+          return await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+            prompt: textPrompt,
             image: [...imageBytes],
             max_tokens: 600,
             temperature: 0.2,
           });
+        };
+
+        try {
+          const finalPrompt = prompt.trim().toLowerCase() === "agree"
+            ? "agree"
+            : `${prompt}\n(Vui lòng trả lời bằng tiếng Việt thân thiện, tâm lý, xúc tích và rõ ràng).`;
+          const visionResponse = await runVision(finalPrompt);
           aiAnalysis = visionResponse.response || visionResponse.description || "";
         } catch (visionErr) {
-          aiAnalysis = `Không thể phân tích ảnh qua Vision AI: ${visionErr.message}`;
+          if (visionErr.message && visionErr.message.includes("5016")) {
+            try {
+              // Tự động chấp nhận Meta Llama License
+              await runVision("agree");
+              const retryVision = await runVision(`${prompt}\n(Vui lòng trả lời bằng tiếng Việt thân thiện, tâm lý, xúc tích và rõ ràng).`);
+              aiAnalysis = retryVision.response || retryVision.description || "";
+            } catch (retryErr) {
+              aiAnalysis = `Không thể phân tích ảnh qua Vision AI: ${retryErr.message}`;
+            }
+          } else {
+            aiAnalysis = `Không thể phân tích ảnh qua Vision AI: ${visionErr.message}`;
+          }
         }
 
         await ensureChildPhotosTable(env.DB);
@@ -298,16 +335,39 @@ export default {
         }
 
         const ocrPrompt = "Extract all text, paragraphs, and words from this image accurately. Preserve formatting where possible.";
-        const visionResponse = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
-          prompt: ocrPrompt,
-          image: [...imageBytes],
-          max_tokens: 1200,
-        });
+        let extractedText = "";
+        try {
+          const visionResponse = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+            prompt: ocrPrompt,
+            image: [...imageBytes],
+            max_tokens: 1200,
+          });
+          extractedText = visionResponse.response || "";
+        } catch (ocrErr) {
+          if (ocrErr.message && ocrErr.message.includes("5016")) {
+            try {
+              await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+                prompt: "agree",
+                image: [...imageBytes],
+              });
+              const retryVision = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+                prompt: ocrPrompt,
+                image: [...imageBytes],
+                max_tokens: 1200,
+              });
+              extractedText = retryVision.response || "";
+            } catch (rErr) {
+              return jsonResponse({ error: rErr.message }, 500, corsHeaders);
+            }
+          } else {
+            return jsonResponse({ error: ocrErr.message }, 500, corsHeaders);
+          }
+        }
 
         return jsonResponse(
           {
             success: true,
-            extracted_text: visionResponse.response || "",
+            extracted_text: extractedText,
           },
           200,
           corsHeaders
@@ -364,31 +424,59 @@ export default {
       }
 
       if (pathname === "/chat" && request.method === "POST") {
-        const { messages = [], max_tokens = 800, temperature = 0.7 } = await request.json().catch(() => ({}));
+        const { messages = [], max_tokens = 800, temperature = 0.7, model } = await request.json().catch(() => ({}));
         if (!Array.isArray(messages) || messages.length === 0) {
           return jsonResponse({ error: "Thiếu mảng 'messages'" }, 400, corsHeaders);
         }
-        const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", { messages, max_tokens, temperature });
-        return jsonResponse({ response: response.response || "" }, 200, corsHeaders);
+        try {
+          const chosenModel = model || "@cf/meta/llama-3.1-70b-instruct";
+          let response;
+          try {
+            response = await env.AI.run(chosenModel, { messages, max_tokens, temperature });
+          } catch (mErr) {
+            console.warn("Primary model error, fallback to llama-3.1-8b-instruct-fp8:", mErr);
+            response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", { messages, max_tokens, temperature });
+          }
+          return jsonResponse({ response: response.response || "" }, 200, corsHeaders);
+        } catch (err) {
+          console.error("AI /chat error:", err);
+          return jsonResponse({ error: err.message || "Lỗi gọi mô hình AI" }, 500, corsHeaders);
+        }
       }
 
       if (pathname === "/fix-english" && request.method === "POST") {
-        const { text = "", tone = "executive" } = await request.json().catch(() => ({}));
+        const { text = "", tone = "executive", model } = await request.json().catch(() => ({}));
         if (!text) return jsonResponse({ error: "Thiếu trường 'text'" }, 400, corsHeaders);
 
         const systemPrompt = `You are an elite English coach for Tech Leads. Elevate this sentence with tone "${tone}". Respond ONLY in valid JSON:
 { "is_correct": false, "naturalness_score": 6, "issues": ["..."], "corrected": "...", "alternatives": ["..."], "explanation": "...", "good_parts": "..." }`;
 
-        const response = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
-          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `Refine: "${text}"` }],
-          temperature: 0.2,
-          max_tokens: 1000,
-        });
+        try {
+          const chosenModel = model || "@cf/meta/llama-3.1-70b-instruct";
+          let response;
+          try {
+            response = await env.AI.run(chosenModel, {
+              messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `Refine: "${text}"` }],
+              temperature: 0.2,
+              max_tokens: 1000,
+            });
+          } catch (mErr) {
+            console.warn("Primary model error in fix-english, fallback to llama-3.1-8b-instruct-fp8:", mErr);
+            response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", {
+              messages: [{ role: "system", content: systemPrompt }, { role: "user", content: `Refine: "${text}"` }],
+              temperature: 0.2,
+              max_tokens: 1000,
+            });
+          }
 
-        const raw = response.response || "";
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        const data = jsonMatch ? JSON.parse(jsonMatch[0]) : { corrected: raw };
-        return jsonResponse(data, 200, corsHeaders);
+          const raw = response.response || "";
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          const data = jsonMatch ? JSON.parse(jsonMatch[0]) : { corrected: raw };
+          return jsonResponse(data, 200, corsHeaders);
+        } catch (err) {
+          console.error("AI /fix-english error:", err);
+          return jsonResponse({ error: err.message || "Lỗi gọi mô hình AI" }, 500, corsHeaders);
+        }
       }
 
       // =====================================================================
@@ -485,6 +573,19 @@ export default {
     } catch (err) {
       return jsonResponse({ error: err.message, stack: err.stack }, 500, corsHeaders);
     }
+  },
+
+  // Cron Trigger: Nightly cleanup of technical data (Prompt 00 Section 10)
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil((async () => {
+      try {
+        await env.DB.prepare("DELETE FROM login_attempts WHERE created_at < datetime('now', '-7 days')").run();
+        await env.DB.prepare("DELETE FROM auth_sessions WHERE (expires_at < datetime('now', '-30 days') OR revoked_at < datetime('now', '-30 days'))").run();
+        await env.DB.prepare("DELETE FROM ai_calls WHERE created_at < datetime('now', '-90 days')").run();
+      } catch (err) {
+        console.error("Scheduled cleanup error:", err);
+      }
+    })());
   },
 };
 
