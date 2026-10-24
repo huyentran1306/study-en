@@ -98,6 +98,13 @@ export function MobileBottomNav() {
       title: "Chương Trình Trọng Tâm",
       items: [
         {
+          href: "/lessons",
+          label: "Kho Bài Học Thực Chiến & Call Khách",
+          desc: "Giao diện bài học 2 cột chuẩn xịn (30 Ngày Call & HSK)",
+          icon: BookOpen,
+          badge: "HOT",
+        },
+        {
           href: "/tech-lead",
           label: "Tech Lead 90D Solution Mastery",
           desc: "Lộ trình 12 tuần luyện call & bảo vệ kiến trúc",

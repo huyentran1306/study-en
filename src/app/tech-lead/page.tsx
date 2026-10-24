@@ -573,6 +573,12 @@ export default function TechLeadPage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link href="/lessons">
+                <Button className="bg-[#991b1b] hover:bg-[#831717] text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-red-950/25 text-xs sm:text-sm gap-2 transition-all hover:scale-102">
+                  <BookOpen className="w-4 h-4 text-red-200" />
+                  Mở Kho Bài Học (2 Cột xịn)
+                </Button>
+              </Link>
               <Button
                 onClick={() => setActiveTab("daily")}
                 className="bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-500/25 text-xs sm:text-sm gap-2"

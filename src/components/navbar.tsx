@@ -246,6 +246,7 @@ export function Navbar() {
   ];
 
   const isTechLeadActive = pathname === "/tech-lead";
+  const isLessonsActive = pathname === "/lessons";
   const isArenaActive = pathname === "/games";
   const isVocabActive = pathname === "/vocab";
 
@@ -257,6 +258,27 @@ export function Navbar() {
 
         {/* Center: Curated Streamlined Desktop Menu (Single Line, No Wrapping) */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 flex-1 justify-center max-w-2xl px-2">
+          {/* Lessons Bento Grid Flagship Button */}
+          <Link href="/lessons" className="flex-shrink-0">
+            <button
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
+                isLessonsActive
+                  ? "bg-[#991b1b] text-white font-bold shadow-xs"
+                  : "bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 border border-red-200/60 dark:border-red-800/60"
+              )}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Bài học</span>
+              <span className={cn(
+                "text-[9px] px-1.5 py-0.2 rounded font-black",
+                isLessonsActive ? "bg-white text-[#991b1b]" : "bg-[#991b1b] text-white"
+              )}>
+                HOT
+              </span>
+            </button>
+          </Link>
+
           {/* Tech Lead 90D Flagship Button */}
           <Link href="/tech-lead" className="flex-shrink-0">
             <button
