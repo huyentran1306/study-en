@@ -31,6 +31,7 @@
  */
 
 import { handleV1Route, jsonResponse as v1JsonResponse } from "./v1_routes.js";
+import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -45,7 +46,7 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": isAllowedOrigin && origin ? origin : "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id, X-Problem-Text",
       "Access-Control-Max-Age": "86400",
     };
 
@@ -437,7 +438,29 @@ export default {
             console.warn("Primary model error, fallback to llama-3.1-8b-instruct-fp8:", mErr);
             response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", { messages, max_tokens, temperature });
           }
-          return jsonResponse({ response: response.response || "" }, 200, corsHeaders);
+          const rawOutput = response.response || "";
+          const promptId = request.headers.get("X-Prompt-Id") || "";
+          const sessionId = request.headers.get("X-Session-Id") || "";
+          const problemText = request.headers.get("X-Problem-Text") || "";
+
+          const validated = validateAndGuardAiOutput(promptId, rawOutput, problemText);
+
+          // Cập nhật validator_json vào learning_sessions nếu có sessionId
+          if (sessionId && env.DB) {
+            try {
+              await env.DB.prepare("UPDATE learning_sessions SET validator_json = ? WHERE id = ?")
+                .bind(JSON.stringify(validated.validator), sessionId)
+                .run();
+            } catch (vErr) {
+              console.warn("Update session validator error:", vErr);
+            }
+          }
+
+          return jsonResponse({
+            response: validated.response,
+            guarded: validated.guarded,
+            validator: validated.validator,
+          }, 200, corsHeaders);
         } catch (err) {
           console.error("AI /chat error:", err);
           return jsonResponse({ error: err.message || "Lỗi gọi mô hình AI" }, 500, corsHeaders);
@@ -508,23 +531,33 @@ export default {
       }
 
       if (pathname.startsWith("/db/kv/") && request.method === "GET") {
-        const key = pathname.replace("/db/kv/", "");
+        const rawKey = pathname.replace("/db/kv/", "");
+        const key = decodeURIComponent(rawKey);
         await ensureKvTable(env.DB);
-        const row = await env.DB.prepare("SELECT value, updated_at FROM _kv_store WHERE key = ?").bind(key).first();
+        const row = await env.DB.prepare(
+          "SELECT key, value, updated_at FROM _kv_store WHERE key = ? OR key = ? ORDER BY updated_at DESC LIMIT 1"
+        ).bind(key, rawKey).first();
         if (!row) return jsonResponse({ key, value: null, found: false }, 404, corsHeaders);
         let parsed = row.value;
         try { parsed = JSON.parse(row.value); } catch {}
-        return jsonResponse({ key, value: parsed, updated_at: row.updated_at, found: true }, 200, corsHeaders);
+        return jsonResponse({ key: row.key, value: parsed, updated_at: row.updated_at, found: true }, 200, corsHeaders);
       }
 
       if (pathname.startsWith("/db/kv/") && request.method === "POST") {
-        const key = pathname.replace("/db/kv/", "");
+        const rawKey = pathname.replace("/db/kv/", "");
+        const key = decodeURIComponent(rawKey);
+        const encodedKey = encodeURIComponent(key);
         const body = await request.json().catch(() => ({}));
         const valStr = typeof body.value === "string" ? body.value : JSON.stringify(body.value !== undefined ? body.value : body);
         await ensureKvTable(env.DB);
         await env.DB.prepare(
           "INSERT INTO _kv_store (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
         ).bind(key, valStr).run();
+        if (encodedKey !== key) {
+          await env.DB.prepare(
+            "INSERT INTO _kv_store (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP"
+          ).bind(encodedKey, valStr).run();
+        }
         return jsonResponse({ success: true, key, saved: true }, 200, corsHeaders);
       }
 
