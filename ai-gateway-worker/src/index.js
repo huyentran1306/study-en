@@ -35,6 +35,13 @@ import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS } from "./guard.js";
 import { handleCheckWorkRead, handleCheckWorkGrade, handleCheckWorkGet, handleCheckWorkHistory } from "./check_work.js";
 import { handleTeachBackTranscribe, handleTeachBackGrade, handleTeachBackConfirm } from "./teach_back.js";
+import {
+  handleAiFeedbackCreate,
+  handleSafetySummary,
+  handleSafetyLog,
+  handleSafetyTestGuard,
+  handleAiFeedbackClose,
+} from "./safety.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -98,6 +105,26 @@ export default {
         const id = pathname.split("/")[5];
         return await handleTeachBackConfirm(request, env, id, corsHeaders);
       }
+    }
+
+    // =====================================================================
+    // 0c. 🛡️ AN TOÀN AI & PHỤ HUYNH PHẢN HỒI (Prompt 14 Phần C)
+    // =====================================================================
+    if (pathname === "/api/v1/ai-feedback" && request.method === "POST") {
+      return await handleAiFeedbackCreate(request, env, corsHeaders);
+    }
+    if (pathname === "/api/v1/safety/summary" && request.method === "GET") {
+      return await handleSafetySummary(request, env, corsHeaders);
+    }
+    if (pathname === "/api/v1/safety/log" && request.method === "GET") {
+      return await handleSafetyLog(request, env, corsHeaders);
+    }
+    if (pathname === "/api/v1/safety/test-guard" && request.method === "POST") {
+      return await handleSafetyTestGuard(request, env, corsHeaders);
+    }
+    if (pathname.match(/^\/api\/v1\/admin\/ai-feedback\/[^\/]+\/close$/) && request.method === "POST") {
+      const id = pathname.split("/")[5];
+      return await handleAiFeedbackClose(request, env, id, corsHeaders);
     }
 
     // =====================================================================
