@@ -842,12 +842,18 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
 
     const fid = session.family_id;
 
-    // Cascade delete across all tables (including Dot 14 tables)
+    // Cascade delete across Dot 14 tables safely (if migrated)
+    try {
+      await env.DB.prepare("DELETE FROM guard_log WHERE family_id = ?").bind(fid).run();
+      await env.DB.prepare("DELETE FROM work_checks WHERE family_id = ?").bind(fid).run();
+      await env.DB.prepare("DELETE FROM teach_backs WHERE family_id = ?").bind(fid).run();
+      await env.DB.prepare("DELETE FROM ai_feedback WHERE family_id = ?").bind(fid).run();
+    } catch (e) {
+      // Bỏ qua nếu DB live chưa chạy migration 0004
+    }
+
+    // Cascade delete across core tables
     await env.DB.batch([
-      env.DB.prepare("DELETE FROM guard_log WHERE family_id = ?").bind(fid),
-      env.DB.prepare("DELETE FROM work_checks WHERE family_id = ?").bind(fid),
-      env.DB.prepare("DELETE FROM teach_backs WHERE family_id = ?").bind(fid),
-      env.DB.prepare("DELETE FROM ai_feedback WHERE family_id = ?").bind(fid),
       env.DB.prepare("DELETE FROM session_events WHERE session_id IN (SELECT id FROM learning_sessions WHERE family_id = ?)").bind(fid),
       env.DB.prepare("DELETE FROM learning_sessions WHERE family_id = ?").bind(fid),
       env.DB.prepare("DELETE FROM ai_calls WHERE family_id = ?").bind(fid),

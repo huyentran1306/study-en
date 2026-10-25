@@ -33,6 +33,7 @@
 import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin } from "./v1_routes.js";
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS } from "./guard.js";
+import { handleCheckWorkRead, handleCheckWorkGrade, handleCheckWorkGet, handleCheckWorkHistory } from "./check_work.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -47,7 +48,7 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": isAllowedOrigin && origin ? origin : "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id, X-Problem-Text",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id, X-Problem-Text, X-Family-Id",
       "Access-Control-Max-Age": "86400",
     };
 
@@ -60,6 +61,26 @@ export default {
 
     if (env.DB && ctx && typeof ctx.waitUntil === 'function') {
       ctx.waitUntil(ensureDot14Tables(env.DB));
+    }
+
+    // =====================================================================
+    // 0a. 📝 CHẤM VỞ, KHÔNG SỬA HỘ (Prompt 14 Phần A)
+    // =====================================================================
+    if (pathname.startsWith("/api/v1/ai/check-work/")) {
+      if (pathname === "/api/v1/ai/check-work/read" && request.method === "POST") {
+        return await handleCheckWorkRead(request, env, corsHeaders);
+      }
+      if (pathname.match(/^\/api\/v1\/ai\/check-work\/[^\/]+\/grade$/) && request.method === "POST") {
+        const id = pathname.split("/")[5];
+        return await handleCheckWorkGrade(request, env, id, corsHeaders);
+      }
+      if (pathname === "/api/v1/ai/check-work/history" && request.method === "GET") {
+        return await handleCheckWorkHistory(request, env, corsHeaders);
+      }
+      if (pathname.match(/^\/api\/v1\/ai\/check-work\/[^\/]+$/) && request.method === "GET") {
+        const id = pathname.split("/")[5];
+        return await handleCheckWorkGet(request, env, id, corsHeaders);
+      }
     }
 
     // =====================================================================
