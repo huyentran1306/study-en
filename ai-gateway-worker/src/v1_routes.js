@@ -243,6 +243,96 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
   }
 
   // ==========================================================
+  // CLIENT ERRORS LOGGER (CHẶNG 5 · MỤC 5.2)
+  // ==========================================================
+  if (pathname === "/api/v1/client-errors" && method === "POST") {
+    try {
+      const body = await request.json().catch(() => ({}));
+      const message = String(body.message || "").slice(0, 500);
+      const stack = String(body.stack || "").slice(0, 1500);
+      const route = String(body.route || "/").slice(0, 100);
+      const theme = String(body.theme || "bear").slice(0, 50);
+      const buildVersion = String(body.buildVersion || "1.0.0").slice(0, 20);
+
+      if (!message) {
+        return jsonResponse({ ok: false, error: "Empty message" }, 400, corsHeaders);
+      }
+
+      // First 5 lines of stack
+      const stackLines = stack.split('\n').slice(0, 5).join('\n');
+
+      // Extract file and line
+      let fileLine = "unknown";
+      const fileMatch = stackLines.match(/(?:at\s+|@)?(?:.*\/)?([a-zA-Z0-9_.-]+:\d+:\d+)/);
+      if (fileMatch) {
+        fileLine = fileMatch[1];
+      }
+
+      // Generate error fingerprint (message + fileLine)
+      const dataToHash = new TextEncoder().encode(`${message}::${fileLine}`);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", dataToHash);
+      const errorHash = Array.from(new Uint8Array(hashBuffer)).slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
+
+      let errorList = [];
+      const row = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = 'app_client_errors'").first();
+      if (row?.value) {
+        try { errorList = JSON.parse(row.value); } catch (e) {}
+      }
+      if (!Array.isArray(errorList)) errorList = [];
+
+      const now = new Date().toISOString();
+      const existingIdx = errorList.findIndex(e => e.id === errorHash);
+
+      if (existingIdx >= 0) {
+        errorList[existingIdx].count = (errorList[existingIdx].count || 1) + 1;
+        errorList[existingIdx].last_seen = now;
+        errorList[existingIdx].route = route;
+        errorList[existingIdx].theme = theme;
+        errorList[existingIdx].build_version = buildVersion;
+      } else {
+        errorList.unshift({
+          id: errorHash,
+          message,
+          file_line: fileLine,
+          stack: stackLines,
+          route,
+          theme,
+          build_version: buildVersion,
+          count: 1,
+          first_seen: now,
+          last_seen: now,
+        });
+        if (errorList.length > 100) errorList = errorList.slice(0, 100);
+      }
+
+      await env.DB.prepare(`
+        INSERT INTO _kv_store (key, value, updated_at)
+        VALUES ('app_client_errors', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+      `).bind(JSON.stringify(errorList)).run();
+
+      return jsonResponse({ ok: true, logged: true, id: errorHash }, 200, corsHeaders);
+    } catch (e) {
+      return jsonResponse({ ok: false, error: e.message }, 500, corsHeaders);
+    }
+  }
+
+  // GET /api/v1/admin/client-errors
+  if (pathname === "/api/v1/admin/client-errors" && method === "GET") {
+    const adminSession = await authenticateAdmin(request, env);
+    if (!adminSession) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu quyền quản trị" } }, 401, corsHeaders);
+    }
+
+    let errorList = [];
+    const row = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = 'app_client_errors'").first();
+    if (row?.value) {
+      try { errorList = JSON.parse(row.value); } catch (e) {}
+    }
+    return jsonResponse({ ok: true, errors: Array.isArray(errorList) ? errorList : [] }, 200, corsHeaders);
+  }
+
+  // ==========================================================
   // 2. AUTH REGISTER (POST /api/v1/auth/register)
   // ==========================================================
   if (pathname === "/api/v1/auth/register" && method === "POST") {
