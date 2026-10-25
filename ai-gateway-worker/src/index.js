@@ -30,7 +30,7 @@
  *    - POST /db/query | POST /db/execute | GET /db/kv/:key | POST /db/kv/:key
  */
 
-import { handleV1Route, jsonResponse as v1JsonResponse } from "./v1_routes.js";
+import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin } from "./v1_routes.js";
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 
 export default {
@@ -503,8 +503,15 @@ export default {
       }
 
       // =====================================================================
-      // 5. 💾 D1 DATABASE (SQLITE)
+      // 5. 💾 D1 DATABASE (SQLITE) — PROTECTED (P2.9)
       // =====================================================================
+      if (pathname.startsWith("/db/")) {
+        const adminSession = await authenticateAdmin(request, env);
+        if (!adminSession) {
+          return jsonResponse({ error: "Unauthorized: Yêu cầu quyền Quản trị viên (Authorization: Bearer <ADMIN_TOKEN>)" }, 401, corsHeaders);
+        }
+      }
+
       if (pathname === "/db/query" && request.method === "POST") {
         const { query = "", params = [] } = await request.json().catch(() => ({}));
         if (!query) return jsonResponse({ error: "Thiếu trường 'query'" }, 400, corsHeaders);

@@ -198,18 +198,18 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
 
   // ==========================================================
   // 1. PUBLIC CONFIG (GET /api/v1/config/public)
+  // Chỉ trả cấu hình app cần (< 10 KB), không chứa prompt nội bộ (P2.6)
   // ==========================================================
   if (pathname === "/api/v1/config/public" && method === "GET") {
     try {
       const keys = [
-        "team_prompts_sync:v1",
-        "prompt_studio:ai_config",
         "app_config:scope_rules",
         "app_config:themes",
         "app_config%3Athemes",
+        "app_config:calm_threshold",
       ];
       const rows = await env.DB.prepare(`
-        SELECT key, value FROM _kv_store WHERE key IN (?, ?, ?, ?, ?)
+        SELECT key, value FROM _kv_store WHERE key IN (?, ?, ?, ?)
       `).bind(...keys).all();
 
       const configMap = {};
@@ -226,16 +226,15 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
       return jsonResponse(
         {
           ok: true,
-          prompts: configMap["team_prompts_sync:v1"] || null,
-          aiConfig: configMap["prompt_studio:ai_config"] || null,
           scopeRules: configMap["app_config:scope_rules"] || null,
           themesConfig,
+          calmNudgeThreshold: configMap["app_config:calm_threshold"] || 2,
           serverTime: new Date().toISOString(),
         },
         200,
         {
           ...corsHeaders,
-          "Cache-Control": "public, max-age=600", // Cache 10 mins as required by Free tier rules
+          "Cache-Control": "public, max-age=300",
         }
       );
     } catch (err) {
