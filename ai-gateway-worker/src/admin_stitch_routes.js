@@ -105,6 +105,18 @@ export function validateAndGuardAiOutput(promptId, responseText, problemText = "
         };
       }
 
+      if (promptId === "p3_explain" && (!Array.isArray(data.cac_bac) || data.cac_bac.length < 3)) {
+        return {
+          response: responseText,
+          guarded: true,
+          validator: {
+            status: "Lỗi định dạng",
+            detail: "Thiếu các bậc gợi mở (yêu cầu 3 đến 5 bậc)",
+            timestamp: new Date().toISOString(),
+          },
+        };
+      }
+
       return {
         response: responseText,
         guarded: false,
@@ -115,7 +127,15 @@ export function validateAndGuardAiOutput(promptId, responseText, problemText = "
         },
       };
     } catch (e) {
-      return { response: responseText, guarded: false, validator: { status: "Đạt" } };
+      return {
+        response: responseText,
+        guarded: true,
+        validator: {
+          status: "Lỗi định dạng",
+          detail: "Câu trả lời không phải JSON hợp lệ: " + (e?.message || "lỗi phân tích cú pháp"),
+          timestamp: new Date().toISOString(),
+        },
+      };
     }
   }
 
