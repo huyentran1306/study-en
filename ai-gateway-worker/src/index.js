@@ -32,6 +32,7 @@
 
 import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin } from "./v1_routes.js";
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
+import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS } from "./guard.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -56,6 +57,10 @@ export default {
 
     const url = new URL(request.url);
     const pathname = url.pathname;
+
+    if (env.DB && ctx && typeof ctx.waitUntil === 'function') {
+      ctx.waitUntil(ensureDot14Tables(env.DB));
+    }
 
     // =====================================================================
     // 0. 🔐 API V1 PLATFORM ROUTES (Prompt 00: Auth, RBAC, Sessions, State)
@@ -438,12 +443,97 @@ export default {
             console.warn("Primary model error, fallback to llama-3.1-8b-instruct-fp8:", mErr);
             response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", { messages, max_tokens, temperature });
           }
-          const rawOutput = response.response || "";
+          let rawOutput = response.response || "";
           const promptId = request.headers.get("X-Prompt-Id") || "";
           const sessionId = request.headers.get("X-Session-Id") || "";
           const problemText = request.headers.get("X-Problem-Text") || "";
+          const familyId = request.headers.get("X-Family-Id") || "";
 
-          const validated = validateAndGuardAiOutput(promptId, rawOutput, problemText);
+          // Phân tích sơ bộ để kiểm tra định dạng và rò rỉ đáp án
+          let parsed = null;
+          let jsonClean = rawOutput.trim();
+          const match = jsonClean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (match) jsonClean = match[1];
+          try {
+            parsed = JSON.parse(jsonClean);
+          } catch (_) {}
+
+          // 1. Nếu định dạng sai (hỏng JSON hoặc thiếu bậc), retry 1 lần với yêu cầu JSON
+          if (!parsed || (promptId === "p3_explain" && (!Array.isArray(parsed?.cac_bac) || parsed.cac_bac.length < 3))) {
+            try {
+              const retryMessages = [
+                ...messages,
+                { role: "assistant", content: rawOutput },
+                { role: "user", content: "Lưu ý: Chỉ trả lời bằng định dạng JSON hợp lệ theo đúng schema, không thêm bất kỳ chữ hay lời dẫn nào ngoài JSON." }
+              ];
+              const retryResp = await env.AI.run(chosenModel, { messages: retryMessages, max_tokens, temperature: 0.2 }).catch(() => null);
+              if (retryResp && retryResp.response) {
+                rawOutput = retryResp.response;
+                let rClean = rawOutput.trim();
+                const m2 = rClean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                if (m2) rClean = m2[1];
+                try {
+                  parsed = JSON.parse(rClean);
+                } catch (_) {}
+              }
+            } catch (rErr) {
+              console.warn("Retry format error:", rErr);
+            }
+          }
+
+          // 2. Kiểm tra lộ đáp án theo GUARD_RULES
+          const context = {
+            problem_text: problemText,
+            family_id: familyId,
+            session_id: sessionId,
+          };
+
+          if (parsed) {
+            let leakCheck = checkAnswerLeak(promptId, parsed, context);
+
+            // Nếu phát hiện lộ: gọi lại AI một lần với câu nhắc cảnh báo chặt chẽ
+            if (leakCheck.leaked) {
+              try {
+                const retryPrompt = `CẢNH BÁO: Câu hỏi gợi mở cho con tuyệt đối không được chứa đáp án (${leakCheck.leaks.map(l => l.illegalValue).join(", ")}). Hãy soạn lại câu hỏi mở để con tự suy nghĩ và tìm ra câu trả lời. Chỉ trả JSON.`;
+                const retryMessages = [
+                  ...messages,
+                  { role: "assistant", content: rawOutput },
+                  { role: "user", content: retryPrompt }
+                ];
+                const leakRetryResp = await env.AI.run(chosenModel, { messages: retryMessages, max_tokens, temperature: 0.2 }).catch(() => null);
+                if (leakRetryResp && leakRetryResp.response) {
+                  let rClean = leakRetryResp.response.trim();
+                  const m3 = rClean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                  if (m3) rClean = m3[1];
+                  let secondParsed = null;
+                  try { secondParsed = JSON.parse(rClean); } catch (_) {}
+                  if (secondParsed) {
+                    const secondCheck = checkAnswerLeak(promptId, secondParsed, context);
+                    if (!secondCheck.leaked) {
+                      // Tự động soạn lại thành công
+                      parsed = secondParsed;
+                      rawOutput = JSON.stringify(parsed, null, 2);
+                      leakCheck.leaks.forEach(l => {
+                        logGuardEvent(env, ctx, {
+                          familyId,
+                          sessionId,
+                          promptId,
+                          field: l.field,
+                          beforeText: l.beforeText,
+                          afterText: "Tự động soạn lại không lộ đáp án",
+                          outcome: "regenerated",
+                        });
+                      });
+                    }
+                  }
+                }
+              } catch (lErr) {
+                console.warn("Retry leak error:", lErr);
+              }
+            }
+          }
+
+          const validated = await validateAndGuard(promptId, rawOutput, context, env, ctx);
 
           // Cập nhật validator_json vào learning_sessions nếu có sessionId
           if (sessionId && env.DB) {
@@ -459,6 +549,7 @@ export default {
           return jsonResponse({
             response: validated.response,
             guarded: validated.guarded,
+            error_code: validated.error_code,
             validator: validated.validator,
           }, 200, corsHeaders);
         } catch (err) {
@@ -615,13 +706,15 @@ export default {
     }
   },
 
-  // Cron Trigger: Nightly cleanup of technical data (Prompt 00 Section 10)
+  // Cron Trigger: Nightly cleanup of technical data (Prompt 00 Section 10 & Prompt 14 Section 1.2)
   async scheduled(event, env, ctx) {
     ctx.waitUntil((async () => {
       try {
         await env.DB.prepare("DELETE FROM login_attempts WHERE created_at < datetime('now', '-7 days')").run();
         await env.DB.prepare("DELETE FROM auth_sessions WHERE (expires_at < datetime('now', '-30 days') OR revoked_at < datetime('now', '-30 days'))").run();
         await env.DB.prepare("DELETE FROM ai_calls WHERE created_at < datetime('now', '-90 days')").run();
+        // Dot 14: Giữ nhật ký guard_log 30 ngày rồi tự xoá
+        await env.DB.prepare("DELETE FROM guard_log WHERE created_at < datetime('now', '-30 days')").run();
       } catch (err) {
         console.error("Scheduled cleanup error:", err);
       }
@@ -634,6 +727,26 @@ function jsonResponse(data, status = 200, headers = {}) {
     status,
     headers: { ...headers, "Content-Type": "application/json; charset=utf-8" },
   });
+}
+
+async function ensureDot14Tables(db) {
+  if (!db) return;
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS guard_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        family_id TEXT,
+        session_id TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        prompt_id TEXT,
+        field TEXT,
+        before_text TEXT,
+        after_text TEXT,
+        outcome TEXT CHECK(outcome IN ('regenerated','fallback','leaked'))
+      );
+    `).run();
+    await db.prepare("CREATE INDEX IF NOT EXISTS idx_guard_log_family_created ON guard_log(family_id, created_at);").run();
+  } catch (_) {}
 }
 
 async function ensureKvTable(db) {

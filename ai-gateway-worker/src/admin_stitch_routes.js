@@ -36,110 +36,11 @@ async function hashPass(pass, salt) {
     .join("");
 }
 
-// Helper: AI Answer Leakage Validator (Prompt 05 Mục 6)
+import { validateAndGuard } from "./guard.js";
+
+// Helper: AI Answer Leakage Validator (Delegated to modular guard.js)
 export function validateAndGuardAiOutput(promptId, responseText, problemText = "") {
-  if (!responseText) return { response: responseText, guarded: false, validator: { status: "Đạt" } };
-
-  if (promptId === "p3_explain" || promptId === "p4_chat" || promptId === "p6_practice") {
-    try {
-      let jsonStr = responseText.trim();
-      const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (match) jsonStr = match[1];
-
-      const data = JSON.parse(jsonStr);
-      let leaked = false;
-      let leakReasons = [];
-
-      // Extract existing numbers from problem text so we don't false-alarm on them
-      const problemNumbers = new Set((problemText.match(/\d+/g) || []).map(Number));
-
-      if (promptId === "p3_explain" && Array.isArray(data.cac_bac)) {
-        const answerNumbers = new Set();
-        if (data.dap_an_cuoi_cho_me) {
-          (String(data.dap_an_cuoi_cho_me).match(/\d+/g) || []).forEach((n) => {
-            const num = Number(n);
-            if (!problemNumbers.has(num)) answerNumbers.add(num);
-          });
-        }
-        data.cac_bac.forEach((b) => {
-          if (b.dap_an_cho_me) {
-            (String(b.dap_an_cho_me).match(/\d+/g) || []).forEach((n) => {
-              const num = Number(n);
-              if (!problemNumbers.has(num)) answerNumbers.add(num);
-            });
-          }
-        });
-
-        // Check if any new answer numbers leaked into cau_hoi or goi_y
-        data.cac_bac.forEach((b, idx) => {
-          answerNumbers.forEach((ansNum) => {
-            const numRegex = new RegExp(`\\b${ansNum}\\b`);
-            if (b.cau_hoi && numRegex.test(b.cau_hoi)) {
-              leaked = true;
-              leakReasons.push(`Bậc ${idx + 1} lộ số đáp án ${ansNum} trong câu hỏi`);
-              b.cau_hoi = "Con thử nói cách làm bước này nhé?";
-            }
-            if (b.goi_y?.muc_1_do_vat && numRegex.test(b.goi_y.muc_1_do_vat)) {
-              leaked = true;
-              leakReasons.push(`Bậc ${idx + 1} lộ số đáp án trong gợi ý 1`);
-              b.goi_y.muc_1_do_vat = "Con đếm xem có bao nhiêu nhóm đồ vật nào?";
-            }
-            if (b.goi_y?.muc_2_hinh_ve && numRegex.test(b.goi_y.muc_2_hinh_ve)) {
-              leaked = true;
-              leakReasons.push(`Bậc ${idx + 1} lộ số đáp án trong gợi ý 2`);
-              b.goi_y.muc_2_hinh_ve = "Vẽ sơ đồ đoạn thẳng để dễ nhìn hơn nhé.";
-            }
-          });
-        });
-      }
-
-      if (leaked) {
-        return {
-          response: JSON.stringify(data, null, 2),
-          guarded: true,
-          validator: {
-            status: "Đã chặn",
-            detail: leakReasons.join("; "),
-            timestamp: new Date().toISOString(),
-          },
-        };
-      }
-
-      if (promptId === "p3_explain" && (!Array.isArray(data.cac_bac) || data.cac_bac.length < 3)) {
-        return {
-          response: responseText,
-          guarded: true,
-          validator: {
-            status: "Lỗi định dạng",
-            detail: "Thiếu các bậc gợi mở (yêu cầu 3 đến 5 bậc)",
-            timestamp: new Date().toISOString(),
-          },
-        };
-      }
-
-      return {
-        response: responseText,
-        guarded: false,
-        validator: {
-          status: "Đạt",
-          detail: "Không phát hiện rò rỉ đáp án",
-          timestamp: new Date().toISOString(),
-        },
-      };
-    } catch (e) {
-      return {
-        response: responseText,
-        guarded: true,
-        validator: {
-          status: "Lỗi định dạng",
-          detail: "Câu trả lời không phải JSON hợp lệ: " + (e?.message || "lỗi phân tích cú pháp"),
-          timestamp: new Date().toISOString(),
-        },
-      };
-    }
-  }
-
-  return { response: responseText, guarded: false, validator: { status: "Đạt" } };
+  return validateAndGuard(promptId, responseText, { problem_text: problemText });
 }
 
 // Helper to check 423 Locked state
