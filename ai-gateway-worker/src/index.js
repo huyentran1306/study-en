@@ -34,6 +34,7 @@ import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin } from
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS } from "./guard.js";
 import { handleCheckWorkRead, handleCheckWorkGrade, handleCheckWorkGet, handleCheckWorkHistory } from "./check_work.js";
+import { handleTeachBackTranscribe, handleTeachBackGrade, handleTeachBackConfirm } from "./teach_back.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -80,6 +81,22 @@ export default {
       if (pathname.match(/^\/api\/v1\/ai\/check-work\/[^\/]+$/) && request.method === "GET") {
         const id = pathname.split("/")[5];
         return await handleCheckWorkGet(request, env, id, corsHeaders);
+      }
+    }
+
+    // =====================================================================
+    // 0b. 🎓 NGHE CON GIẢNG LẠI (Prompt 14 Phần B)
+    // =====================================================================
+    if (pathname.startsWith("/api/v1/ai/teach-back/")) {
+      if (pathname === "/api/v1/ai/teach-back/transcribe" && request.method === "POST") {
+        return await handleTeachBackTranscribe(request, env, corsHeaders);
+      }
+      if (pathname === "/api/v1/ai/teach-back/grade" && request.method === "POST") {
+        return await handleTeachBackGrade(request, env, corsHeaders);
+      }
+      if (pathname.match(/^\/api\/v1\/ai\/teach-back\/[^\/]+\/confirm$/) && request.method === "POST") {
+        const id = pathname.split("/")[5];
+        return await handleTeachBackConfirm(request, env, id, corsHeaders);
       }
     }
 
