@@ -745,5 +745,195 @@ export async function handleAdminStitchRoutes(request, env, ctx, pathname, metho
     return jsonResponse({ ok: true, logs: logs.results || [] }, 200, corsHeaders);
   }
 
+  // ==========================================================
+  // 7. ADMIN THEME DESIGNER API (PROMPT 10)
+  // ==========================================================
+  // GET /api/v1/admin/themes (hoặc /admin/themes)
+  if ((pathname === "/api/v1/admin/themes" || pathname === "/admin/themes") && method === "GET") {
+    if (!adminSession) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu quyền quản trị" } }, 401, corsHeaders);
+    }
+    let themesConfig = { default: "bear", enabled: ["bear", "candy", "bento", "sticker", "notebook", "garden", "aurora", "chalk"], custom: [] };
+    const row = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = 'app_config:themes'").first();
+    if (row?.value) {
+      try {
+        const parsed = JSON.parse(row.value);
+        if (parsed && typeof parsed === 'object') themesConfig = { ...themesConfig, ...parsed };
+      } catch (e) {}
+    }
+    return jsonResponse({ ok: true, themes: themesConfig }, 200, corsHeaders);
+  }
+
+  // GET /api/v1/admin/themes/:id/draft
+  if ((pathname.startsWith("/api/v1/admin/themes/") || pathname.startsWith("/admin/themes/")) && pathname.endsWith("/draft") && method === "GET") {
+    if (!adminSession) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu quyền quản trị" } }, 401, corsHeaders);
+    }
+    const cleanPath = pathname.replace("/api/v1", "");
+    const themeId = cleanPath.replace("/admin/themes/", "").replace("/draft", "").trim();
+    const row = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = ?").bind(`app_config:theme_drafts:${themeId}`).first();
+    const draft = row?.value ? JSON.parse(row.value) : null;
+    return jsonResponse({ ok: true, draft }, 200, corsHeaders);
+  }
+
+  // PUT /api/v1/admin/themes/:id/draft
+  if ((pathname.startsWith("/api/v1/admin/themes/") || pathname.startsWith("/admin/themes/")) && pathname.endsWith("/draft") && method === "PUT") {
+    if (!adminSession) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu quyền quản trị" } }, 401, corsHeaders);
+    }
+    const cleanPath = pathname.replace("/api/v1", "");
+    const themeId = cleanPath.replace("/admin/themes/", "").replace("/draft", "").trim();
+    const body = await request.json().catch(() => ({}));
+
+    // Server-side SVG sanitization
+    if (body.vars?.customBuddySvg) {
+      for (const [k, v] of Object.entries(body.vars.customBuddySvg)) {
+        if (v && typeof v === 'string') {
+          if (v.toLowerCase().includes('<script') || /on\w+\s*=/i.test(v)) {
+            return jsonResponse({ error: { code: "INVALID_SVG", message: "SVG chứa mã script nguy hiểm" } }, 400, corsHeaders);
+          }
+        }
+      }
+    }
+
+    await env.DB.prepare(`
+      INSERT INTO _kv_store (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    `).bind(`app_config:theme_drafts:${themeId}`, JSON.stringify(body)).run();
+
+    return jsonResponse({ ok: true, themeId, savedAt: new Date().toISOString() }, 200, corsHeaders);
+  }
+
+  // POST /api/v1/admin/themes/:id/publish
+  if ((pathname.startsWith("/api/v1/admin/themes/") || pathname.startsWith("/admin/themes/")) && pathname.endsWith("/publish") && method === "POST") {
+    if (!adminSession) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu quyền quản trị" } }, 401, corsHeaders);
+    }
+    const cleanPath = pathname.replace("/api/v1", "");
+    const themeId = cleanPath.replace("/admin/themes/", "").replace("/publish", "").trim();
+    const body = await request.json().catch(() => ({}));
+    const { level = "testing", families = [], spec = {} } = body;
+
+    // RBAC: Chỉ superadmin được phát hành published; editor chỉ được testing/partial
+    if (level === "published" && adminSession.role !== "superadmin") {
+      return jsonResponse({ error: { code: "FORBIDDEN", message: "Chỉ superadmin có quyền phát hành bộ giao diện cho toàn bộ người dùng" } }, 403, corsHeaders);
+    }
+
+    // Lấy config themes hiện tại
+    let themesConfig = { default: "bear", enabled: [], custom: [] };
+    const row = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = 'app_config:themes'").first();
+    if (row?.value) {
+      try { themesConfig = JSON.parse(row.value); } catch (e) {}
+    }
+    if (!Array.isArray(themesConfig.custom)) themesConfig.custom = [];
+
+    // Giới hạn tối đa 10 bộ custom đang phát hành
+    const publishedCount = themesConfig.custom.filter(t => t.status === 'published' && t.id !== themeId).length;
+    if (level === "published" && publishedCount >= 10) {
+      return jsonResponse({ error: { code: "LIMIT_EXCEEDED", message: "Đã đạt giới hạn tối đa 10 bộ giao diện tùy biến phát hành cùng lúc. Vui lòng tắt bớt bộ cũ." } }, 400, corsHeaders);
+    }
+
+    // Kiểm tra lịch sử versions: tối đa 20 phiên bản
+    let history = [];
+    const histRow = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = ?").bind(`app_config:theme_history:${themeId}`).first();
+    if (histRow?.value) {
+      try { history = JSON.parse(histRow.value); } catch (e) {}
+    }
+    if (history.length >= 20) {
+      return jsonResponse({ error: { code: "HISTORY_FULL", message: "Bộ giao diện đã đạt 20 phiên bản lịch sử. Vui lòng liên hệ admin dọn dẹp trước khi phát hành thêm." } }, 400, corsHeaders);
+    }
+
+    const nextVersion = (spec.version || 1) + 1;
+    const publishedSpec = {
+      ...spec,
+      id: themeId,
+      version: nextVersion,
+      status: level,
+      testingFamilies: level === 'testing' ? families : [],
+      updatedBy: adminSession.email || 'admin',
+      updatedAt: new Date().toISOString(),
+    };
+
+    history.push({
+      version: nextVersion,
+      level,
+      spec: publishedSpec,
+      publishedBy: adminSession.email || 'admin',
+      publishedAt: new Date().toISOString(),
+    });
+
+    const existingIdx = themesConfig.custom.findIndex(t => t.id === themeId);
+    if (existingIdx >= 0) {
+      themesConfig.custom[existingIdx] = publishedSpec;
+    } else {
+      themesConfig.custom.push(publishedSpec);
+    }
+
+    await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO _kv_store (key, value, updated_at)
+        VALUES ('app_config:themes', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+      `).bind(JSON.stringify(themesConfig)),
+      env.DB.prepare(`
+        INSERT INTO _kv_store (key, value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+      `).bind(`app_config:theme_history:${themeId}`, JSON.stringify(history)),
+      env.DB.prepare(`
+        INSERT INTO audit_log (actor_type, actor_id, action, target_type, target_id, ip, created_at)
+        VALUES ('admin', ?, 'PUBLISH_THEME', 'theme', ?, ?, CURRENT_TIMESTAMP)
+      `).bind(adminSession.member_id || adminSession.email, themeId, ip)
+    ]);
+
+    return jsonResponse({ ok: true, theme: publishedSpec, version: nextVersion }, 200, corsHeaders);
+  }
+
+  // POST /api/v1/admin/themes/:id/disable
+  if ((pathname.startsWith("/api/v1/admin/themes/") || pathname.startsWith("/admin/themes/")) && pathname.endsWith("/disable") && method === "POST") {
+    if (!adminSession) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu quyền quản trị" } }, 401, corsHeaders);
+    }
+    const cleanPath = pathname.replace("/api/v1", "");
+    const themeId = cleanPath.replace("/admin/themes/", "").replace("/disable", "").trim();
+
+    let themesConfig = { default: "bear", enabled: [], custom: [] };
+    const row = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = 'app_config:themes'").first();
+    if (row?.value) {
+      try { themesConfig = JSON.parse(row.value); } catch (e) {}
+    }
+    if (Array.isArray(themesConfig.custom)) {
+      const t = themesConfig.custom.find(x => x.id === themeId);
+      if (t) t.status = 'disabled';
+    }
+
+    await env.DB.batch([
+      env.DB.prepare(`
+        INSERT INTO _kv_store (key, value, updated_at)
+        VALUES ('app_config:themes', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+      `).bind(JSON.stringify(themesConfig)),
+      env.DB.prepare(`
+        INSERT INTO audit_log (actor_type, actor_id, action, target_type, target_id, ip, created_at)
+        VALUES ('admin', ?, 'DISABLE_THEME', 'theme', ?, ?, CURRENT_TIMESTAMP)
+      `).bind(adminSession.member_id || adminSession.email, themeId, ip)
+    ]);
+
+    return jsonResponse({ ok: true, themeId, status: "disabled" }, 200, corsHeaders);
+  }
+
+  // GET /api/v1/admin/themes/:id/history
+  if ((pathname.startsWith("/api/v1/admin/themes/") || pathname.startsWith("/admin/themes/")) && pathname.endsWith("/history") && method === "GET") {
+    if (!adminSession) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu quyền quản trị" } }, 401, corsHeaders);
+    }
+    const cleanPath = pathname.replace("/api/v1", "");
+    const themeId = cleanPath.replace("/admin/themes/", "").replace("/history", "").trim();
+    const row = await env.DB.prepare("SELECT value FROM _kv_store WHERE key = ?").bind(`app_config:theme_history:${themeId}`).first();
+    const history = row?.value ? JSON.parse(row.value) : [];
+    return jsonResponse({ ok: true, history }, 200, corsHeaders);
+  }
+
   return null;
 }
