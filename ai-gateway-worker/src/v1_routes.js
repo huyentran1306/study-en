@@ -183,9 +183,11 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
   // Prompt 04: Cổng Giáo viên, Lớp học, Giao bài & Báo cáo nội dung
   if (
     pathname.startsWith("/api/v1/teacher/") ||
+    pathname.startsWith("/api/v1/classes/preview") ||
     pathname.startsWith("/api/v1/family/classes") ||
     pathname.startsWith("/api/v1/family/assignments") ||
     pathname.startsWith("/api/v1/family/announcements") ||
+    pathname.startsWith("/api/v1/family/reminders") ||
     pathname.startsWith("/api/v1/family/content-reports") ||
     (pathname.startsWith("/api/v1/admin/") &&
       (pathname.includes("/teachers") || pathname.includes("/classes") || pathname.includes("/content-reports")))

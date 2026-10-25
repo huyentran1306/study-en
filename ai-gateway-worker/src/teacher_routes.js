@@ -40,7 +40,123 @@ export function generateClaimCode() {
   return `${part1}-${part2}`;
 }
 
+// In-memory rate limiting for preview brute force protection (10 failures in 15 mins)
+const failedPreviewAttempts = new Map();
+
+function checkPreviewRateLimit(ip) {
+  const now = Date.now();
+  const entry = failedPreviewAttempts.get(ip);
+  if (!entry) return true;
+  if (entry.blockedUntil && entry.blockedUntil > now) return false;
+  if (entry.blockedUntil && entry.blockedUntil <= now) {
+    failedPreviewAttempts.delete(ip);
+    return true;
+  }
+  return true;
+}
+
+function recordFailedPreview(ip) {
+  const now = Date.now();
+  let entry = failedPreviewAttempts.get(ip);
+  if (!entry) {
+    failedPreviewAttempts.set(ip, { count: 1, firstAt: now, blockedUntil: null });
+    return;
+  }
+  if (now - entry.firstAt > 15 * 60 * 1000) {
+    failedPreviewAttempts.set(ip, { count: 1, firstAt: now, blockedUntil: null });
+    return;
+  }
+  entry.count++;
+  if (entry.count >= 10) {
+    entry.blockedUntil = now + 15 * 60 * 1000;
+  }
+}
+
 export async function handleTeacherRoute(request, env, ctx, pathname, method, corsHeaders) {
+  // =========================================================================
+  // 0. TRA CỨU XEM TRƯỚC LỚP HỌC (PUBLIC PREVIEW - PROMPT 11 PHẦN C)
+  // =========================================================================
+  if (pathname === "/api/v1/classes/preview" && method === "GET") {
+    const ip = request.headers.get("CF-Connecting-IP") || request.headers.get("x-forwarded-for") || "unknown";
+    if (!checkPreviewRateLimit(ip)) {
+      return jsonResponse({
+        error: {
+          code: "TOO_MANY_REQUESTS",
+          message: "Nhập sai mã quá 10 lần. Vui lòng thử lại sau 15 phút để bảo vệ thông tin lớp học.",
+        }
+      }, 429, corsHeaders);
+    }
+
+    const url = new URL(request.url);
+    const code = (url.searchParams.get("code") || "").trim().toUpperCase();
+    if (!code) {
+      return jsonResponse({ error: { code: "MISSING_CODE", message: "Vui lòng cung cấp mã lớp hoặc mã học sinh" } }, 400, corsHeaders);
+    }
+
+    // Trường hợp 1: Mã riêng học sinh XXX-XXX
+    if (code.includes("-")) {
+      const studentRow = await env.DB.prepare(`
+        SELECT cs.claim_code, cs.roster_name, cs.status, cs.family_id,
+               c.id as class_id, c.name as class_name, c.school_name, c.grade, c.school_year, c.join_mode,
+               t.display_name as teacher_name
+        FROM class_students cs
+        JOIN classes c ON cs.class_id = c.id
+        JOIN teachers t ON c.teacher_id = t.id
+        WHERE cs.claim_code = ?
+      `).bind(code).first();
+
+      if (!studentRow) {
+        recordFailedPreview(ip);
+        return jsonResponse({ error: { code: "NOT_FOUND", message: "Mã học sinh không tồn tại" } }, 404, corsHeaders);
+      }
+
+      return jsonResponse({
+        ok: true,
+        type: "claim",
+        claimCode: studentRow.claim_code,
+        rosterName: studentRow.roster_name,
+        alreadyClaimed: Boolean(studentRow.family_id && studentRow.status === "active"),
+        class: {
+          id: studentRow.class_id,
+          name: studentRow.class_name,
+          schoolName: studentRow.school_name,
+          grade: studentRow.grade,
+          schoolYear: studentRow.school_year,
+          teacherName: studentRow.teacher_name,
+          joinMode: studentRow.join_mode,
+        }
+      }, 200, corsHeaders);
+    }
+
+    // Trường hợp 2: Mã lớp chung 6 ký tự
+    const cls = await env.DB.prepare(`
+      SELECT c.id, c.name as class_name, c.school_name, c.grade, c.school_year, c.join_mode, c.status,
+             t.display_name as teacher_name
+      FROM classes c
+      JOIN teachers t ON c.teacher_id = t.id
+      WHERE c.join_code = ? AND c.status = 'active'
+    `).bind(code).first();
+
+    if (!cls) {
+      recordFailedPreview(ip);
+      return jsonResponse({ error: { code: "NOT_FOUND", message: "Mã lớp không tồn tại hoặc lớp đã đóng" } }, 404, corsHeaders);
+    }
+
+    return jsonResponse({
+      ok: true,
+      type: "join",
+      joinCode: code,
+      class: {
+        id: cls.id,
+        name: cls.class_name,
+        schoolName: cls.school_name,
+        grade: cls.grade,
+        schoolYear: cls.school_year,
+        teacherName: cls.teacher_name,
+        joinMode: cls.join_mode,
+      }
+    }, 200, corsHeaders);
+  }
   // =========================================================================
   // 1. TEACHER AUTHENTICATION (REGISTER, LOGIN, ME, PASSWORD, LOGOUT)
   // =========================================================================
@@ -471,7 +587,8 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
 
       const rows = await env.DB.prepare(`
         SELECT id, roster_name as rosterName, claim_code as claimCode, status,
-               consent_at as consentAt, child_consent_at as childConsentAt, reject_reason as rejectReason, created_at as createdAt
+               consent_at as consentAt, child_consent_at as childConsentAt, reject_reason as rejectReason, created_at as createdAt,
+               child_changed_at as childChangedAt
         FROM class_students
         WHERE class_id = ?
         ORDER BY roster_name ASC
@@ -829,7 +946,8 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       const rows = await env.DB.prepare(`
         SELECT an.*,
           (SELECT COUNT(*) FROM announcement_reads ar WHERE ar.announcement_id = an.id) as read_count,
-          (SELECT COUNT(*) FROM announcement_reads ar WHERE ar.announcement_id = an.id AND ar.ack_at IS NOT NULL) as ack_count
+          (SELECT COUNT(*) FROM announcement_reads ar WHERE ar.announcement_id = an.id AND ar.ack_at IS NOT NULL) as ack_count,
+          (SELECT COUNT(*) FROM announcement_reads ar WHERE ar.announcement_id = an.id AND ar.done_at IS NOT NULL) as done_count
         FROM announcements an
         WHERE an.class_id = ?
         ORDER BY an.pinned DESC, an.created_at DESC
@@ -838,29 +956,58 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       return jsonResponse({ ok: true, announcements: rows.results || [] }, 200, corsHeaders);
     }
 
-    // Soạn thông báo mới (POST /api/v1/teacher/classes/:id/announcements)
+    // Soạn thông báo mới hoặc Lời nhắc có ngày (POST /api/v1/teacher/classes/:id/announcements)
     if (pathname.endsWith("/announcements") && pathname.includes("/teacher/classes/") && method === "POST") {
       const classId = pathname.replace("/api/v1/teacher/classes/", "").replace("/announcements", "").trim();
       const cls = await env.DB.prepare("SELECT id FROM classes WHERE id = ? AND teacher_id = ?").bind(classId, session.teacher_id).first();
       if (!cls) return jsonResponse({ error: { code: "NOT_FOUND", message: "Không tìm thấy lớp học" } }, 404, corsHeaders);
 
-      const { title = "", body = "", pinned = 0, requireAck = 0 } = await request.json().catch(() => ({}));
+      const {
+        title = "",
+        body = "",
+        pinned = 0,
+        requireAck = 0,
+        kind = "info",
+        remindFor = null,
+        templateId = null,
+        assignmentId = null,
+      } = await request.json().catch(() => ({}));
+
       if (!title.trim() || !body.trim()) {
         return jsonResponse({ error: { code: "MISSING_DATA", message: "Vui lòng nhập tiêu đề và nội dung thông báo" } }, 400, corsHeaders);
+      }
+
+      // Prompt 11 Phần B: Lời nhắc việc bắt buộc có ngày và tối đa 3 lời nhắc mỗi ngày mỗi lớp
+      if (kind === "reminder") {
+        if (!remindFor) {
+          return jsonResponse({ error: { code: "REMIND_FOR_REQUIRED", message: "Lời nhắc việc bắt buộc phải có ngày áp dụng" } }, 400, corsHeaders);
+        }
+        const countRow = await env.DB.prepare(`
+          SELECT COUNT(*) as count FROM announcements
+          WHERE class_id = ? AND kind = 'reminder' AND remind_for = ?
+        `).bind(classId, remindFor).first();
+        if (countRow && countRow.count >= 3) {
+          return jsonResponse({
+            error: {
+              code: "REMINDER_LIMIT_EXCEEDED",
+              message: "Gộp vào một lời nhắc nhé cô (tối đa 3 lời nhắc mỗi ngày mỗi lớp)",
+            }
+          }, 400, corsHeaders);
+        }
       }
 
       const annId = `ann_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
       const now = new Date().toISOString();
 
       await env.DB.prepare(`
-        INSERT INTO announcements (id, class_id, title, body, pinned, require_ack, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(annId, classId, title.trim(), body.trim(), pinned ? 1 : 0, requireAck ? 1 : 0, now).run();
+        INSERT INTO announcements (id, class_id, title, body, pinned, require_ack, created_at, kind, remind_for, template_id, assignment_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(annId, classId, title.trim(), body.trim(), pinned ? 1 : 0, requireAck ? 1 : 0, now, kind, remindFor || null, templateId || null, assignmentId || null).run();
 
       return jsonResponse({ ok: true, id: annId }, 201, corsHeaders);
     }
 
-    // Danh sách phụ huynh đã đọc thông báo (GET /api/v1/teacher/announcements/:id/reads)
+    // Danh sách phụ huynh đã đọc & đã nhắc con (GET /api/v1/teacher/announcements/:id/reads)
     if (pathname.startsWith("/api/v1/teacher/announcements/") && pathname.endsWith("/reads") && method === "GET") {
       const annId = pathname.replace("/api/v1/teacher/announcements/", "").replace("/reads", "").trim();
       const ann = await env.DB.prepare(`
@@ -872,7 +1019,8 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       if (!ann) return jsonResponse({ error: { code: "NOT_FOUND", message: "Không tìm thấy thông báo" } }, 404, corsHeaders);
 
       const reads = await env.DB.prepare(`
-        SELECT ar.family_id, f.name as family_name, ar.read_at, ar.ack_at
+        SELECT ar.family_id, f.name as family_name, ar.read_at, ar.ack_at, ar.done_at,
+               (SELECT display_name FROM members WHERE id = ar.done_by_member_id) as done_by_name
         FROM announcement_reads ar
         JOIN families f ON ar.family_id = f.id
         WHERE ar.announcement_id = ?
@@ -896,8 +1044,9 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       return jsonResponse({ error: { code: "FORBIDDEN", message: "Tài khoản Chỉ xem không thể kết nối con vào lớp" } }, 403, corsHeaders);
     }
 
-    const { code = "", childId = "", rosterName = "", consent = false, childConsent = false } = await request.json().catch(() => ({}));
+    const { code = "", childId = "", rosterName = "", childName = "", consent = false, childConsent = false } = await request.json().catch(() => ({}));
     const cleanCode = code.trim().toUpperCase();
+    const effectiveRosterName = (rosterName || childName || "").trim();
 
     // NGUYÊN TẮC PHÁP LÝ (Điều 20 Nghị định 13/2023/NĐ-CP):
     // Cần cả sự đồng ý của cha mẹ và của con
@@ -911,6 +1060,23 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
     }
 
     const now = new Date().toISOString();
+
+    // Kiểm tra giới hạn 5 lớp học đang hoạt động cho 1 con
+    if (childId) {
+      const activeClassesRow = await env.DB.prepare(`
+        SELECT COUNT(*) as count FROM class_students
+        WHERE child_id = ? AND status IN ('active', 'pending')
+      `).bind(childId).first();
+
+      if (activeClassesRow && activeClassesRow.count >= 5) {
+        return jsonResponse({
+          error: {
+            code: "MAX_CLASSES_EXCEEDED",
+            message: "Mỗi con chỉ tham gia tối đa 5 lớp học đang hoạt động"
+          }
+        }, 400, corsHeaders);
+      }
+    }
 
     // Trường hợp 1: Mã riêng dạng XXX-XXX (Claim Code)
     if (cleanCode.includes("-")) {
@@ -927,6 +1093,31 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       }
       if (studentRow.family_id && studentRow.status === "active") {
         return jsonResponse({ error: { code: "ALREADY_CLAIMED", message: "Mã này đã được phụ huynh khác kết nối" } }, 409, corsHeaders);
+      }
+
+      // Kiểm tra trùng: nếu con đã ở lớp này
+      if (childId) {
+        const existing = await env.DB.prepare(`
+          SELECT cs.id, cs.status, cs.created_at, cs.roster_name,
+                 (SELECT display_name FROM members WHERE id = cs.linked_by_member_id) as linked_by_name
+          FROM class_students cs
+          WHERE cs.class_id = ? AND cs.child_id = ? AND cs.status IN ('active', 'pending') AND cs.id != ?
+        `).bind(studentRow.class_id, childId, studentRow.id).first();
+
+        if (existing) {
+          const timeStr = new Date(existing.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+          const linkedBy = existing.linked_by_name || 'Phụ huynh';
+          return jsonResponse({
+            error: {
+              code: "DUPLICATE_STUDENT",
+              reason: "duplicate",
+              message: `${existing.roster_name || 'Con'} đã ở lớp này hoặc đang chờ cô duyệt (${linkedBy} đã kết nối lúc ${timeStr})`,
+              status: existing.status,
+              linkedBy,
+              linkedAt: existing.created_at,
+            }
+          }, 409, corsHeaders);
+        }
       }
 
       await env.DB.prepare(`
@@ -969,15 +1160,40 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       return jsonResponse({ error: { code: "CLAIM_ONLY", message: "Lớp này chỉ chấp nhận mã học sinh riêng (XXX-XXX)" } }, 400, corsHeaders);
     }
 
-    if (!rosterName.trim()) {
+    if (!effectiveRosterName) {
       return jsonResponse({ error: { code: "NAME_REQUIRED", message: "Vui lòng nhập tên của con trong danh sách lớp" } }, 400, corsHeaders);
+    }
+
+    // Chặn trùng lặp: một con không vào cùng một lớp 2 lần
+    if (childId) {
+      const existing = await env.DB.prepare(`
+        SELECT cs.id, cs.status, cs.created_at, cs.roster_name,
+               (SELECT display_name FROM members WHERE id = cs.linked_by_member_id) as linked_by_name
+        FROM class_students cs
+        WHERE cs.class_id = ? AND cs.child_id = ? AND cs.status IN ('active', 'pending')
+      `).bind(cls.id, childId).first();
+
+      if (existing) {
+        const timeStr = new Date(existing.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        const linkedBy = existing.linked_by_name || 'Phụ huynh';
+        return jsonResponse({
+          error: {
+            code: "DUPLICATE_STUDENT",
+            reason: "duplicate",
+            message: `${existing.roster_name || 'Con'} đã ở lớp này hoặc đang chờ cô duyệt (${linkedBy} đã kết nối lúc ${timeStr})`,
+            status: existing.status,
+            linkedBy,
+            linkedAt: existing.created_at,
+          }
+        }, 409, corsHeaders);
+      }
     }
 
     const studentId = `cs_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
     await env.DB.prepare(`
       INSERT INTO class_students (id, class_id, roster_name, family_id, child_id, status, consent_at, child_consent_at, linked_by_member_id, created_at)
       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
-    `).bind(studentId, cls.id, rosterName.trim(), session.family_id, childId || null, now, now, session.member_id, now).run();
+    `).bind(studentId, cls.id, effectiveRosterName, session.family_id, childId || null, now, now, session.member_id, now).run();
 
     return jsonResponse({
       ok: true,
@@ -1011,6 +1227,84 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
     `).bind(session.family_id).all();
 
     return jsonResponse({ ok: true, classes: rows.results || [] }, 200, corsHeaders);
+  }
+
+  // Đổi con trong 24 giờ khi chưa có kết quả (PATCH /api/v1/family/classes/:classStudentId/child)
+  if (pathname.startsWith("/api/v1/family/classes/") && pathname.endsWith("/child") && method === "PATCH") {
+    const session = await authenticateSession(request, env);
+    if (!session) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu đăng nhập" } }, 401, corsHeaders);
+    }
+    if (session.role === "viewer") {
+      return jsonResponse({ error: { code: "FORBIDDEN", message: "Tài khoản Chỉ xem không thể thực hiện thao tác này" } }, 403, corsHeaders);
+    }
+
+    const classStudentId = pathname.replace("/api/v1/family/classes/", "").replace("/child", "").trim();
+    const { childId } = await request.json().catch(() => ({}));
+
+    if (!childId) {
+      return jsonResponse({ error: { code: "MISSING_CHILD", message: "Vui lòng chọn con cần chuyển sang" } }, 400, corsHeaders);
+    }
+
+    const studentRow = await env.DB.prepare(`
+      SELECT cs.id, cs.class_id, cs.family_id, cs.created_at, cs.child_id
+      FROM class_students cs
+      WHERE cs.id = ? AND cs.family_id = ?
+    `).bind(classStudentId, session.family_id).first();
+
+    if (!studentRow) {
+      return jsonResponse({ error: { code: "NOT_FOUND", message: "Không tìm thấy thông tin kết nối lớp" } }, 404, corsHeaders);
+    }
+
+    // Quy tắc 1: Trong vòng 24 giờ đầu
+    const createdMs = new Date(studentRow.created_at).getTime();
+    const nowMs = Date.now();
+    const diffHours = (nowMs - createdMs) / (1000 * 60 * 60);
+    if (diffHours > 24) {
+      return jsonResponse({
+        error: {
+          code: "TIME_EXPIRED",
+          message: "Đã quá 24 giờ kể từ khi kết nối. Vui lòng bấm Rời lớp rồi kết nối lại nhé."
+        }
+      }, 409, corsHeaders);
+    }
+
+    // Quy tắc 2: Chưa có kết quả bài nào
+    const resultsCount = (await env.DB.prepare(`
+      SELECT count(*) as count FROM assignment_results
+      WHERE class_student_id = ? AND status = 'done'
+    `).bind(classStudentId).first())?.count || 0;
+
+    if (resultsCount > 0) {
+      return jsonResponse({
+        error: {
+          code: "HAS_RESULTS",
+          message: "Con đã có kết quả bài tập được ghi nhận trong lớp này, không thể đổi con. Vui lòng bấm Rời lớp nếu cần."
+        }
+      }, 409, corsHeaders);
+    }
+
+    // Kiểm tra xem con mới chọn đã ở trong lớp này chưa (tránh trùng)
+    const dupCheck = await env.DB.prepare(`
+      SELECT id FROM class_students
+      WHERE class_id = ? AND child_id = ? AND id != ? AND status IN ('active', 'pending')
+    `).bind(studentRow.class_id, childId, classStudentId).first();
+
+    if (dupCheck) {
+      return jsonResponse({
+        error: {
+          code: "DUPLICATE_STUDENT",
+          message: "Bé này đã có trong lớp rồi, không thể chuyển sang bé này."
+        }
+      }, 409, corsHeaders);
+    }
+
+    const now = new Date().toISOString();
+    await env.DB.prepare(`
+      UPDATE class_students SET child_id = ?, child_changed_at = ? WHERE id = ?
+    `).bind(childId, now, classStudentId).run();
+
+    return jsonResponse({ ok: true, message: "Đã chuyển sang con thành công", childChangedAt: now }, 200, corsHeaders);
   }
 
   // Rời lớp (DELETE /api/v1/family/classes/:classStudentId)
@@ -1162,6 +1456,57 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
     `).bind(annId, session.family_id, session.member_id, now, now).run();
 
     return jsonResponse({ ok: true, acknowledged: true }, 200, corsHeaders);
+  }
+
+  // Xác nhận đã nhắc con (POST /api/v1/family/announcements/:id/done)
+  if (pathname.startsWith("/api/v1/family/announcements/") && pathname.endsWith("/done") && method === "POST") {
+    const session = await authenticateSession(request, env);
+    if (!session) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu đăng nhập" } }, 401, corsHeaders);
+    }
+    if (session.role === "viewer") {
+      return jsonResponse({ error: { code: "FORBIDDEN", message: "Tài khoản Chỉ xem không thể xác nhận lời nhắc" } }, 403, corsHeaders);
+    }
+
+    const annId = pathname.replace("/api/v1/family/announcements/", "").replace("/done", "").trim();
+    const now = new Date().toISOString();
+
+    await env.DB.prepare(`
+      INSERT INTO announcement_reads (announcement_id, family_id, member_id, read_at, done_at, done_by_member_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(announcement_id, family_id) DO UPDATE SET
+        done_at = excluded.done_at,
+        done_by_member_id = excluded.done_by_member_id,
+        read_at = COALESCE(announcement_reads.read_at, excluded.read_at)
+    `).bind(annId, session.family_id, session.member_id, now, now, session.member_id).run();
+
+    return jsonResponse({ ok: true, done: true, doneAt: now }, 200, corsHeaders);
+  }
+
+  // Lời nhắc có ngày cho phụ huynh (GET /api/v1/family/reminders)
+  if (pathname === "/api/v1/family/reminders" && method === "GET") {
+    const session = await authenticateSession(request, env);
+    if (!session) {
+      return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu đăng nhập" } }, 401, corsHeaders);
+    }
+
+    const rows = await env.DB.prepare(`
+      SELECT an.id, an.class_id, an.title, an.body, an.kind, an.remind_for as remindFor, an.template_id as templateId, an.assignment_id as assignmentId, an.created_at,
+             c.name as class_name, c.school_name, c.grade as class_grade,
+             t.display_name as teacher_name,
+             cs.child_id, cs.roster_name,
+             ar.read_at, ar.done_at, ar.done_by_member_id,
+             (SELECT display_name FROM members WHERE id = ar.done_by_member_id) as done_by_name
+      FROM announcements an
+      JOIN classes c ON an.class_id = c.id
+      JOIN teachers t ON c.teacher_id = t.id
+      JOIN class_students cs ON cs.class_id = c.id
+      LEFT JOIN announcement_reads ar ON ar.announcement_id = an.id AND ar.family_id = ?
+      WHERE cs.family_id = ? AND cs.status = 'active' AND an.kind = 'reminder'
+      ORDER BY an.remind_for ASC, an.created_at DESC
+    `).bind(session.family_id, session.family_id).all();
+
+    return jsonResponse({ ok: true, reminders: rows.results || [] }, 200, corsHeaders);
   }
 
   // Báo cáo nội dung không phù hợp (POST /api/v1/family/content-reports)
