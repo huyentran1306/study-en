@@ -1,4 +1,53 @@
 /**
+ * Chuẩn hoá đầu ra từ Workers AI (hỗ trợ cả chuỗi JSON, đối tượng JSON, hay phản hồi rỗng/null)
+ * Đảm bảo luôn trả về { rawOutput: string, parsed: object | null }
+ * Tuyệt đối không bao giờ throw lỗi khi rawOutput là object, null hoặc undefined.
+ */
+export function normalizeAiResponse(response) {
+  if (response === null || response === undefined) {
+    return { rawOutput: "", parsed: null };
+  }
+  let raw = response.response !== undefined ? response.response : response;
+  if (raw === null || raw === undefined) {
+    return { rawOutput: "", parsed: null };
+  }
+  if (typeof raw === "object") {
+    try {
+      return { rawOutput: JSON.stringify(raw, null, 2), parsed: raw };
+    } catch (_) {
+      return { rawOutput: String(raw), parsed: null };
+    }
+  }
+
+  const str = String(raw).trim();
+  if (!str) {
+    return { rawOutput: "", parsed: null };
+  }
+
+  let jsonClean = str;
+  const match = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (match) jsonClean = match[1].trim();
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(jsonClean);
+  } catch (_) {
+    const start = jsonClean.indexOf("{");
+    const end = jsonClean.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        parsed = JSON.parse(jsonClean.slice(start, end + 1));
+      } catch (_) {
+        try {
+          parsed = JSON.parse(jsonClean.slice(start, end + 1).replace(/,\s*([}\]])/g, "$1"));
+        } catch (_) {}
+      }
+    }
+  }
+  return { rawOutput: str, parsed };
+}
+
+/**
  * ADVANCED AI, VECTORIZE, R2 & D1 GATEWAY WORKER (VERSION 3.0.0)
  * 
  * 🌐 Live URL: https://ai-gateway-worker.trann46698.workers.dev
@@ -30,11 +79,23 @@
  *    - POST /db/query | POST /db/execute | GET /db/kv/:key | POST /db/kv/:key
  */
 
-import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin } from "./v1_routes.js";
+import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin, buildLearnerProfile, handleProgressReport, handleMicroStep, handleJudgeAnswer, handleAdaptiveBrother, handleTraitAnalysis } from "./v1_routes.js";
+import { checkVisionRateLimit, validateImageBytes, resolvePromptTemplate, executeVisionAI } from "./vision.js";
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS } from "./guard.js";
+import { validateAllLessonMath, correctLessonMath } from "./arithmetic.js";
 import { handleCheckWorkRead, handleCheckWorkGrade, handleCheckWorkGet, handleCheckWorkHistory } from "./check_work.js";
 import { handleTeachBackTranscribe, handleTeachBackGrade, handleTeachBackConfirm } from "./teach_back.js";
+import {
+  estimateTokens,
+  sha256Hex,
+  logAiCall,
+  handleTokenStats,
+  buildCacheKey,
+  fetchFromLessonCache,
+  storeInLessonCache,
+  checkFamilyQuota
+} from "./dot20_token.js";
 import {
   handleAiFeedbackCreate,
   handleSafetySummary,
@@ -89,6 +150,41 @@ export default {
         const id = pathname.split("/")[5];
         return await handleCheckWorkGet(request, env, id, corsHeaders);
       }
+    }
+
+    // =====================================================================
+    // 0c. 📊 PHÂN TÍCH TIẾN BỘ TRUNG THỰC (Prompt 17/18 Chặng 3)
+    // =====================================================================
+    if (pathname === "/api/v1/ai/progress" && request.method === "POST") {
+      return await handleProgressReport(request, env, ctx, corsHeaders);
+    }
+
+    // =====================================================================
+    // 0d. 🪜 CÂU HỎI NHỎ HƠN (Prompt 18 Chặng 4)
+    // =====================================================================
+    if (pathname === "/api/v1/ai/micro-step" && request.method === "POST") {
+      return await handleMicroStep(request, env, ctx, corsHeaders);
+    }
+
+    // =====================================================================
+    // 0e. 🎙 GẤU NGHE CON TRẢ LỜI (Prompt 18 Chặng 5)
+    // =====================================================================
+    if (pathname === "/api/v1/ai/judge-answer" && request.method === "POST") {
+      return await handleJudgeAnswer(request, env, ctx, corsHeaders);
+    }
+
+    // =====================================================================
+    // 0f. 🎯 BÀI ANH EM THÍCH ỨNG (Prompt 18 Chặng 6)
+    // =====================================================================
+    if (pathname === "/api/v1/ai/brother" && request.method === "POST") {
+      return await handleAdaptiveBrother(request, env, ctx, corsHeaders);
+    }
+
+    // =====================================================================
+    // 0g. 🧭 AI TÌM NGUYÊN NHÂN & LỘ TRÌNH CÂN BẰNG (Đợt 19 Chặng 3)
+    // =====================================================================
+    if (pathname === "/api/v1/ai/trait-analysis" && request.method === "POST") {
+      return await handleTraitAnalysis(request, env, ctx, corsHeaders);
     }
 
     // =====================================================================
@@ -283,13 +379,18 @@ export default {
       // 3. 📷 VISION AI, OCR & ẢNH BÉ (LLAMA 3.2 VISION + R2 + D1)
       // =====================================================================
 
-      // 📷 POST /vision/analyze -> Chụp ảnh bé & phân tích
+      // 📷 POST /vision/analyze -> Đọc đề từ ảnh bài tập (p1_ocr*) / nhận diện đồ chơi (p5_toy)
+      // Không lưu ảnh (R2 / child_photos). Prompt lấy phía server theo prompt_id. Có hạn mức neurons.
       if (pathname === "/vision/analyze" && request.method === "POST") {
-        let imageBytes = null;
-        let mimeType = "image/jpeg";
-        let prompt = "Phân tích bức ảnh này của bé: bé đang làm hoạt động gì, biểu cảm và tâm trạng thế nào, có chi tiết an toàn hay lời khuyên nào bổ ích cho phụ huynh không?";
-        let childName = "Bé";
+        const ip = request.headers.get("CF-Connecting-IP") || "";
+        if (!checkVisionRateLimit(ip)) {
+          return jsonResponse({ success: false, error: "rate_limited" }, 429, corsHeaders);
+        }
 
+        let imageBytes = null;
+        let mimeType = "";
+        let clientPrompt = "";
+        let promptId = "";
         const contentType = request.headers.get("content-type") || "";
 
         if (contentType.includes("multipart/form-data")) {
@@ -297,89 +398,49 @@ export default {
           const file = formData.get("image") || formData.get("file");
           if (file && typeof file === "object" && "arrayBuffer" in file) {
             imageBytes = new Uint8Array(await file.arrayBuffer());
-            mimeType = file.type || "image/jpeg";
+            mimeType = file.type || "";
           }
-          if (formData.has("prompt")) prompt = String(formData.get("prompt"));
-          if (formData.has("childName")) childName = String(formData.get("childName"));
+          if (formData.has("prompt_id")) promptId = String(formData.get("prompt_id")).trim();
+          if (formData.has("prompt")) clientPrompt = String(formData.get("prompt"));
         } else if (contentType.includes("application/json")) {
           const body = await request.json();
-          if (body.prompt) prompt = body.prompt;
-          if (body.childName) childName = body.childName;
-
+          if (body.prompt_id || body.promptId) promptId = String(body.prompt_id || body.promptId).trim();
+          if (body.prompt) clientPrompt = String(body.prompt);
           if (body.image) {
-            const base64Clean = body.image.replace(/^data:image\/\w+;base64,/, "");
+            const base64Clean = String(body.image).replace(/^data:image\/\w+;base64,/, "");
             const binaryStr = atob(base64Clean);
             imageBytes = new Uint8Array(binaryStr.length);
             for (let i = 0; i < binaryStr.length; i++) imageBytes[i] = binaryStr.charCodeAt(i);
-          } else if (body.imageUrl) {
-            const imgRes = await fetch(body.imageUrl);
-            imageBytes = new Uint8Array(await imgRes.arrayBuffer());
-            mimeType = imgRes.headers.get("content-type") || "image/jpeg";
           }
         } else {
           imageBytes = new Uint8Array(await request.arrayBuffer());
-          mimeType = contentType || "image/jpeg";
+          mimeType = contentType;
         }
 
-        if (!imageBytes || imageBytes.length === 0) {
-          return jsonResponse({ error: "Không tìm thấy dữ liệu hình ảnh để phân tích." }, 400, corsHeaders);
+        const check = validateImageBytes(imageBytes, mimeType);
+        if (!check.valid) {
+          return jsonResponse({ success: false, error: check.error, message: check.message }, check.status, corsHeaders);
         }
 
-        const ext = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
-        const fileId = `child_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
-        if (env.IMAGES) {
-          await env.IMAGES.put(fileId, imageBytes, {
-            httpMetadata: { contentType: mimeType },
-          });
-        }
-        const imageUrl = `${url.origin}/images/${fileId}`;
-
-        let aiAnalysis = "";
-        const runVision = async (textPrompt) => {
-          return await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
-            prompt: textPrompt,
-            image: [...imageBytes],
-            max_tokens: 600,
-            temperature: 0.2,
-          });
-        };
-
-        try {
-          const finalPrompt = prompt.trim().toLowerCase() === "agree"
-            ? "agree"
-            : `${prompt}\n(Vui lòng trả lời bằng tiếng Việt thân thiện, tâm lý, xúc tích và rõ ràng).`;
-          const visionResponse = await runVision(finalPrompt);
-          aiAnalysis = visionResponse.response || visionResponse.description || "";
-        } catch (visionErr) {
-          if (visionErr.message && visionErr.message.includes("5016")) {
-            try {
-              // Tự động chấp nhận Meta Llama License
-              await runVision("agree");
-              const retryVision = await runVision(`${prompt}\n(Vui lòng trả lời bằng tiếng Việt thân thiện, tâm lý, xúc tích và rõ ràng).`);
-              aiAnalysis = retryVision.response || retryVision.description || "";
-            } catch (retryErr) {
-              aiAnalysis = `Không thể phân tích ảnh qua Vision AI: ${retryErr.message}`;
-            }
-          } else {
-            aiAnalysis = `Không thể phân tích ảnh qua Vision AI: ${visionErr.message}`;
-          }
+        const resolved = await resolvePromptTemplate({ promptId, clientPrompt, env });
+        if (resolved.error) {
+          return jsonResponse({ success: false, error: resolved.error }, resolved.status || 400, corsHeaders);
         }
 
-        await ensureChildPhotosTable(env.DB);
-        const insertResult = await env.DB.prepare(
-          "INSERT INTO child_photos (file_id, image_url, prompt, analysis, child_name, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP);"
-        ).bind(fileId, imageUrl, prompt, aiAnalysis, childName).run();
+        const result = await executeVisionAI({ env, imageBytes, prompt: resolved.template, promptId: resolved.promptId });
+        if (result.usagePromise) ctx.waitUntil(result.usagePromise);
+
+        if (!result.success) {
+          return jsonResponse({ success: false, error: result.error, message: result.message }, result.status || 502, corsHeaders);
+        }
 
         return jsonResponse(
           {
             success: true,
-            id: insertResult.meta?.last_row_id || null,
-            file_id: fileId,
-            image_url: imageUrl,
-            child_name: childName,
-            prompt,
-            analysis: aiAnalysis,
-            saved_to_db: true,
+            analysis: result.analysis,
+            model: result.model,
+            fallback_used: result.fallback_used,
+            latency_ms: result.latency_ms,
           },
           200,
           corsHeaders
@@ -495,12 +556,108 @@ export default {
       }
 
       if (pathname === "/chat" && request.method === "POST") {
-        const { messages = [], max_tokens = 800, temperature = 0.7, model } = await request.json().catch(() => ({}));
+        const { messages = [], max_tokens: reqMaxTokens = 800, temperature = 0.7, model } = await request.json().catch(() => ({}));
         if (!Array.isArray(messages) || messages.length === 0) {
           return jsonResponse({ error: "Thiếu mảng 'messages'" }, 400, corsHeaders);
         }
+        // P0.A: ngân sách thời gian tổng ~25 giây; các lần soạn lại chỉ chạy khi còn đủ thời gian
+        const chatStartedAt = Date.now();
+        const CHAT_BUDGET_MS = 25000;
+        const timeLeft = () => CHAT_BUDGET_MS - (Date.now() - chatStartedAt);
+        const max_tokens = Math.max(64, Math.min(Number(reqMaxTokens) || 800, 1600));
+        const promptId = request.headers.get("X-Prompt-Id") || "";
+        const sessionId = request.headers.get("X-Session-Id") || "";
+        const problemText = request.headers.get("X-Problem-Text") || "";
+        const familyId = request.headers.get("X-Family-Id") || "";
+        const childId = request.headers.get("X-Child-Id") || "";
+
+        // Đợt 18 · Chặng 2: Hồ sơ con cho AI (Gấu nhớ con {{ho_so_con}})
+        let childProfile = null;
+        for (let m of messages) {
+          if (typeof m.content === "string" && m.content.includes("{{ho_so_con}}")) {
+            let profileText = "chưa có";
+            if (familyId && childId) {
+              childProfile = await buildLearnerProfile(env, familyId, childId);
+              profileText = childProfile.profileText || "chưa có";
+            }
+            m.content = m.content.replace(/\{\{ho_so_con\}\}/g, profileText);
+          }
+        }
+
+        // Đợt 20 · Chặng 1: Kiểm tra bộ nhớ bài giảng (lesson_cache) & hạn mức gia đình
+        const isExplain = promptId === "p3_explain" || promptId === "p3_explain_v2";
+        const bypassCache = request.headers.get("X-Bypass-Cache") === "1" || request.headers.get("X-Bypass-Cache") === "true";
+        let rawProblem = problemText ? decodeURIComponent(problemText) : "";
+        if (!rawProblem && isExplain) {
+          for (let m of messages) {
+            if (typeof m.content === "string" && m.content.includes("Đề bài:")) {
+              rawProblem = m.content;
+              break;
+            }
+          }
+        }
+        const grade = request.headers.get("X-Grade") || "";
+        const bookSeries = request.headers.get("X-Book-Series") || "";
+        const subject = request.headers.get("X-Subject") || "";
+        const childProfileHash = childId ? await sha256Hex(childId) : "none";
+        let cacheKey = null;
+
+        if (isExplain && rawProblem) {
+          cacheKey = await buildCacheKey({
+            problemText: rawProblem,
+            grade,
+            bookSeries,
+            subject,
+            promptVersion: promptId === "p3_explain_v2" ? "v2" : "v1",
+            childProfileHash,
+          });
+
+          if (!bypassCache) {
+            const cachedLesson = await fetchFromLessonCache(env, cacheKey);
+            if (cachedLesson) {
+              const elapsed = Date.now() - chatStartedAt;
+              await logAiCall(env, {
+                family_id: familyId,
+                session_id: sessionId,
+                endpoint: "/chat",
+                prompt_id: promptId,
+                prompt_version: promptId === "p3_explain_v2" ? "v2" : "v1",
+                model: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+                tokens_in: 0,
+                tokens_out: 0,
+                latency_ms: elapsed,
+                ms: elapsed,
+                ok: 1,
+                status: "cache_hit",
+                cache_hit: 1,
+                estimated: 0,
+              });
+
+              return jsonResponse({
+                response: cachedLesson,
+                guarded: false,
+                error_code: null,
+                cached: true,
+                validator: { ok: true, cached: true },
+              }, 200, corsHeaders);
+            }
+          }
+
+          // Kiểm tra hạn mức 30 bài/ngày/gia đình
+          if (familyId) {
+            const quota = await checkFamilyQuota(env, familyId);
+            if (!quota.allowed) {
+              return jsonResponse({
+                error: "quota_exceeded",
+                message: "Gia đình đã dùng hết 30 lượt soạn bài hôm nay để bảo vệ mắt và thời gian của bé. Mẹ và bé hãy cùng ôn lại các bài đã lưu nhé!",
+              }, 429, corsHeaders);
+            }
+          }
+        }
+
         try {
-          const chosenModel = model || "@cf/meta/llama-3.1-70b-instruct";
+          // Chỉ nhận id model Workers AI hợp lệ (@cf/...), tên khác (vd "cloudflare-llama-3.3-70b") quy về mặc định
+          const chosenModel = typeof model === "string" && model.startsWith("@cf/") ? model : "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
           let response;
           try {
             response = await env.AI.run(chosenModel, { messages, max_tokens, temperature });
@@ -508,23 +665,14 @@ export default {
             console.warn("Primary model error, fallback to llama-3.1-8b-instruct-fp8:", mErr);
             response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", { messages, max_tokens, temperature });
           }
-          let rawOutput = response.response || "";
-          const promptId = request.headers.get("X-Prompt-Id") || "";
-          const sessionId = request.headers.get("X-Session-Id") || "";
-          const problemText = request.headers.get("X-Problem-Text") || "";
-          const familyId = request.headers.get("X-Family-Id") || "";
+          const normalized = normalizeAiResponse(response);
+          let rawOutput = normalized.rawOutput;
+          let parsed = normalized.parsed;
 
-          // Phân tích sơ bộ để kiểm tra định dạng và rò rỉ đáp án
-          let parsed = null;
-          let jsonClean = rawOutput.trim();
-          const match = jsonClean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-          if (match) jsonClean = match[1];
-          try {
-            parsed = JSON.parse(jsonClean);
-          } catch (_) {}
+// Headers đã được đọc ở đầu /chat
 
           // 1. Nếu định dạng sai (hỏng JSON hoặc thiếu bậc), retry 1 lần với yêu cầu JSON
-          if (!parsed || (promptId === "p3_explain" && (!Array.isArray(parsed?.cac_bac) || parsed.cac_bac.length < 3))) {
+          if ((!parsed || ((promptId === "p3_explain" || promptId === "p3_explain_v2") && (!Array.isArray(parsed?.cac_bac) || parsed.cac_bac.length < 3))) && timeLeft() > 12000) {
             try {
               const retryMessages = [
                 ...messages,
@@ -532,14 +680,12 @@ export default {
                 { role: "user", content: "Lưu ý: Chỉ trả lời bằng định dạng JSON hợp lệ theo đúng schema, không thêm bất kỳ chữ hay lời dẫn nào ngoài JSON." }
               ];
               const retryResp = await env.AI.run(chosenModel, { messages: retryMessages, max_tokens, temperature: 0.2 }).catch(() => null);
-              if (retryResp && retryResp.response) {
-                rawOutput = retryResp.response;
-                let rClean = rawOutput.trim();
-                const m2 = rClean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-                if (m2) rClean = m2[1];
-                try {
-                  parsed = JSON.parse(rClean);
-                } catch (_) {}
+              if (retryResp) {
+                const rNorm = normalizeAiResponse(retryResp);
+                if (rNorm.parsed) {
+                  rawOutput = rNorm.rawOutput;
+                  parsed = rNorm.parsed;
+                }
               }
             } catch (rErr) {
               console.warn("Retry format error:", rErr);
@@ -556,8 +702,8 @@ export default {
           if (parsed) {
             let leakCheck = checkAnswerLeak(promptId, parsed, context);
 
-            // Nếu phát hiện lộ: gọi lại AI một lần với câu nhắc cảnh báo chặt chẽ
-            if (leakCheck.leaked) {
+            // Nếu phát hiện lộ: gọi lại AI một lần (chỉ khi còn thời gian); hết giờ thì bộ chặn thay bằng câu an toàn
+            if (leakCheck.leaked && timeLeft() > 12000) {
               try {
                 const retryPrompt = `CẢNH BÁO: Câu hỏi gợi mở cho con tuyệt đối không được chứa đáp án (${leakCheck.leaks.map(l => l.illegalValue).join(", ")}). Hãy soạn lại câu hỏi mở để con tự suy nghĩ và tìm ra câu trả lời. Chỉ trả JSON.`;
                 const retryMessages = [
@@ -566,12 +712,9 @@ export default {
                   { role: "user", content: retryPrompt }
                 ];
                 const leakRetryResp = await env.AI.run(chosenModel, { messages: retryMessages, max_tokens, temperature: 0.2 }).catch(() => null);
-                if (leakRetryResp && leakRetryResp.response) {
-                  let rClean = leakRetryResp.response.trim();
-                  const m3 = rClean.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-                  if (m3) rClean = m3[1];
-                  let secondParsed = null;
-                  try { secondParsed = JSON.parse(rClean); } catch (_) {}
+                if (leakRetryResp) {
+                  const leakNorm = normalizeAiResponse(leakRetryResp);
+                  let secondParsed = leakNorm.parsed;
                   if (secondParsed) {
                     const secondCheck = checkAnswerLeak(promptId, secondParsed, context);
                     if (!secondCheck.leaked) {
@@ -586,7 +729,7 @@ export default {
                           field: l.field,
                           beforeText: l.beforeText,
                           afterText: "Tự động soạn lại không lộ đáp án",
-                          outcome: "regenerated",
+                          outcome: "sua_bac",
                         });
                       });
                     }
@@ -595,6 +738,78 @@ export default {
               } catch (lErr) {
                 console.warn("Retry leak error:", lErr);
               }
+            }
+          }
+
+                    // 3. Đợt 18 · Chặng 1: Máy kiểm phép tính (code, không phải AI)
+          if ((promptId === "p3_explain" || promptId === "p3_explain_v2") && parsed) {
+            let mathCheck = validateAllLessonMath(parsed);
+
+            // Nếu phát hiện phép tính sai: gọi lại AI soạn lại bậc đó kèm kết quả đúng
+            if (mathCheck.hasError && timeLeft() > 10000) {
+              try {
+                const errorDetails = mathCheck.errors.map(e => `Phép tính "${e.expr}" sai, kết quả đúng là "${e.correction}"`).join(". ");
+                const retryPrompt = `CẢNH BÁO TOÁN HỌC: ${errorDetails}. Hãy kiểm tra và soạn lại các bậc cho chính xác. Tuyệt đối không để sai phép tính. Chỉ trả JSON.`;
+                const retryMessages = [
+                  ...messages,
+                  { role: "assistant", content: rawOutput },
+                  { role: "user", content: retryPrompt }
+                ];
+                const mathRetryResp = await env.AI.run(chosenModel, { messages: retryMessages, max_tokens, temperature: 0.2 }).catch(() => null);
+                if (mathRetryResp) {
+                  const mathNorm = normalizeAiResponse(mathRetryResp);
+                  if (mathNorm.parsed) {
+                    const secondMathCheck = validateAllLessonMath(mathNorm.parsed);
+                    if (!secondMathCheck.hasError) {
+                      parsed = mathNorm.parsed;
+                      rawOutput = JSON.stringify(parsed, null, 2);
+                      mathCheck = secondMathCheck;
+                      mathCheck.errors.forEach(err => {
+                        logGuardEvent(env, ctx, {
+                          familyId,
+                          sessionId,
+                          promptId,
+                          field: err.field,
+                          beforeText: err.expr,
+                          afterText: err.correction,
+                          outcome: "sua_bac",
+                        });
+                      });
+                    }
+                  }
+                }
+              } catch (mErr) {
+                console.warn("Math retry error:", mErr);
+              }
+            }
+
+            // Nếu sau retry (hoặc không đủ thời gian) vẫn còn sai: tự động sửa số và ghi guard_log loại sua_phep_tinh
+            const finalMathCheck = validateAllLessonMath(parsed);
+            if (finalMathCheck.hasError) {
+              const corrected = correctLessonMath(parsed);
+              parsed = corrected.lessonData;
+              rawOutput = JSON.stringify(parsed, null, 2);
+              corrected.changes.forEach(ch => {
+                logGuardEvent(env, ctx, {
+                  familyId,
+                  sessionId,
+                  promptId,
+                  field: ch.field,
+                  beforeText: ch.expr,
+                  afterText: ch.correction,
+                  outcome: "sua_phep_tinh",
+                });
+              });
+              mathCheck = validateAllLessonMath(parsed);
+            }
+
+            if (parsed && typeof parsed === "object") {
+              parsed.math_verified = {
+                count: mathCheck.verifiedCount,
+                calculations: mathCheck.calculations,
+                summary: mathCheck.summary,
+              };
+              rawOutput = JSON.stringify(parsed, null, 2);
             }
           }
 
@@ -611,6 +826,39 @@ export default {
             }
           }
 
+          // Đợt 20 · Chặng 1: Lưu bài vào lesson_cache & ghi log ai_calls đo token
+          if (isExplain && cacheKey && validated.response) {
+            await storeInLessonCache(env, {
+              cacheKey,
+              problemText: rawProblem,
+              grade,
+              bookSeries,
+              subject,
+              promptVersion: promptId === "p3_explain_v2" ? "v2" : "v1",
+              childProfileHash,
+              lessonObj: validated.response,
+              tokensSaved: 1950,
+            });
+          }
+
+          const elapsed = Date.now() - chatStartedAt;
+          await logAiCall(env, {
+            family_id: familyId,
+            session_id: sessionId,
+            endpoint: "/chat",
+            prompt_id: promptId || "p3_explain_v2",
+            prompt_version: promptId === "p3_explain_v2" ? "v2" : "v1",
+            model: chosenModel,
+            tokens_in: estimateTokens(JSON.stringify(messages)),
+            tokens_out: estimateTokens(rawOutput),
+            latency_ms: elapsed,
+            ms: elapsed,
+            ok: 1,
+            status: "ok",
+            cache_hit: 0,
+            estimated: 1,
+          });
+
           return jsonResponse({
             response: validated.response,
             guarded: validated.guarded,
@@ -619,7 +867,25 @@ export default {
           }, 200, corsHeaders);
         } catch (err) {
           console.error("AI /chat error:", err);
-          return jsonResponse({ error: err.message || "Lỗi gọi mô hình AI" }, 500, corsHeaders);
+          const elapsed = Date.now() - chatStartedAt;
+          await logAiCall(env, {
+            family_id: familyId,
+            session_id: sessionId,
+            endpoint: "/chat",
+            prompt_id: promptId || "p3_explain_v2",
+            prompt_version: promptId === "p3_explain_v2" ? "v2" : "v1",
+            model: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+            tokens_in: estimateTokens(JSON.stringify(messages)),
+            tokens_out: 0,
+            latency_ms: elapsed,
+            ms: elapsed,
+            ok: 0,
+            status: "error",
+            error_code: err?.message || "ai_service_error",
+            cache_hit: 0,
+            estimated: 1,
+          }).catch(() => {});
+          return jsonResponse({ error: "ai_service_error", message: err?.message || "Gấu đang bận một chút, mẹ bấm Thử lại nhé." }, 503, corsHeaders);
         }
       }
 
