@@ -10,6 +10,7 @@
  */
 
 import { checkAnswerLeak } from './guard.js';
+import { authenticateSession } from './v1_routes.js';
 
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data, null, 2), {
@@ -61,12 +62,18 @@ export async function handleAiFeedbackCreate(request, env, corsHeaders) {
  */
 export async function handleSafetySummary(request, env, corsHeaders) {
   try {
+    // Đợt 15: chỉ số liệu của CHÍNH gia đình đang đăng nhập, theo khoảng ?range=7d|30d (mặc định 7 ngày)
+    const session = env.DB ? await authenticateSession(request, env).catch(() => null) : null;
+    const famId = session?.family_id || null;
+    const rangeParam = new URL(request.url).searchParams.get('range') || '7d';
+    const days = Math.max(1, Math.min(90, parseInt(rangeParam, 10) || 7));
+    const since = `-${days} days`;
     let guardStats = { total: 0, fallbacks: 0, regenerated: 0, leaked: 0 };
     let feedbackStats = { total: 0, open: 0, byReason: {} };
     let workStats = { total: 0, self_fixed: 0 };
     let teachStats = { total: 0, self_level: 0 };
 
-    if (env.DB) {
+    if (env.DB && famId) {
       // Guard events
       const gRow = await env.DB.prepare(`
         SELECT 
@@ -75,7 +82,8 @@ export async function handleSafetySummary(request, env, corsHeaders) {
           SUM(CASE WHEN outcome = 'regenerated' THEN 1 ELSE 0 END) as regenerated,
           SUM(CASE WHEN outcome = 'leaked' THEN 1 ELSE 0 END) as leaked
         FROM guard_log
-      `).first().catch(() => null);
+        WHERE family_id = ? AND created_at >= datetime('now', ?)
+      `).bind(famId, since).first().catch(() => null);
 
       if (gRow) {
         guardStats = {
@@ -92,11 +100,13 @@ export async function handleSafetySummary(request, env, corsHeaders) {
           COUNT(*) as total,
           SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open_cnt
         FROM ai_feedback
-      `).first().catch(() => null);
+        WHERE family_id = ? AND created_at >= datetime('now', ?)
+      `).bind(famId, since).first().catch(() => null);
 
       const fbReasons = await env.DB.prepare(`
-        SELECT reason, COUNT(*) as cnt FROM ai_feedback GROUP BY reason
-      `).all().catch(() => ({ results: [] }));
+        SELECT reason, COUNT(*) as cnt FROM ai_feedback
+        WHERE family_id = ? AND created_at >= datetime('now', ?) GROUP BY reason
+      `).bind(famId, since).all().catch(() => ({ results: [] }));
 
       const byReason = {};
       (fbReasons?.results || []).forEach((r) => {
@@ -113,7 +123,8 @@ export async function handleSafetySummary(request, env, corsHeaders) {
       const wRow = await env.DB.prepare(`
         SELECT COUNT(*) as total, SUM(CASE WHEN self_fixed = 1 THEN 1 ELSE 0 END) as fixed
         FROM work_checks
-      `).first().catch(() => null);
+        WHERE family_id = ? AND created_at >= datetime('now', ?)
+      `).bind(famId, since).first().catch(() => null);
       if (wRow) {
         workStats = { total: Number(wRow.total || 0), self_fixed: Number(wRow.fixed || 0) };
       }
@@ -122,25 +133,53 @@ export async function handleSafetySummary(request, env, corsHeaders) {
       const tRow = await env.DB.prepare(`
         SELECT COUNT(*) as total, SUM(CASE WHEN final_level = 'self' OR (final_level IS NULL AND ai_level = 'self') THEN 1 ELSE 0 END) as s_cnt
         FROM teach_backs
-      `).first().catch(() => null);
+        WHERE family_id = ? AND created_at >= datetime('now', ?)
+      `).bind(famId, since).first().catch(() => null);
       if (tRow) {
         teachStats = { total: Number(tRow.total || 0), self_level: Number(tRow.s_cnt || 0) };
       }
     }
 
+      // Đợt 18 · Chặng 3: Thẻ An toàn AI (số thật từ guard_log và learning_events)
+      const d18Row = await env.DB.prepare(`
+        SELECT 
+          SUM(CASE WHEN outcome = 'sua_phep_tinh' THEN 1 ELSE 0 END) as math_fixed,
+          SUM(CASE WHEN outcome IN ('sua_bac', 'regenerated') THEN 1 ELSE 0 END) as steps_guarded
+        FROM guard_log
+        WHERE family_id = ? AND created_at >= datetime('now', ?)
+      `).bind(famId, since).first().catch(() => null);
+
+      const d18Events = await env.DB.prepare(`
+        SELECT 
+          SUM(micro_steps) as micro_steps,
+          SUM(CASE WHEN voice_verdict IS NOT NULL THEN 1 ELSE 0 END) as voice_count
+        FROM learning_events
+        WHERE family_id = ? AND created_at >= datetime('now', ?)
+      `).bind(famId, since).first().catch(() => null);
+
+      var dot18Safety = {
+        phep_tinh_sai_da_bat: Number(d18Row?.math_fixed || 0),
+        bac_bo_chan_sua_lai: Number(d18Row?.steps_guarded || 0),
+        cau_nho_hon_da_tao: Number(d18Events?.micro_steps || 0),
+        so_lan_gau_nghe_con: Number(d18Events?.voice_count || 0),
+      };
+
     const totalGuardActions = guardStats.fallbacks + guardStats.regenerated;
     const safeRate = guardStats.total > 0
-      ? Math.max(99.0, ((guardStats.total - guardStats.leaked) / guardStats.total) * 100).toFixed(1)
+      ? (((guardStats.total - guardStats.leaked) / guardStats.total) * 100).toFixed(1)
       : '100.0';
 
     return json({
       ok: true,
+      scope: famId ? 'family' : 'none',
+      range_days: days,
       safe_rate_percent: Number(safeRate),
       total_guard_interventions: totalGuardActions,
       guard_events: guardStats,
       feedback: feedbackStats,
       work_checks: workStats,
       teach_backs: teachStats,
+      dot18_safety: typeof dot18Safety !== 'undefined' ? dot18Safety : { phep_tinh_sai_da_bat: 0, bac_bo_chan_sua_lai: 0, cau_nho_hon_da_tao: 0, so_lan_gau_nghe_con: 0 },
       four_layer_safety: [
         { layer: 1, name: 'Prompt Sư phạm Socratic', status: 'active', desc: 'Không giải bài hộ, chia 3 bậc gợi ý' },
         { layer: 2, name: 'Bộ chặn rò rỉ đáp án (Guard Module)', status: 'active', desc: 'Kiểm tra số chữ/số nguyên, thay thế tự động nếu lộ' },
@@ -212,6 +251,15 @@ export async function handleSafetyTestGuard(request, env, corsHeaders) {
   try {
     const body = await request.json().catch(() => ({}));
     const { promptId = 'p3_explain', data = {}, context = {} } = body;
+    // Chuẩn hoá data nếu truyền ở dạng phẳng (Prompt 23 - Chặng 4.1)
+    if (!data.cac_bac && !data.steps) {
+      const qText = data.cau_hoi || (typeof data.cau_hoi_cho_con === 'string' ? data.cau_hoi_cho_con : data.cau_hoi_cho_con?.muc_1) || data.cau_hoi_them || data.text || '';
+      data.cac_bac = [{
+        cau_hoi: qText,
+        dap_an_cho_me: data.dap_an_cuoi_cho_me || data.dap_an_cho_me || '',
+        goi_y: { muc_1_do_vat: '', muc_2_hinh_ve: '' }
+      }];
+    }
     const result = checkAnswerLeak(promptId, data, context);
     return json({ ok: true, result }, 200, corsHeaders);
   } catch (err) {

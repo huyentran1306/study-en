@@ -1,3 +1,20 @@
+
+export const SKILL_SAFE_QUESTIONS = {
+  doc_hieu_de: "Con đọc lại đề xem bài toán cho biết gì và hỏi gì nào?",
+  chon_phep_tinh: "Để tìm kết quả bước này, con nghĩ nên dùng phép cộng, trừ, nhân hay chia?",
+  tinh_toan: "Con thử đặt tính hoặc tính nhẩm từng bước xem ra bao nhiêu nào?",
+  don_vi: "Sau khi tính xong, đơn vị của kết quả bước này là gì con nhỉ?",
+  viet_loi_giai: "Con hãy viết câu lời giải cho phép tính này nhé!",
+  kiem_tra_lai: "Con thử kiểm tra lại xem kết quả bước này đã hợp lý chưa nào?",
+  doc_hieu: "Con đọc kỹ lại đoạn văn để tìm chi tiết này nhé.",
+  tu_vung: "Từ này có nghĩa là gì trong ngữ cảnh câu văn con nhỉ?",
+  chinh_ta: "Con chú ý các nét chữ và dấu thanh để viết cho chuẩn nhé.",
+  dat_cau: "Con hãy thử dùng từ này để đặt một câu hoàn chỉnh nào!",
+  tu_vung_en: "Can you recall the meaning of this word?",
+  ngu_phap: "Let's check the grammar rule for this sentence.",
+  phat_am: "Listen carefully and practice saying this word out loud.",
+  default: "Con thử nói cách suy nghĩ của con ở bước này nhé?",
+};
 /**
  * guard.js - Lõi An Toàn AI & Chặn Lộ Đáp Án (Prompt 14 · Đợt 4)
  * 
@@ -253,8 +270,34 @@ export function extractNumbers(input) {
   }
   const str = String(input);
   const normalized = viNumberWords(str);
-  const matches = normalized.match(/\b\d+\b/g) || [];
-  return [...new Set(matches.map(Number))];
+  const nums = new Set();
+  (normalized.match(/\b\d+\b/g) || []).forEach((n) => nums.add(Number(n)));
+
+  // Bắt các dạng số kèm đơn vị chữ trong tiếng Việt: "3 chục", "2 trăm", "1 tá"
+  const chucRegex = /(\d+)\s*(?:chục|mươi)/gi;
+  let m;
+  while ((m = chucRegex.exec(str)) !== null) {
+    const val = Number(m[1]);
+    nums.add(val * 10);
+    nums.add(val);
+  }
+  if (/(?:^|[^\d\p{L}])chục(?!\p{L})/iu.test(str)) nums.add(10);
+
+  const tramRegex = /(\d+)\s*trăm/gi;
+  while ((m = tramRegex.exec(str)) !== null) {
+    const val = Number(m[1]);
+    nums.add(val * 100);
+    nums.add(val);
+  }
+  const nghinRegex = /(\d+)\s*(?:nghìn|ngàn)/gi;
+  while ((m = nghinRegex.exec(str)) !== null) {
+    const val = Number(m[1]);
+    nums.add(val * 1000);
+    nums.add(val);
+  }
+  if (/(?:^|[^\p{L}])tá(?!\p{L})/iu.test(str)) nums.add(12);
+
+  return [...nums];
 }
 
 /**
@@ -265,6 +308,11 @@ export function extractNumbers(input) {
  */
 export const GUARD_RULES = {
   p3_explain: {
+    answer: ["dap_an_cuoi_cho_me", "cac_bac[].dap_an_cho_me"],
+    child: ["cac_bac[].cau_hoi", "cac_bac[].goi_y.*", "loi_khen", "cac_bac[].ly_do_cho_me"],
+    allowedFrom: ["problem_text"],
+  },
+  p3_explain_v2: {
     answer: ['dap_an_cuoi_cho_me', 'cac_bac[].dap_an_cho_me'],
     child: ['cac_bac[].cau_hoi', 'cac_bac[].goi_y.*', 'loi_khen', 'cac_bac[].ly_do_cho_me'],
     allowedFrom: ['problem_text'],
@@ -362,6 +410,174 @@ function getFieldValues(obj, path) {
  * Kiểm tra xem data có làm lộ đáp án vào các trường con nghe/thấy được hay không.
  */
 export function checkAnswerLeak(promptId, data, context = {}) {
+  // Đợt 18 · Chặng 0.4: Bộ chặn cho p3_explain / p3_explain_v2 sửa đúng bậc, bớt bắt nhầm
+  if (promptId === "p3_explain" || promptId === "p3_explain_v2") {
+    const problemText = String(context.problem_text || "");
+    const allowedNumbers = new Set(extractNumbers(problemText));
+    const problemLower = problemText.toLowerCase();
+
+    const finalAnsNumbers = new Set(
+      extractNumbers(data.dap_an_cuoi_cho_me || "").filter((n) => !allowedNumbers.has(n))
+    );
+
+    let rawSteps = Array.isArray(data.cac_bac) ? data.cac_bac : Array.isArray(data.steps) ? data.steps : [];
+    if (rawSteps.length === 0) {
+      const singleText = data.cau_hoi || (typeof data.cau_hoi_cho_con === 'string' ? data.cau_hoi_cho_con : data.cau_hoi_cho_con?.muc_1) || data.cau_hoi_them || data.text || '';
+      if (singleText) {
+        rawSteps = [{
+          cau_hoi: singleText,
+          dap_an_cho_me: data.dap_an_cuoi_cho_me || data.dap_an_cho_me || '',
+        }];
+      }
+    }
+    const steps = rawSteps;
+    
+    // Cụm từ đáp án ngắn (2-6 từ, hỗ trợ cả cụm có số)
+    const answerPhrases = [];
+    [data.dap_an_cuoi_cho_me, ...(steps.map(s => s?.dap_an_cho_me || s?.answerForParent))].forEach(v => {
+      const trimmed = String(v || "").trim().toLowerCase();
+      if (!trimmed) return;
+      const normTrimmed = viNumberWords(trimmed).toLowerCase();
+      const words = trimmed.split(/\s+/);
+      if (words.length >= 2 && words.length <= 6) {
+        if (!problemLower.includes(trimmed)) {
+          answerPhrases.push(trimmed);
+        }
+        if (normTrimmed !== trimmed && !problemLower.includes(normTrimmed)) {
+          answerPhrases.push(normTrimmed);
+        }
+      }
+    });
+    let leaked = false;
+    const leakReasons = [];
+    const leaks = [];
+
+    steps.forEach((step, idx) => {
+      if (!step || typeof step !== "object") return;
+      const stepNo = idx + 1;
+      const kyNang = step.ky_nang || null;
+
+      const stepAnsText = step.dap_an_cho_me || step.answerForParent || "";
+      const stepAnsNumbers = new Set(
+        extractNumbers(stepAnsText).filter((n) => !allowedNumbers.has(n))
+      );
+      // Chỉ coi là lộ đáp án khi cau_hoi hoặc goi_y chứa đáp số cuối HOẶC kết quả của chính bậc đó
+      const forbiddenForStep = new Set([...finalAnsNumbers, ...stepAnsNumbers]);
+
+      const qText = step.cau_hoi || step.questionForChild || "";
+      if (qText) {
+        const normQ = viNumberWords(String(qText));
+        forbiddenForStep.forEach((ansNum) => {
+          const reg = new RegExp(`\\b${ansNum}\\b`);
+          if (reg.test(normQ)) {
+            leaked = true;
+            leakReasons.push(`Bậc ${stepNo} lộ số đáp án ${ansNum} trong câu hỏi`);
+            leaks.push({
+              field: "cac_bac[].cau_hoi",
+              path: `cac_bac[${idx}].cau_hoi`,
+              parent: step,
+              key: step.cau_hoi !== undefined ? "cau_hoi" : "questionForChild",
+              step_idx: idx,
+              step_no: stepNo,
+              ky_nang: kyNang,
+              illegalValue: String(ansNum),
+              beforeText: qText,
+            });
+          }
+        });
+
+        answerPhrases.forEach((phrase) => {
+          if (normQ.toLowerCase().includes(phrase)) {
+            leaked = true;
+            leakReasons.push(`Bậc ${stepNo} lộ cụm từ đáp án "${phrase}" trong câu hỏi`);
+            leaks.push({
+              field: "cac_bac[].cau_hoi",
+              path: `cac_bac[${idx}].cau_hoi`,
+              parent: step,
+              key: step.cau_hoi !== undefined ? "cau_hoi" : "questionForChild",
+              step_idx: idx,
+              step_no: stepNo,
+              ky_nang: kyNang,
+              illegalValue: phrase,
+              beforeText: qText,
+            });
+          }
+        });
+      }
+
+      const h1Text = step.goi_y?.muc_1_do_vat || step.hintLevel1 || "";
+      if (h1Text) {
+        const normH1 = viNumberWords(String(h1Text));
+        forbiddenForStep.forEach((ansNum) => {
+          const reg = new RegExp(`\\b${ansNum}\\b`);
+          if (reg.test(normH1)) {
+            leaked = true;
+            leakReasons.push(`Bậc ${stepNo} lộ số đáp án ${ansNum} trong gợi ý 1`);
+            leaks.push({
+              field: "cac_bac[].goi_y.muc_1_do_vat",
+              path: `cac_bac[${idx}].goi_y.muc_1_do_vat`,
+              parent: step.goi_y || step,
+              key: step.goi_y ? "muc_1_do_vat" : "hintLevel1",
+              step_idx: idx,
+              step_no: stepNo,
+              ky_nang: kyNang,
+              illegalValue: String(ansNum),
+              beforeText: h1Text,
+            });
+          }
+        });
+      }
+
+      const h2Text = step.goi_y?.muc_2_hinh_ve || step.hintLevel2 || "";
+      if (h2Text) {
+        const normH2 = viNumberWords(String(h2Text));
+        forbiddenForStep.forEach((ansNum) => {
+          const reg = new RegExp(`\\b${ansNum}\\b`);
+          if (reg.test(normH2)) {
+            leaked = true;
+            leakReasons.push(`Bậc ${stepNo} lộ số đáp án ${ansNum} trong gợi ý 2`);
+            leaks.push({
+              field: "cac_bac[].goi_y.muc_2_hinh_ve",
+              path: `cac_bac[${idx}].goi_y.muc_2_hinh_ve`,
+              parent: step.goi_y || step,
+              key: step.goi_y ? "muc_2_hinh_ve" : "hintLevel2",
+              step_idx: idx,
+              step_no: stepNo,
+              ky_nang: kyNang,
+              illegalValue: String(ansNum),
+              beforeText: h2Text,
+            });
+          }
+        });
+      }
+
+      const lyDoText = step.ly_do_cho_me || "";
+      if (lyDoText) {
+        const normL = viNumberWords(String(lyDoText));
+        forbiddenForStep.forEach((ansNum) => {
+          const reg = new RegExp(`\\b${ansNum}\\b`);
+          if (reg.test(normL)) {
+            leaked = true;
+            leakReasons.push(`Bậc ${stepNo} lộ số đáp án ${ansNum} trong lý do cho mẹ`);
+            leaks.push({
+              field: "cac_bac[].ly_do_cho_me",
+              path: `cac_bac[${idx}].ly_do_cho_me`,
+              parent: step,
+              key: "ly_do_cho_me",
+              step_idx: idx,
+              step_no: stepNo,
+              ky_nang: kyNang,
+              illegalValue: String(ansNum),
+              beforeText: lyDoText,
+            });
+          }
+        });
+      }
+    });
+
+    return { leaked, leakReasons, leaks };
+  }
+
   const rule = GUARD_RULES[promptId];
   if (!rule) return { leaked: false, leakReasons: [], leaks: [] };
 
@@ -559,7 +775,22 @@ export function validateAndGuard(promptId, responseText, context = {}, env = nul
   const fallbacks = DEFAULT_GUARD_FALLBACKS;
 
   check.leaks.forEach((leak) => {
-    const fallbackText = fallbacks[leak.field] || fallbacks[leak.path] || fallbacks['default'];
+    let fallbackText = '';
+    if (leak.key === 'cau_hoi' || leak.key === 'questionForChild') {
+      if (leak.ky_nang && SKILL_SAFE_QUESTIONS[leak.ky_nang]) {
+        fallbackText = SKILL_SAFE_QUESTIONS[leak.ky_nang];
+      } else {
+        fallbackText = DEFAULT_GUARD_FALLBACKS['cac_bac[].cau_hoi'] || DEFAULT_GUARD_FALLBACKS.default;
+      }
+    } else if (leak.key === 'muc_1_do_vat' || leak.key === 'hintLevel1') {
+      fallbackText = DEFAULT_GUARD_FALLBACKS['cac_bac[].goi_y.muc_1_do_vat'] || 'Con đếm xem có bao nhiêu nhóm đồ vật nào?';
+    } else if (leak.key === 'muc_2_hinh_ve' || leak.key === 'hintLevel2') {
+      fallbackText = DEFAULT_GUARD_FALLBACKS['cac_bac[].goi_y.muc_2_hinh_ve'] || 'Vẽ sơ đồ đoạn thẳng để dễ nhìn hơn nhé.';
+    } else if (leak.key === 'ly_do_cho_me') {
+      fallbackText = DEFAULT_GUARD_FALLBACKS['cac_bac[].ly_do_cho_me'] || 'Hỏi gợi mở để con tự khám phá cách làm.';
+    } else {
+      fallbackText = fallbacks[leak.field] || fallbacks[leak.path] || fallbacks['default'];
+    }
     if (leak.parent && leak.key) {
       leak.parent[leak.key] = fallbackText;
     }
