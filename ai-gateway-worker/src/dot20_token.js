@@ -199,15 +199,18 @@ export function normalizeBookSeries(b) {
   return str.replace(/\s+/g, "_");
 }
 
-export async function buildCacheKey({ problemText, grade, bookSeries, subject, promptVersion, childProfileHash }) {
+export async function buildCacheKey({ problemText, grade, bookSeries, subject, promptVersion, childProfileHash, systemContent }) {
   const norm = normalizeProblem(problemText);
   const probHash = await sha256Hex(norm);
   const g = normalizeGrade(grade);
   const b = normalizeBookSeries(bookSeries);
   const s = normalizeSubject(subject);
   const v = String(promptVersion || "v2").trim().toLowerCase();
-  const c = childProfileHash || "none";
-  return `lk_${probHash}_${g}_${b}_${s}_${v}_${c}`;
+  let sysPart = childProfileHash || "none";
+  if (systemContent && typeof systemContent === "string") {
+    sysPart = await sha256Hex(systemContent);
+  }
+  return `lk_${probHash}_${g}_${b}_${s}_${v}_${sysPart}`;
 }
 
 export async function fetchFromLessonCache(env, cacheKey) {

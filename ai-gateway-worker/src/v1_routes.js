@@ -216,7 +216,7 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
 
   // ==========================================================
   // 1. PUBLIC CONFIG (GET /api/v1/config/public)
-  // Chỉ trả cấu hình app cần (< 10 KB), không chứa prompt nội bộ (P2.6)
+  // Đợt 23P: Trả thêm promptStudio (chỉ template/version các prompt app dùng), aiConfig, configVersion
   // ==========================================================
   if (pathname === "/api/v1/config/public" && method === "GET") {
     try {
@@ -225,21 +225,88 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
         "app_config:themes",
         "app_config%3Athemes",
         "app_config:calm_threshold",
+        "prompt_studio:config",
+        "prompt_studio:ai_config",
       ];
       const rows = await env.DB.prepare(`
-        SELECT key, value FROM _kv_store WHERE key IN (?, ?, ?, ?)
+        SELECT key, value, updated_at FROM _kv_store WHERE key IN (?, ?, ?, ?, ?, ?)
       `).bind(...keys).all();
 
       const configMap = {};
+      const updatedMap = {};
       for (const row of rows.results || []) {
         try {
           configMap[row.key] = JSON.parse(row.value);
         } catch {
           configMap[row.key] = row.value;
         }
+        updatedMap[row.key] = row.updated_at || null;
       }
 
       const themesConfig = configMap["app_config:themes"] || configMap["app_config%3Athemes"] || null;
+
+      // Đợt 23P · Prompt Studio & AI Config công khai cho điện thoại phụ huynh
+      const OLD_EXAMPLE_MARKERS = ['"29", "20"', "24 - 5 = 19", "Mẹ cho bạn Na 5 cây"];
+      const ALLOWED_PROMPT_KEYS = new Set([
+        "p0_scope_text",
+        "p1_ocr",
+        "p1_ocr_v2",
+        "p1_ocr_v3",
+        "p2_clean",
+        "p3_explain",
+        "p3_explain_v2",
+        "p3b_parent_note_explain",
+        "p4_chat",
+        "p4b_parent_note_chat",
+        "p5_toy",
+        "p6_practice",
+        "p7_longitudinal_analysis",
+        "p8_calm_phrase",
+        "p9_story_wrap",
+      ]);
+
+      let publicPromptStudio = null;
+      const rawPrompts = configMap["prompt_studio:config"];
+      if (rawPrompts && typeof rawPrompts === "object") {
+        const cfg = rawPrompts.prompts || rawPrompts;
+        publicPromptStudio = {};
+        for (const [k, v] of Object.entries(cfg)) {
+          if ((ALLOWED_PROMPT_KEYS.has(k) || k.startsWith("p1_")) && v && typeof v === "object") {
+            const tpl = v.template;
+            if (typeof tpl === "string" && tpl.length >= 20) {
+              if (OLD_EXAMPLE_MARKERS.some((m) => tpl.includes(m))) {
+                continue;
+              }
+              publicPromptStudio[k] = {
+                template: tpl,
+                version: v.version || 1,
+              };
+            }
+          }
+        }
+      }
+
+      let publicAiConfig = null;
+      const rawAi = configMap["prompt_studio:ai_config"];
+      if (rawAi && typeof rawAi === "object") {
+        publicAiConfig = {
+          model: rawAi.model,
+          temperature: rawAi.temperature,
+          max_tokens: rawAi.max_tokens,
+          timeout_ms: rawAi.timeout_ms,
+          prompt_version: rawAi.prompt_version,
+          pedagogy_routing: Array.isArray(rawAi.pedagogy_routing) ? rawAi.pedagogy_routing : undefined,
+        };
+      }
+
+      const promptUp = updatedMap["prompt_studio:config"];
+      const aiUp = updatedMap["prompt_studio:ai_config"];
+      let configVersion = null;
+      if (promptUp && aiUp) {
+        configVersion = promptUp > aiUp ? promptUp : aiUp;
+      } else {
+        configVersion = promptUp || aiUp || null;
+      }
 
       return jsonResponse(
         {
@@ -248,6 +315,9 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
           themesConfig,
           calmNudgeThreshold: configMap["app_config:calm_threshold"] || 2,
           seasons: await getPublicSeasons(env).catch(() => null),
+          promptStudio: publicPromptStudio,
+          aiConfig: publicAiConfig,
+          configVersion,
           serverTime: new Date().toISOString(),
         },
         200,

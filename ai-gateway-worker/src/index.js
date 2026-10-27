@@ -596,10 +596,22 @@ export default {
             }
           }
         }
-        const grade = request.headers.get("X-Grade") || "";
-        const bookSeries = request.headers.get("X-Book-Series") || "";
-        const subject = request.headers.get("X-Subject") || "";
+        const rawGrade = request.headers.get("X-Grade") || "";
+        const grade = rawGrade.includes("%") ? decodeURIComponent(rawGrade) : rawGrade;
+        const rawBook = request.headers.get("X-Book-Series") || "";
+        const bookSeries = rawBook.includes("%") ? decodeURIComponent(rawBook) : rawBook;
+        const rawSubject = request.headers.get("X-Subject") || "";
+        const subject = rawSubject.includes("%") ? decodeURIComponent(rawSubject) : rawSubject;
         const childProfileHash = childId ? await sha256Hex(childId) : "none";
+
+        let systemContent = "";
+        for (let m of messages) {
+          if (m.role === "system" && typeof m.content === "string") {
+            systemContent = m.content;
+            break;
+          }
+        }
+
         let cacheKey = null;
 
         if (isExplain && rawProblem) {
@@ -610,6 +622,7 @@ export default {
             subject,
             promptVersion: promptId === "p3_explain_v2" ? "v2" : "v1",
             childProfileHash,
+            systemContent,
           });
 
           if (!bypassCache) {
