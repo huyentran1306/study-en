@@ -259,11 +259,11 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
         WHERE family_id = ? AND date(created_at) = date('now')
       `).bind(familyId).first();
 
-      const quota = 10;
+      const quota = 50;
       if (todayCountRow && todayCountRow.count >= quota) {
         return jsonResponse({
           error: "daily_limit_exceeded",
-          message: "Hôm nay mẹ đã dùng hết 10 lượt đọc ảnh rồi. Mẹ và bé quay lại vào ngày mai nhé!",
+          message: "Hôm nay mẹ đã dùng hết 50 lượt đọc ảnh rồi. Mẹ và bé quay lại vào ngày mai nhé!",
           limit: quota,
           used: todayCountRow.count,
         }, 429, corsHeaders);

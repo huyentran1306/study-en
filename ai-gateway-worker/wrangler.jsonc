@@ -13,6 +13,15 @@
       "database_id": "76611f4f-2e43-4dbb-b36c-858ff81298a3"
     }
   ],
+  "vars": {
+    "VISION_MODEL_PRIMARY": "@cf/meta/llama-3.2-11b-vision-instruct",
+    "VISION_MODEL_FALLBACK": "@cf/meta/llama-3.2-11b-vision-instruct",
+    "OCR_PRIMARY_DAILY_NEURONS": 25000,
+    "AI_DAILY_SOFT_LIMIT": 45000,
+    "AI_DAILY_HARD_LIMIT": 60000,
+    "ALLOW_CLIENT_PROMPT": "true",
+    "ALLOW_LEGACY_MASTER_SECRET": "true"
+  },
   "observability": {
     "enabled": true
   },
