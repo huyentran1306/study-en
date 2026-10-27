@@ -309,7 +309,7 @@ Trả về DUY NHẤT một JSON hợp lệ:
         ],
         muc_de_xuat: hasDuKien && hasPhepTinh && hasKetQua && hasViSao ? 'self' : 'hint',
         cau_hoi_them: !hasViSao ? `Vì sao ở bước hai ${tenCon} lại dùng phép trừ nhỉ?` : '',
-        loi_khen_cho_con: `Bé ${tenCon} giải thích rất mạch lạc và tự tin!`,
+        loi_khen_cho_con: `Bé ${String(tenCon || "").replace(/^bé\s+/i, "")} giải thích rất mạch lạc và tự tin!`,
       };
     }
 
