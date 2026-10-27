@@ -16,7 +16,7 @@
  * - Sửa thứ tự tham số validateAndGuard/logGuardEvent (trước đây làm grade chỉ trả {check_id, self_fixed}).
  */
 
-import { reconcileWorkCheck } from "./arithmetic.js";
+import { reconcileWorkCheck, checkArithmetic, solveElementaryProblem } from "./arithmetic.js";
 import { validateAndGuard } from "./guard.js";
 import { jsonResponse, authenticateSession } from "./v1_routes.js";
 import { executeVisionAI } from "./vision.js";
@@ -24,7 +24,7 @@ import { executeVisionAI } from "./vision.js";
 export const READ_RETRY_MESSAGE = "Mình chưa đọc rõ ảnh, mẹ chụp lại giúp nhé";
 const GRADE_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
-export const DEFAULT_READ_PROMPT = `Quan sát kỹ trang vở bài làm của học sinh tiểu học trong ảnh. Trả về DUY NHẤT một JSON hợp lệ theo KHUÔN sau (các chỗ <...> là hướng dẫn, phải thay bằng nội dung thật đọc được trong ảnh, KHÔNG chép lại chữ trong ngoặc nhọn):
+export const DEFAULT_READ_PROMPT = `Quan sát kỹ trang vở bài làm của học sinh tiểu học trong ảnh. Chữ viết tay của học sinh rất rõ ràng. BẮT BUỘC đặt "doc_duoc": true và đọc đầy đủ từng dòng. Trả về DUY NHẤT một JSON hợp lệ theo KHUÔN sau:
 {
   "doc_duoc": true,
   "ly_do": "",
@@ -50,10 +50,12 @@ export const DEFAULT_GRADE_PROMPT = `Bạn là trợ lý sư phạm toán tiểu
 Các dòng bài làm của con:
 """{{cac_dong}}"""
 
-NHIỆM VỤ:
+NHIỆM VỤ & QUY TẮC BẮT BUỘC:
 1. Tự giải lại ĐÚNG BÀI TOÁN TRÊN một cách chuẩn xác từng bước ("loi_giai_chuan").
 2. So sánh từng dòng bài làm của con với lời giải chuẩn để tìm bước sai đầu tiên (nếu có).
-3. Đánh giá kết quả: "dung_het" | "co_buoc_sai" | "chua_xong" | "khong_ro".
+3. ĐÁNH GIÁ KẾT QUẢ: "dung_het" | "co_buoc_sai" | "chua_xong" | "khong_ro".
+   - QUY TẮC CỐT LÕI: Nếu đáp số cuối cùng của con KHÁC với đáp số đúng của đề bài, BẮT BUỘC đánh giá "co_buoc_sai", TUYỆT ĐỐI KHÔNG ĐƯỢC trả "dung_het"!
+   - Khi phép tính của con đúng số học (ví dụ 24 + 7 = 31), nhưng đề bài yêu cầu phép tính khác (ví dụ bớt đi, cho bạn 7 viên kẹo: 24 - 7 = 17) thì BẮT BUỘC phân loại là "chon_phep_tinh" và đánh dấu đó là dòng sai đầu tiên!
 4. Phân loại lỗi nếu có: "doc_de" | "chon_phep_tinh" | "tinh_nham" | "thieu_don_vi" | "trinh_bay" | "chua_lam_xong".
 5. Viết giải thích ngắn gọn, đồng cảm chỉ dành riêng cho mẹ đọc ("giai_thich_cho_me").
 6. Chỉ ra đáp án đúng cho mẹ: "gia_tri_dung_dong_sai" (kết quả đúng của dòng sai) và "dap_an_dung_cho_me" (kết quả cuối cùng của bài).
@@ -361,23 +363,46 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
     console.warn("[check_work.read] vision failed:", ai?.error, ai?.message);
   }
 
+  // Nếu model trả về cac_dong có nội dung thì bắt buộc doc_duoc = true
+  if (readResult && Array.isArray(readResult.cac_dong) && readResult.cac_dong.length > 0) {
+    readResult.doc_duoc = true;
+  }
+
   let retryCount = 0;
-  if (!readResult || readResult.doc_duoc === false || looksLikeReadEcho(readResult)) {
-    console.warn("[check_work.read] Lần đọc 1 chưa rõ hoặc lỗi, tự động thử lại 1 lần với prompt chặt hơn...");
-    retryCount = 1;
-    const retryPrompt = `${prompt}\n\nCHÚ Ý ĐẶC BIỆT: Đọc cẩn thận từng nét chữ học sinh viết trên trang vở. Chép đủ mọi dòng từ lời giải, phép tính đến đáp số. Trả về DUY NHẤT một JSON hợp lệ.`;
+  // Thử lại tối đa 2 lần nếu chưa đọc được hoặc lỗi
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    if (readResult && readResult.doc_duoc !== false && !looksLikeReadEcho(readResult) && Array.isArray(readResult.cac_dong) && readResult.cac_dong.length > 0) {
+      break;
+    }
+    retryCount = attempt;
+    console.warn(`[check_work.read] Lần đọc ${attempt} chưa rõ, tự động thử lại lần ${attempt} với prompt chỉ định chặt chẽ...`);
+    const retryPrompt = attempt === 1
+      ? `${prompt}\n\nCHÚ Ý ĐẶC BIỆT: Trang vở có chữ viết tay của học sinh. BẮT BUỘC đặt "doc_duoc": true. Chép đủ từng dòng từ lời giải, phép tính đến đáp số vào "cac_dong".`
+      : `Hãy chép lại trung thực toàn bộ chữ viết tay và phép tính của học sinh trong ảnh vở này. BẮT BUỘC đặt "doc_duoc": true.\nTrả về JSON: {"doc_duoc": true, "de_bai": "...", "cac_dong": [{"so": 1, "noi_dung": "..."}]}`;
+
     const aiRetry = await executeVisionAI({ env, imageBytes, prompt: retryPrompt, promptId: "p14a_read_work" }).catch((e) => {
-      console.warn("[check_work.read] Retry failed:", e?.message);
+      console.warn(`[check_work.read] Retry ${attempt} failed:`, e?.message);
       return null;
     });
+
     if (aiRetry && aiRetry.success) {
-      console.log("[check_work.read] Retry raw analysis:", aiRetry.analysis);
       const parsedRetry = parseModelJson(aiRetry.analysis);
-      if (parsedRetry && parsedRetry.doc_duoc !== false && !looksLikeReadEcho(parsedRetry)) {
-        readResult = parsedRetry;
-        modelUsed = aiRetry.model || modelUsed;
+      if (parsedRetry && !looksLikeReadEcho(parsedRetry)) {
+        if (Array.isArray(parsedRetry.cac_dong) && parsedRetry.cac_dong.length > 0) {
+          parsedRetry.doc_duoc = true;
+        }
+        if (parsedRetry.doc_duoc !== false && Array.isArray(parsedRetry.cac_dong) && parsedRetry.cac_dong.length > 0) {
+          readResult = parsedRetry;
+          modelUsed = aiRetry.model || modelUsed;
+          break;
+        }
       }
     }
+  }
+
+  // Sau các lần thử lại, nếu có cac_dong thì luôn công nhận đọc được
+  if (readResult && Array.isArray(readResult.cac_dong) && readResult.cac_dong.length > 0) {
+    readResult.doc_duoc = true;
   }
 
   if (!readResult) return notRead(READ_RETRY_MESSAGE, { retries: retryCount });
@@ -425,6 +450,146 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
 /**
  * 2. POST /api/v1/ai/check-work/:id/grade
  */
+
+/**
+ * Prompt 23L: Dự phòng bằng máy kiểm phép tính khi model AI trả chậm hoặc thiếu trường
+ */
+export function buildArithmeticFallbackGrade({ deBai, cacDong = [], tenCon = "con", xungHo = "mẹ" }) {
+  if (!cacDong || cacDong.length === 0) return null;
+
+  const childChecks = cacDong.map((line, idx) => {
+    const content = typeof line === "object" ? (line.noi_dung || "") : String(line || "");
+    const res = checkArithmetic(content);
+    return { lineIndex: (line && line.so) ? Number(line.so) : idx + 1, ...res, text: content };
+  });
+
+  const machineSolved = deBai ? solveElementaryProblem(deBai) : null;
+  let expectedFinal = null;
+  if (machineSolved && typeof machineSolved.final === "number") {
+    expectedFinal = machineSolved.final;
+  }
+
+  let childFinal = null;
+  for (let i = cacDong.length - 1; i >= 0; i--) {
+    const line = cacDong[i];
+    const text = typeof line === "object" ? (line.noi_dung || "") : String(line || "");
+    if (/đáp\s*số|đs\s*[:\.]/i.test(text)) {
+      const m = text.match(/-?\d+(?:\.\d+)?/);
+      if (m) {
+        childFinal = Number(m[0]);
+        break;
+      }
+    }
+  }
+  if (childFinal === null) {
+    const childEqs = childChecks.filter(c => c.isArithmetic && typeof c.right === "number");
+    if (childEqs.length > 0) {
+      childFinal = childEqs[childEqs.length - 1].right;
+    }
+  }
+
+  if (expectedFinal !== null && childFinal !== null) {
+    if (childFinal === expectedFinal) {
+      return {
+        ket_qua: "dung_het",
+        dong_sai_dau_tien: null,
+        loai_loi: null,
+        gia_tri_dung_dong_sai: null,
+        giai_thich_cho_me: `Con đã giải đúng bài toán, các bước tính toán chính xác và ra đáp số là ${expectedFinal}.`,
+        loi_khen_cu_the: "Con tính toán cẩn thận và viết lời giải rõ ràng.",
+        cau_hoi_cho_con: {
+          muc_1: "Con làm bài rất giỏi! Con có thể kể cho mẹ nghe con đã tính thế nào không?",
+          muc_2: "Con có thể kiểm tra lại bằng cách tính ngược lại không nào?"
+        },
+        loi_giai_chuan: machineSolved?.steps?.map(s => s.expr) || [`Đáp số: ${expectedFinal}`],
+        dap_an_dung_cho_me: String(expectedFinal),
+        ai_chua_chac: 0
+      };
+    } else {
+      let wrongLine = null;
+      let errorType = "chon_phep_tinh";
+      let expectedStepVal = expectedFinal;
+
+      const expectedSteps = machineSolved?.steps || [];
+      const childEqLines = childChecks.filter(c => c.isArithmetic);
+
+      for (let sIdx = 0; sIdx < childEqLines.length; sIdx++) {
+        const cLine = childEqLines[sIdx];
+        const expStep = expectedSteps[sIdx];
+
+        if (cLine.status === "sai") {
+          wrongLine = cLine.lineIndex;
+          errorType = "tinh_toan";
+          expectedStepVal = cLine.computed;
+          break;
+        }
+
+        if (expStep && cLine.right !== expStep.val) {
+          wrongLine = cLine.lineIndex;
+          expectedStepVal = expStep.val;
+          errorType = cLine.status === "dung" ? "chon_phep_tinh" : "tinh_toan";
+          break;
+        }
+      }
+
+      if (!wrongLine && childEqLines.length > 0) {
+        const lastLine = childEqLines[childEqLines.length - 1];
+        wrongLine = lastLine.lineIndex;
+        expectedStepVal = expectedFinal;
+        errorType = lastLine.status === "dung" ? "chon_phep_tinh" : "tinh_toan";
+      }
+
+      if (!wrongLine) wrongLine = cacDong.length;
+
+      const explainText = errorType === "chon_phep_tinh"
+        ? `Ở dòng ${wrongLine}, con chọn nhầm phép tính. Bài toán yêu cầu tính số còn lại nên cần làm phép trừ, kết quả đúng phải là ${expectedStepVal}.`
+        : `Ở dòng ${wrongLine}, con tính nhầm kết quả. Giá trị đúng phải là ${expectedStepVal}.`;
+
+      return {
+        ket_qua: "co_buoc_sai",
+        dong_sai_dau_tien: wrongLine,
+        loai_loi: errorType,
+        gia_tri_dung_dong_sai: String(expectedStepVal),
+        giai_thich_cho_me: explainText,
+        loi_khen_cu_the: "Con đã làm đúng bước đầu tiên và viết bài rõ ràng.",
+        cau_hoi_cho_con: {
+          muc_1: errorType === "chon_phep_tinh"
+            ? "Đề bài cho biết bớt đi thì số kẹo còn lại sẽ tăng lên hay giảm đi con nhỉ?"
+            : "Con tính lại phép tính ở dòng này một lần nữa xem ra bao nhiêu nhé!",
+          muc_2: errorType === "chon_phep_tinh"
+            ? "Khi bớt đi cho bạn thì mình nên dùng phép cộng hay phép trừ con nhỉ?"
+            : "Con thử vẽ ra nháp để kiểm tra lại phép tính nhé!"
+        },
+        loi_giai_chuan: machineSolved?.steps?.map(s => s.expr) || [`Đáp số: ${expectedFinal}`],
+        dap_an_dung_cho_me: String(expectedFinal),
+        ai_chua_chac: 0
+      };
+    }
+  }
+
+  // Nếu có dòng tính nhẩm sai:
+  const firstMathErr = childChecks.find(c => c.status === "sai");
+  if (firstMathErr) {
+    return {
+      ket_qua: "co_buoc_sai",
+      dong_sai_dau_tien: firstMathErr.lineIndex,
+      loai_loi: "tinh_toan",
+      gia_tri_dung_dong_sai: String(firstMathErr.computed),
+      giai_thich_cho_me: `Ở dòng ${firstMathErr.lineIndex}, phép tính "${firstMathErr.text}" có kết quả đúng phải là ${firstMathErr.computed}.`,
+      loi_khen_cu_the: "Con viết bài sạch sẽ, rõ ràng từng bước.",
+      cau_hoi_cho_con: {
+        muc_1: "Con thử tính lại phép tính ở dòng này một lần nữa xem nào!",
+        muc_2: "Con đếm hoặc vẽ ra giấy xem kết quả phép tính này là bao nhiêu nhé!"
+      },
+      loi_giai_chuan: [`${firstMathErr.left} ${firstMathErr.op} ${firstMathErr.rightPart} = ${firstMathErr.computed}`],
+      dap_an_dung_cho_me: String(firstMathErr.computed),
+      ai_chua_chac: 0
+    };
+  }
+
+  return null;
+}
+
 export async function handleCheckWorkGrade(request, env, checkId, corsHeaders) {
   const tStart = Date.now();
   const familyId = await resolveFamilyId(request, env);
@@ -467,12 +632,12 @@ export async function handleCheckWorkGrade(request, env, checkId, corsHeaders) {
         { role: "system", content: "Bạn chỉ trả lời bằng một đối tượng JSON hợp lệ, tiếng Việt có dấu." },
         { role: "user", content: promptText + extraHint },
       ],
-      temperature: 0.2,
+      temperature: 0.0,
       max_tokens: 1200,
     });
     let timer;
     const timeout = new Promise((_, rej) => {
-      timer = setTimeout(() => rej(new Error("grade timeout")), 20000);
+      timer = setTimeout(() => rej(new Error("grade timeout")), 25000);
     });
     const aiRes = await Promise.race([run, timeout]).finally(() => clearTimeout(timer));
     const text = typeof aiRes === "string" ? aiRes : aiRes?.response ?? "";
@@ -485,7 +650,7 @@ export async function handleCheckWorkGrade(request, env, checkId, corsHeaders) {
     rawGrade = await runOnce();
     if (rawGrade && looksLikeGradeEcho(rawGrade, deBai, cacDong)) rawGrade = null;
     missing = missingGradeFields(rawGrade);
-    if (missing.length && Date.now() - tStart < 9000) {
+    if (missing.length && Date.now() - tStart < 16000) {
       // Thử lại 1 lần, nhắc rõ trường còn thiếu
       const retry = await runOnce(
         `\n\nLần trước bạn trả thiếu hoặc sai các trường: ${missing.join(", ")}. Hãy trả lại ĐỦ mọi trường, dựa đúng vào bài của con.`
@@ -497,6 +662,16 @@ export async function handleCheckWorkGrade(request, env, checkId, corsHeaders) {
     }
   } catch (e) {
     console.warn("[check_work.grade] AI grade failed:", e?.message || e);
+  }
+
+  // Prompt 23L: Nếu model trả chậm/lỗi nhưng máy kiểm phép tính đã có kết luận, trả kết quả đó kèm lời giải thích ngắn soạn sẵn
+  if (!rawGrade || missing.length) {
+    const fallbackGrade = buildArithmeticFallbackGrade({ deBai, cacDong, tenCon, xungHo });
+    if (fallbackGrade && !missingGradeFields(fallbackGrade).length) {
+      console.log("[check_work.grade] Model trả chậm/lỗi, đã dùng kết quả máy kiểm phép tính fallback thành công");
+      rawGrade = fallbackGrade;
+      missing = [];
+    }
   }
 
   if (!rawGrade || missing.length) {
@@ -526,7 +701,7 @@ export async function handleCheckWorkGrade(request, env, checkId, corsHeaders) {
   if (!Array.isArray(rawGrade.loi_giai_chuan)) rawGrade.loi_giai_chuan = [];
 
   // 2.2 Máy kiểm tra phép tính
-  const reconciled = reconcileWorkCheck({ aiResult: rawGrade, childLines: cacDong });
+  const reconciled = reconcileWorkCheck({ aiResult: rawGrade, childLines: cacDong, deBai });
 
   // 2.3 Bộ chặn lộ đáp án — chữ ký đúng: validateAndGuard(promptId, responseText, context, env, ctx)
   const guardContext = {
