@@ -782,6 +782,7 @@ export default {
             }
           }
 
+          let guardOutcomeAction = null;
           // 2. Kiểm tra lộ đáp án theo GUARD_RULES
           const context = {
             problem_text: problemText,
@@ -827,6 +828,7 @@ export default {
                               afterText: "Tự động soạn lại riêng bậc không lộ đáp án",
                               outcome: "sua_bac",
                             });
+                            guardOutcomeAction = "sua_bac";
                           }
                         }
                       }
@@ -875,6 +877,7 @@ export default {
                   afterText: ch.correction,
                   outcome: "sua_phep_tinh",
                 });
+                guardOutcomeAction = "sua_phep_tinh";
               });
               mathCheck = validateAllLessonMath(parsed);
             }
@@ -903,7 +906,7 @@ export default {
           }
 
           // Đợt 20 · Chặng 1: Lưu bài vào lesson_cache & ghi log ai_calls đo token
-          if (isExplain && promptId !== "p3_explain_v3" && cacheKey && validated.response) {
+          if (isExplain && cacheKey && validated.response) {
             await storeInLessonCache(env, {
               cacheKey,
               problemText: rawProblem,
@@ -931,6 +934,7 @@ export default {
             ms: elapsed,
             ok: 1,
             status: isPrefetch ? "prefetch" : "ok",
+            error_code: guardOutcomeAction,
             cache_hit: 0,
             estimated: 1,
           });
