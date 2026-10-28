@@ -971,7 +971,18 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
         remindFor = null,
         templateId = null,
         assignmentId = null,
+        expiresAt = null,
+        expires_at = null,
       } = await request.json().catch(() => ({}));
+
+      let effectiveExpiresAt = expiresAt || expires_at || null;
+      if (pinned) {
+        effectiveExpiresAt = expiresAt || expires_at || null;
+      } else {
+        if (!effectiveExpiresAt) {
+          effectiveExpiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
+        }
+      }
 
       if (!title.trim() || !body.trim()) {
         return jsonResponse({ error: { code: "MISSING_DATA", message: "Vui lòng nhập tiêu đề và nội dung thông báo" } }, 400, corsHeaders);
@@ -1000,9 +1011,9 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       const now = new Date().toISOString();
 
       await env.DB.prepare(`
-        INSERT INTO announcements (id, class_id, title, body, pinned, require_ack, created_at, kind, remind_for, template_id, assignment_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(annId, classId, title.trim(), body.trim(), pinned ? 1 : 0, requireAck ? 1 : 0, now, kind, remindFor || null, templateId || null, assignmentId || null).run();
+        INSERT INTO announcements (id, class_id, title, body, pinned, require_ack, created_at, kind, remind_for, template_id, assignment_id, expires_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(annId, classId, title.trim(), body.trim(), pinned ? 1 : 0, requireAck ? 1 : 0, now, kind, remindFor || null, templateId || null, assignmentId || null, effectiveExpiresAt).run();
 
       return jsonResponse({ ok: true, id: annId }, 201, corsHeaders);
     }
@@ -1027,6 +1038,82 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       `).bind(annId).all();
 
       return jsonResponse({ ok: true, reads: reads.results || [] }, 200, corsHeaders);
+    }
+
+    // Cập nhật thông báo (PATCH /api/v1/teacher/announcements/:id)
+    if (pathname.startsWith("/api/v1/teacher/announcements/") && !pathname.endsWith("/reads") && method === "PATCH") {
+      const annId = pathname.replace("/api/v1/teacher/announcements/", "").trim();
+      const ann = await env.DB.prepare(`
+        SELECT an.*, c.teacher_id FROM announcements an
+        JOIN classes c ON an.class_id = c.id
+        WHERE an.id = ?
+      `).bind(annId).first();
+
+      if (!ann) return jsonResponse({ error: { code: "NOT_FOUND", message: "Không tìm thấy thông báo" } }, 404, corsHeaders);
+      if (ann.teacher_id !== session.teacher_id) {
+        return jsonResponse({ error: { code: "FORBIDDEN", message: "Chỉ cô tạo lớp mới có quyền sửa thông báo" } }, 403, corsHeaders);
+      }
+
+      const patchBody = await request.json().catch(() => ({}));
+      const updates = [];
+      const params = [];
+
+      if (patchBody.title !== undefined) {
+        updates.push("title = ?");
+        params.push(String(patchBody.title).trim());
+      }
+      if (patchBody.body !== undefined) {
+        updates.push("body = ?");
+        params.push(String(patchBody.body).trim());
+      }
+      if (patchBody.pinned !== undefined) {
+        updates.push("pinned = ?");
+        params.push(patchBody.pinned ? 1 : 0);
+      }
+      if (patchBody.expiresAt !== undefined || patchBody.expires_at !== undefined) {
+        const exp = patchBody.expiresAt !== undefined ? patchBody.expiresAt : patchBody.expires_at;
+        updates.push("expires_at = ?");
+        params.push(exp || null);
+      }
+      if (patchBody.hidden !== undefined) {
+        updates.push("hidden_at = ?");
+        params.push(patchBody.hidden ? new Date().toISOString() : null);
+      }
+
+      if (updates.length > 0) {
+        params.push(annId);
+        await env.DB.prepare(`UPDATE announcements SET ${updates.join(", ")} WHERE id = ?`).bind(...params).run();
+      }
+
+      const updatedRow = await env.DB.prepare(`
+        SELECT an.*,
+          (SELECT COUNT(*) FROM announcement_reads ar WHERE ar.announcement_id = an.id) as read_count,
+          (SELECT COUNT(*) FROM announcement_reads ar WHERE ar.announcement_id = an.id AND ar.ack_at IS NOT NULL) as ack_count,
+          (SELECT COUNT(*) FROM announcement_reads ar WHERE ar.announcement_id = an.id AND ar.done_at IS NOT NULL) as done_count
+        FROM announcements an
+        WHERE an.id = ?
+      `).bind(annId).first();
+
+      return jsonResponse({ ok: true, announcement: updatedRow }, 200, corsHeaders);
+    }
+
+    // Xoá mềm thông báo (DELETE /api/v1/teacher/announcements/:id)
+    if (pathname.startsWith("/api/v1/teacher/announcements/") && !pathname.endsWith("/reads") && method === "DELETE") {
+      const annId = pathname.replace("/api/v1/teacher/announcements/", "").trim();
+      const ann = await env.DB.prepare(`
+        SELECT an.id, c.teacher_id FROM announcements an
+        JOIN classes c ON an.class_id = c.id
+        WHERE an.id = ?
+      `).bind(annId).first();
+
+      if (!ann) return jsonResponse({ error: { code: "NOT_FOUND", message: "Không tìm thấy thông báo" } }, 404, corsHeaders);
+      if (ann.teacher_id !== session.teacher_id) {
+        return jsonResponse({ error: { code: "FORBIDDEN", message: "Chỉ cô tạo lớp mới có quyền xoá thông báo" } }, 403, corsHeaders);
+      }
+
+      const now = new Date().toISOString();
+      await env.DB.prepare("UPDATE announcements SET deleted_at = ? WHERE id = ?").bind(now, annId).run();
+      return jsonResponse({ ok: true }, 200, corsHeaders);
     }
   }
 
@@ -1402,8 +1489,10 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       return jsonResponse({ error: { code: "UNAUTHORIZED", message: "Yêu cầu đăng nhập" } }, 401, corsHeaders);
     }
 
+    const nowIso = new Date().toISOString();
     const rows = await env.DB.prepare(`
       SELECT an.id, an.class_id, an.title, an.body, an.pinned, an.require_ack, an.created_at,
+             an.kind, an.remind_for, an.template_id, an.assignment_id, an.expires_at,
              c.name as class_name, t.display_name as teacher_name,
              ar.read_at, ar.ack_at
       FROM announcements an
@@ -1412,8 +1501,15 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
       JOIN class_students cs ON cs.class_id = c.id
       LEFT JOIN announcement_reads ar ON ar.announcement_id = an.id AND ar.family_id = ?
       WHERE cs.family_id = ? AND cs.status = 'active'
+        AND an.deleted_at IS NULL AND an.hidden_at IS NULL
+        AND (
+          an.kind = 'reminder'
+          OR (an.expires_at IS NOT NULL AND an.expires_at > ?)
+          OR (an.expires_at IS NULL AND an.pinned = 1)
+          OR (an.expires_at IS NULL AND an.pinned = 0 AND an.created_at > datetime(?, '-7 days'))
+        )
       ORDER BY an.pinned DESC, an.created_at DESC
-    `).bind(session.family_id, session.family_id).all();
+    `).bind(session.family_id, session.family_id, nowIso, nowIso).all();
 
     return jsonResponse({ ok: true, announcements: rows.results || [] }, 200, corsHeaders);
   }

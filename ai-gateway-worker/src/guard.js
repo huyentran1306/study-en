@@ -322,6 +322,11 @@ export const GUARD_RULES = {
     child: ['cac_bac[].cau_hoi', 'cac_bac[].goi_y.*'],
     allowedFrom: ['problem_text'],
   },
+  p3_fix_steps_v3: {
+    answer: ['dap_an_cuoi_cho_me', 'cac_bac[].dap_an_cho_me'],
+    child: ['cac_bac[].cau_hoi', 'cac_bac[].goi_y.*'],
+    allowedFrom: ['problem_text'],
+  },
   p3_extra_v3: {
     answer: ['cac_bac[].dap_an_cho_me', 'dap_an_cuoi_cho_me'],
     child: ['cac_bac[].ly_do_cho_me', 'bai_anh_em.de', 'tro_choi_5_phut', 'con_day_lai_me'],
@@ -421,7 +426,7 @@ function getFieldValues(obj, path) {
  */
 export function checkAnswerLeak(promptId, data, context = {}) {
   // Đợt 18 · Chặng 0.4: Bộ chặn cho p3_explain / p3_explain_v2 sửa đúng bậc, bớt bắt nhầm
-  if (promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3") {
+  if (promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3" || promptId === "p3_fix_steps_v3") {
     const problemText = String(context.problem_text || "");
     const allowedNumbers = new Set(extractNumbers(problemText));
     const problemLower = problemText.toLowerCase();
@@ -872,7 +877,7 @@ export function validateAndGuard(promptId, responseText, context = {}, env = nul
 
   if (!check.leaked) {
     return {
-      response: (promptId === 'p3_explain_v3' || promptId === 'p3_extra_v3') ? JSON.stringify(data) : JSON.stringify(data, null, 2),
+      response: (promptId === 'p3_explain_v3' || promptId === 'p3_extra_v3' || promptId === 'p3_fix_steps_v3') ? JSON.stringify(data) : JSON.stringify(data, null, 2),
       data,
       guarded: false,
       validator: {
@@ -921,7 +926,7 @@ export function validateAndGuard(promptId, responseText, context = {}, env = nul
   });
 
   return {
-    response: (promptId === 'p3_explain_v3' || promptId === 'p3_extra_v3') ? JSON.stringify(data) : JSON.stringify(data, null, 2),
+    response: (promptId === 'p3_explain_v3' || promptId === 'p3_extra_v3' || promptId === 'p3_fix_steps_v3') ? JSON.stringify(data) : JSON.stringify(data, null, 2),
     data,
     guarded: true,
     validator: {

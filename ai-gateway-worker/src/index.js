@@ -643,11 +643,14 @@ export default {
 
         // Đợt 18 · Chặng 2: Hồ sơ con cho AI (Gấu nhớ con {{ho_so_con}})
         let childProfile = null;
+        let profile_ms = 0;
         for (let m of messages) {
           if (typeof m.content === "string" && m.content.includes("{{ho_so_con}}")) {
             let profileText = "chưa có";
             if (familyId && childId) {
+              const pStart = Date.now();
               childProfile = await buildLearnerProfile(env, familyId, childId);
+              profile_ms = Date.now() - pStart;
               profileText = childProfile.profileText || "chưa có";
             }
             m.content = m.content.replace(/\{\{ho_so_con\}\}/g, profileText);
@@ -685,19 +688,22 @@ export default {
 
         let cacheKey = null;
 
+        let cache_ms = 0;
         if (isExplain && rawProblem) {
           cacheKey = await buildCacheKey({
             problemText: rawProblem,
             grade,
             bookSeries,
             subject,
-            promptVersion: promptId === "p3_explain_v3" ? "v3" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
+            promptVersion: promptId === "p3_explain_v3" ? "v3r28" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
             childProfileHash,
             systemContent,
           });
 
           if (!bypassCache) {
+            const cStart = Date.now();
             const cachedLesson = await fetchFromLessonCache(env, cacheKey);
+            cache_ms = Date.now() - cStart;
             if (cachedLesson) {
               const elapsed = Date.now() - chatStartedAt;
               await logAiCall(env, {
@@ -705,7 +711,7 @@ export default {
                 session_id: sessionId,
                 endpoint: "/chat",
                 prompt_id: promptId,
-                prompt_version: promptId === "p3_explain_v2" ? "v2" : "v1",
+                prompt_version: promptId === "p3_explain_v3" ? "v3r28" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
                 model: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
                 tokens_in: 0,
                 tokens_out: 0,
@@ -723,6 +729,13 @@ export default {
                 error_code: null,
                 cached: true,
                 validator: { ok: true, cached: true },
+                timing: {
+                  profile_ms,
+                  cache_ms,
+                  ai_ms: 0,
+                  check_ms: 0,
+                  total_ms: elapsed,
+                },
               }, 200, corsHeaders);
             }
           }
@@ -743,6 +756,7 @@ export default {
           // Chỉ nhận id model Workers AI hợp lệ (@cf/...), tên khác (vd "cloudflare-llama-3.3-70b") quy về mặc định
           const chosenModel = typeof model === "string" && model.startsWith("@cf/") ? model : "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
           let response;
+          const aiStart = Date.now();
           try {
             response = await env.AI.run(chosenModel, { messages, max_tokens, temperature });
           } catch (mErr) {
@@ -755,6 +769,7 @@ export default {
               response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", { messages, max_tokens, temperature });
             }
           }
+          const ai_ms = Date.now() - aiStart;
           const normalized = normalizeAiResponse(response);
           let rawOutput = normalized.rawOutput;
           let parsed = normalized.parsed;
@@ -856,7 +871,7 @@ export default {
                   }
                 }
               }
-              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
+              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3" || promptId === "p3_fix_steps_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
             }
           }
 
@@ -866,7 +881,7 @@ export default {
             if (mathCheck.hasError) {
               const corrected = correctLessonMath(parsed);
               parsed = corrected.lessonData;
-              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
+              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3" || promptId === "p3_fix_steps_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
               corrected.changes.forEach((ch) => {
                 logGuardEvent(env, ctx, {
                   familyId,
@@ -888,10 +903,11 @@ export default {
                 calculations: mathCheck.calculations,
                 summary: mathCheck.summary,
               };
-              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
+              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3" || promptId === "p3_fix_steps_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
             }
           }
 
+          const checkStart = Date.now();
           const validated = await validateAndGuard(promptId, rawOutput, context, env, ctx);
 
           // Cập nhật validator_json vào learning_sessions nếu có sessionId
@@ -905,28 +921,37 @@ export default {
             }
           }
 
-          // Đợt 20 · Chặng 1: Lưu bài vào lesson_cache & ghi log ai_calls đo token
-          if (isExplain && cacheKey && validated.response) {
+          // Đợt 20 · Chặng 1: Lưu bài vào lesson_cache & ghi log ai_calls đo token (fix steps không lưu cache)
+          if (isExplain && cacheKey && validated.response && promptId !== "p3_fix_steps_v3") {
             await storeInLessonCache(env, {
               cacheKey,
               problemText: rawProblem,
               grade,
               bookSeries,
               subject,
-              promptVersion: promptId === "p3_explain_v3" ? "v3" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
+              promptVersion: promptId === "p3_explain_v3" ? "v3r28" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
               childProfileHash,
               lessonObj: validated.response,
               tokensSaved: 1950,
             });
           }
+          const check_ms = Date.now() - checkStart;
 
           const elapsed = Date.now() - chatStartedAt;
+          const timing = {
+            profile_ms,
+            cache_ms,
+            ai_ms,
+            check_ms,
+            total_ms: elapsed,
+          };
+
           await logAiCall(env, {
             family_id: familyId,
             session_id: sessionId,
             endpoint: "/chat",
             prompt_id: promptId || "p3_explain_v2",
-            prompt_version: promptId === "p3_explain_v3" ? "v3" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
+            prompt_version: promptId === "p3_explain_v3" ? "v3r28" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
             model: chosenModel,
             tokens_in: estimateTokens(JSON.stringify(messages)),
             tokens_out: estimateTokens(rawOutput),
@@ -944,6 +969,7 @@ export default {
             guarded: validated.guarded,
             error_code: validated.error_code,
             validator: validated.validator,
+            timing,
           }, 200, corsHeaders);
         } catch (err) {
           console.error("AI /chat error:", err);
