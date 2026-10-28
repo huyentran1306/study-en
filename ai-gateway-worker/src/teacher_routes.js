@@ -802,6 +802,7 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
             questionForChild: "Con hãy đọc to đề bài và chỉ ra đại lượng đã biết nhé!",
             hintLevel1: "Hãy nhìn vào các con số trong đề bài.",
             hintLevel2: isDiagramRequested ? "Con thử vẽ một đoạn thẳng tượng trưng cho dữ kiện thứ nhất xem sao?" : "Tập trung vào phần câu hỏi con nhé.",
+            ky_nang: "doc_hieu_de",
           },
           {
             stepNumber: 2,
@@ -815,6 +816,7 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
             hintLevel2: isMultiplicationBlocked
               ? "Lưu ý: Chúng ta cộng từng đoạn bằng nhau lại nhé (chưa dùng phép nhân)."
               : "Thử biểu diễn bằng phép tính đơn giản nhất.",
+            ky_nang: "chon_phep_tinh",
           },
           {
             stepNumber: 3,
@@ -822,6 +824,7 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
             questionForChild: "Bây giờ con có thể tìm ra kết quả cuối cùng theo sơ đồ chưa nào?",
             hintLevel1: "Nhìn tổng thể toàn bộ các đoạn thẳng trên giấy.",
             hintLevel2: "Thực hiện phép tính theo sơ đồ vừa vẽ con nhé.",
+            ky_nang: "tinh_toan",
           }
         ],
         leakCheckPassed: true, // Kiểm định không lộ đáp án

@@ -662,11 +662,18 @@ export default {
         const isPrefetch = request.headers.get("X-Prefetch") === "1" || request.headers.get("X-Prefetch") === "true";
         const bypassCache = request.headers.get("X-Bypass-Cache") === "1" || request.headers.get("X-Bypass-Cache") === "true";
         let rawProblem = problemText ? decodeURIComponent(problemText) : "";
-        if (!rawProblem && isExplain) {
+        if (!rawProblem) {
           for (let m of messages) {
-            if (typeof m.content === "string" && m.content.includes("Đề bài:")) {
-              rawProblem = m.content;
-              break;
+            if (typeof m.content === "string") {
+              const match = m.content.match(/Đề bài:\s*"""?([\s\S]*?)"""?/i) || m.content.match(/Bài đang học:\s*"([\s\S]*?)"/i);
+              if (match) {
+                rawProblem = match[1].trim();
+                break;
+              }
+              if (m.content.includes("Đề bài:")) {
+                rawProblem = m.content;
+                break;
+              }
             }
           }
         }
@@ -800,7 +807,7 @@ export default {
           let guardOutcomeAction = null;
           // 2. Kiểm tra lộ đáp án theo GUARD_RULES
           const context = {
-            problem_text: problemText,
+            problem_text: rawProblem || problemText,
             family_id: familyId,
             session_id: sessionId,
           };
@@ -819,7 +826,7 @@ export default {
                     try {
                       const stepRetryMessages = [
                         { role: "system", content: "Bạn là chuyên gia sư phạm tiểu học. Chỉ trả lời bằng đúng 1 JSON object viết liền 1 dòng, không có chữ dẫn." },
-                        { role: "user", content: `Bậc ${sIdx + 1} của bài toán bị lộ đáp án (${leak.illegalValue}). Đề bài: "${problemText}". Hãy soạn lại RIÊNG bậc này với câu hỏi gợi mở KHÔNG chứa đáp án. Chỉ trả đúng 1 JSON object: {"cau_hoi":"...","ky_nang":"${badStep.ky_nang || 'doc_hieu_de'}","dap_an_cho_me":"${badStep.dap_an_cho_me || ''}","goi_y":{"muc_1_do_vat":"...","muc_2_hinh_ve":"..."}}` }
+                        { role: "user", content: `Bậc ${sIdx + 1} của bài toán bị lộ đáp án (${leak.illegalValue}). Đề bài: "${rawProblem || problemText}". Hãy soạn lại RIÊNG bậc này với câu hỏi gợi mở KHÔNG chứa đáp án. Chỉ trả đúng 1 JSON object: {"cau_hoi":"...","ky_nang":"${badStep.ky_nang || 'doc_hieu_de'}","dap_an_cho_me":"${badStep.dap_an_cho_me || ''}","goi_y":{"muc_1_do_vat":"...","muc_2_hinh_ve":"..."}}` }
                       ];
                       const stepRetryResp = await env.AI.run(chosenModel, { messages: stepRetryMessages, max_tokens: 200, temperature: 0.2 }).catch(() => null);
                       if (stepRetryResp) {
