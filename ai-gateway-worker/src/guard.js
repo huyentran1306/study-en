@@ -317,6 +317,16 @@ export const GUARD_RULES = {
     child: ['cac_bac[].cau_hoi', 'cac_bac[].goi_y.*', 'loi_khen', 'cac_bac[].ly_do_cho_me'],
     allowedFrom: ['problem_text'],
   },
+  p3_explain_v3: {
+    answer: ['dap_an_cuoi_cho_me', 'cac_bac[].dap_an_cho_me'],
+    child: ['cac_bac[].cau_hoi', 'cac_bac[].goi_y.*'],
+    allowedFrom: ['problem_text'],
+  },
+  p3_extra_v3: {
+    answer: ['cac_bac[].dap_an_cho_me', 'dap_an_cuoi_cho_me'],
+    child: ['cac_bac[].ly_do_cho_me', 'bai_anh_em.de', 'tro_choi_5_phut', 'con_day_lai_me'],
+    allowedFrom: ['problem_text'],
+  },
   p14b_check_work: {
     answer: ['dap_an_dung_cho_me', 'gia_tri_dung_dong_sai'],
     child: ['cau_hoi_cho_con.muc_1', 'cau_hoi_cho_con.muc_2', 'loi_khen_cu_the'],
@@ -411,7 +421,7 @@ function getFieldValues(obj, path) {
  */
 export function checkAnswerLeak(promptId, data, context = {}) {
   // Đợt 18 · Chặng 0.4: Bộ chặn cho p3_explain / p3_explain_v2 sửa đúng bậc, bớt bắt nhầm
-  if (promptId === "p3_explain" || promptId === "p3_explain_v2") {
+  if (promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3") {
     const problemText = String(context.problem_text || "");
     const allowedNumbers = new Set(extractNumbers(problemText));
     const problemLower = problemText.toLowerCase();
@@ -576,6 +586,108 @@ export function checkAnswerLeak(promptId, data, context = {}) {
     });
 
     return { leaked, leakReasons, leaks };
+  }
+
+  // Đợt 23V: Bộ chặn cho p3_extra_v3 (ly_do_cho_me và bai_anh_em không được chứa đáp số bài gốc)
+  if (promptId === "p3_extra_v3") {
+    const problemText = String(context.problem_text || "");
+    const allowedNumbers = new Set(extractNumbers(problemText));
+
+    // Thu thập các số đáp án bị cấm
+    const forbiddenNumbers = new Set(
+      extractNumbers(context.final_answer || context.dap_an_cuoi_cho_me || "").filter((n) => !allowedNumbers.has(n))
+    );
+    // Tính nhẩm phép tính trong đề (vd: "15 - 6 = ?" -> đáp số 9)
+    if (problemText) {
+      const matchSub = problemText.match(/(\d+)\s*[-−]\s*(\d+)/);
+      if (matchSub) {
+        const a = parseInt(matchSub[1], 10);
+        const b = parseInt(matchSub[2], 10);
+        if (!isNaN(a) && !isNaN(b)) {
+          const diff = a - b;
+          if (!allowedNumbers.has(diff)) forbiddenNumbers.add(diff);
+        }
+      }
+      const matchAdd = problemText.match(/(\d+)\s*\+\s*(\d+)/);
+      if (matchAdd) {
+        const a = parseInt(matchAdd[1], 10);
+        const b = parseInt(matchAdd[2], 10);
+        if (!isNaN(a) && !isNaN(b)) {
+          const sum = a + b;
+          if (!allowedNumbers.has(sum)) forbiddenNumbers.add(sum);
+        }
+      }
+      const matchMul = problemText.match(/(\d+)\s*[x*×]\s*(\d+)/);
+      if (matchMul) {
+        const a = parseInt(matchMul[1], 10);
+        const b = parseInt(matchMul[2], 10);
+        if (!isNaN(a) && !isNaN(b)) {
+          const prod = a * b;
+          if (!allowedNumbers.has(prod)) forbiddenNumbers.add(prod);
+        }
+      }
+    }
+
+    let leaked = false;
+    const leakReasons = [];
+    const leaks = [];
+
+    // 1. Kiểm tra ly_do_cho_me của từng bậc
+    const steps = Array.isArray(data?.cac_bac) ? data.cac_bac : [];
+    steps.forEach((step, idx) => {
+      if (!step || typeof step !== "object") return;
+      const lyDo = step.ly_do_cho_me || "";
+      if (lyDo) {
+        const normLyDo = viNumberWords(String(lyDo));
+        forbiddenNumbers.forEach((ansNum) => {
+          if (new RegExp(`\\b${ansNum}\\b`).test(normLyDo)) {
+            leaked = true;
+            leakReasons.push(`Lý do bậc ${idx + 1} chứa đáp số ${ansNum}`);
+            leaks.push({
+              field: "cac_bac[].ly_do_cho_me",
+              path: `cac_bac[${idx}].ly_do_cho_me`,
+              parent: step,
+              key: "ly_do_cho_me",
+              step_idx: idx,
+              illegalValue: String(ansNum),
+              beforeText: lyDo,
+            });
+            step.ly_do_cho_me = "Hỏi gợi mở để con tự khám phá cách làm.";
+          }
+        });
+      }
+    });
+
+    // 2. Kiểm tra bai_anh_em
+    const bro = data?.bai_anh_em;
+    if (bro) {
+      const broDe = typeof bro === "string" ? bro : (bro.de || bro.text || "");
+      if (broDe) {
+        const normBro = viNumberWords(String(broDe));
+        forbiddenNumbers.forEach((ansNum) => {
+          if (new RegExp(`\\b${ansNum}\\b`).test(normBro)) {
+            leaked = true;
+            leakReasons.push(`Bài anh em chứa đáp số ${ansNum} của bài gốc`);
+            leaks.push({
+              field: "bai_anh_em.de",
+              path: "bai_anh_em.de",
+              parent: bro,
+              key: typeof bro === "object" && bro.de ? "de" : "text",
+              illegalValue: String(ansNum),
+              beforeText: broDe,
+            });
+            const safeReplacement = normBro.replace(new RegExp(`\\b${ansNum}\\b`, 'g'), String(ansNum + 2));
+            if (typeof bro === "object") {
+              bro.de = safeReplacement;
+            } else {
+              data.bai_anh_em = safeReplacement;
+            }
+          }
+        });
+      }
+    }
+
+    return { leaked, leakReasons, leaks, sanitizedData: data };
   }
 
   const rule = GUARD_RULES[promptId];
@@ -760,7 +872,7 @@ export function validateAndGuard(promptId, responseText, context = {}, env = nul
 
   if (!check.leaked) {
     return {
-      response: JSON.stringify(data, null, 2),
+      response: (promptId === 'p3_explain_v3' || promptId === 'p3_extra_v3') ? JSON.stringify(data) : JSON.stringify(data, null, 2),
       data,
       guarded: false,
       validator: {
@@ -809,7 +921,7 @@ export function validateAndGuard(promptId, responseText, context = {}, env = nul
   });
 
   return {
-    response: JSON.stringify(data, null, 2),
+    response: (promptId === 'p3_explain_v3' || promptId === 'p3_extra_v3') ? JSON.stringify(data) : JSON.stringify(data, null, 2),
     data,
     guarded: true,
     validator: {

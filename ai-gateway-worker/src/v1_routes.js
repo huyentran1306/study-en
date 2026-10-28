@@ -299,7 +299,7 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
         temperature: typeof rawAi?.temperature === "number" ? rawAi.temperature : 0.3,
         max_tokens: rawAi?.max_tokens || 1400,
         timeout_ms: rawAi?.timeout_ms || 75000,
-        prompt_version: rawAi?.prompt_version || rawAi?.p3_version || "v2",
+        prompt_version: rawAi?.prompt_version || rawAi?.p3_version || "v3",
         pedagogy_routing: Array.isArray(rawAi?.pedagogy_routing) ? rawAi.pedagogy_routing : undefined,
       };
 

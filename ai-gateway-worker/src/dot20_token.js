@@ -263,7 +263,7 @@ export async function checkFamilyQuota(env, familyId) {
   try {
     const row = await env.DB.prepare(`
       SELECT COUNT(*) as count FROM ai_calls
-      WHERE family_id = ? AND created_at >= date('now')
+      WHERE family_id = ? AND created_at >= date('now') AND (status IS NULL OR (status != 'prefetch' AND status != 'cancelled'))
     `).bind(familyId).first();
     const count = Number(row?.count || 0);
     return { allowed: count < 30, count, limit: 30 };

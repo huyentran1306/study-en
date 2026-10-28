@@ -82,7 +82,7 @@ export function normalizeAiResponse(response) {
 import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin, authenticateSession, buildLearnerProfile, handleProgressReport, handleMicroStep, handleJudgeAnswer, handleAdaptiveBrother, handleTraitAnalysis } from "./v1_routes.js";
 import { checkVisionRateLimit, validateImageBytes, resolvePromptTemplate, executeVisionAI } from "./vision.js";
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
-import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS } from "./guard.js";
+import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS, SKILL_SAFE_QUESTIONS } from "./guard.js";
 import { validateAllLessonMath, correctLessonMath } from "./arithmetic.js";
 import { handleCheckWorkRead, handleCheckWorkGrade, handleCheckWorkGet, handleCheckWorkHistory } from "./check_work.js";
 import { handleTeachBackTranscribe, handleTeachBackGrade, handleTeachBackConfirm } from "./teach_back.js";
@@ -185,6 +185,65 @@ export default {
     // =====================================================================
     if (pathname === "/api/v1/ai/trait-analysis" && request.method === "POST") {
       return await handleTraitAnalysis(request, env, ctx, corsHeaders);
+    }
+
+    // =====================================================================
+    // 0h. ⚡️ HOÀN TRẢ LƯỢT SOẠN TRƯỚC BỊ HUỶ (Đợt 23V)
+    // =====================================================================
+    if (pathname === "/api/v1/ai/cancel-prefetch" && request.method === "POST") {
+      try {
+        const body = await request.json().catch(() => ({}));
+        let familyId = body.family_id || request.headers.get("X-Family-Id") || "";
+        const authSession = await authenticateSession(request, env).catch(() => null);
+        if (authSession && authSession.family_id) familyId = authSession.family_id;
+        if (familyId && env.DB) {
+          await env.DB.prepare(`
+            UPDATE ai_calls SET status = 'cancelled'
+            WHERE family_id = ? AND (status = 'prefetch' OR id = (
+              SELECT id FROM ai_calls WHERE family_id = ? ORDER BY created_at DESC LIMIT 1
+            ))
+          `).bind(familyId, familyId).run().catch(() => {});
+        }
+        return jsonResponse({ ok: true, cancelled: true }, 200, corsHeaders);
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500, corsHeaders);
+      }
+    }
+
+    // =====================================================================
+    // 0i. 💾 LƯU BÀI ĐÃ GHÉP VÀO LESSON_CACHE (Đợt 23V)
+    // =====================================================================
+    if (pathname === "/api/v1/ai/cache-lesson" && request.method === "POST") {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const { problemText, grade, bookSeries, subject, childProfileHash = "none", lessonObj, promptVersion = "v3" } = body;
+        if (env.DB && problemText && lessonObj) {
+          const cacheKey = await buildCacheKey({
+            problemText,
+            grade,
+            bookSeries,
+            subject,
+            promptVersion,
+            childProfileHash,
+            systemContent: "",
+          });
+          await storeInLessonCache(env, {
+            cacheKey,
+            problemText,
+            grade,
+            bookSeries,
+            subject,
+            promptVersion,
+            childProfileHash,
+            lessonObj,
+            tokensSaved: 1950,
+          });
+          return jsonResponse({ ok: true, cached: true, cacheKey }, 200, corsHeaders);
+        }
+        return jsonResponse({ ok: false, message: "Missing required fields" }, 400, corsHeaders);
+      } catch (err) {
+        return jsonResponse({ ok: false, error: err.message }, 500, corsHeaders);
+      }
     }
 
     // =====================================================================
@@ -595,8 +654,9 @@ export default {
           }
         }
 
-        // Đợt 20 · Chặng 1: Kiểm tra bộ nhớ bài giảng (lesson_cache) & hạn mức gia đình
-        const isExplain = promptId === "p3_explain" || promptId === "p3_explain_v2";
+        // Đợt 20 · Chặng 1 & Đợt 23V: Kiểm tra bộ nhớ bài giảng (lesson_cache) & hạn mức gia đình
+        const isExplain = promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3";
+        const isPrefetch = request.headers.get("X-Prefetch") === "1" || request.headers.get("X-Prefetch") === "true";
         const bypassCache = request.headers.get("X-Bypass-Cache") === "1" || request.headers.get("X-Bypass-Cache") === "true";
         let rawProblem = problemText ? decodeURIComponent(problemText) : "";
         if (!rawProblem && isExplain) {
@@ -631,7 +691,7 @@ export default {
             grade,
             bookSeries,
             subject,
-            promptVersion: promptId === "p3_explain_v2" ? "v2" : "v1",
+            promptVersion: promptId === "p3_explain_v3" ? "v3" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
             childProfileHash,
             systemContent,
           });
@@ -686,8 +746,14 @@ export default {
           try {
             response = await env.AI.run(chosenModel, { messages, max_tokens, temperature });
           } catch (mErr) {
-            console.warn("Primary model error, fallback to llama-3.1-8b-instruct-fp8:", mErr);
-            response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", { messages, max_tokens, temperature });
+            console.warn("Primary model error, retrying once before fallback:", mErr);
+            await new Promise(r => setTimeout(r, 600));
+            try {
+              response = await env.AI.run(chosenModel, { messages, max_tokens, temperature });
+            } catch (retryErr) {
+              console.warn("Retry failed, fallback to llama-3.1-8b-instruct-fp8:", retryErr);
+              response = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", { messages, max_tokens, temperature });
+            }
           }
           const normalized = normalizeAiResponse(response);
           let rawOutput = normalized.rawOutput;
@@ -696,7 +762,7 @@ export default {
 // Headers đã được đọc ở đầu /chat
 
           // 1. Nếu định dạng sai (hỏng JSON hoặc thiếu bậc), retry 1 lần với yêu cầu JSON
-          if ((!parsed || ((promptId === "p3_explain" || promptId === "p3_explain_v2") && (!Array.isArray(parsed?.cac_bac) || parsed.cac_bac.length < 3))) && timeLeft() > 12000) {
+          if ((!parsed || ((promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3") && (!Array.isArray(parsed?.cac_bac) || parsed.cac_bac.length < 3))) && timeLeft() > 12000) {
             try {
               const retryMessages = [
                 ...messages,
@@ -726,94 +792,80 @@ export default {
           if (parsed) {
             let leakCheck = checkAnswerLeak(promptId, parsed, context);
 
-            // Nếu phát hiện lộ: gọi lại AI một lần (chỉ khi còn thời gian); hết giờ thì bộ chặn thay bằng câu an toàn
-            if (leakCheck.leaked && timeLeft() > 12000) {
-              try {
-                const retryPrompt = `CẢNH BÁO: Câu hỏi gợi mở cho con tuyệt đối không được chứa đáp án (${leakCheck.leaks.map(l => l.illegalValue).join(", ")}). Hãy soạn lại câu hỏi mở để con tự suy nghĩ và tìm ra câu trả lời. Chỉ trả JSON.`;
-                const retryMessages = [
-                  ...messages,
-                  { role: "assistant", content: rawOutput },
-                  { role: "user", content: retryPrompt }
-                ];
-                const leakRetryResp = await env.AI.run(chosenModel, { messages: retryMessages, max_tokens, temperature: 0.2 }).catch(() => null);
-                if (leakRetryResp) {
-                  const leakNorm = normalizeAiResponse(leakRetryResp);
-                  let secondParsed = leakNorm.parsed;
-                  if (secondParsed) {
-                    const secondCheck = checkAnswerLeak(promptId, secondParsed, context);
-                    if (!secondCheck.leaked) {
-                      // Tự động soạn lại thành công
-                      parsed = secondParsed;
-                      rawOutput = JSON.stringify(parsed, null, 2);
-                      leakCheck.leaks.forEach(l => {
-                        logGuardEvent(env, ctx, {
-                          familyId,
-                          sessionId,
-                          promptId,
-                          field: l.field,
-                          beforeText: l.beforeText,
-                          afterText: "Tự động soạn lại không lộ đáp án",
-                          outcome: "sua_bac",
-                        });
-                      });
+            // Đợt 23V: Chỉ gọi AI soạn lại RIÊNG bậc bị lộ (max_tokens ~200), không viết lại cả bài
+            if (leakCheck.leaked && Array.isArray(parsed?.cac_bac) && leakCheck.leaks?.length > 0) {
+              for (const leak of leakCheck.leaks) {
+                const sIdx = leak.step_idx;
+                if (typeof sIdx === "number" && parsed.cac_bac[sIdx]) {
+                  const badStep = parsed.cac_bac[sIdx];
+                  let stepFixed = false;
+                  if (timeLeft() > 6000) {
+                    try {
+                      const stepRetryMessages = [
+                        { role: "system", content: "Bạn là chuyên gia sư phạm tiểu học. Chỉ trả lời bằng đúng 1 JSON object viết liền 1 dòng, không có chữ dẫn." },
+                        { role: "user", content: `Bậc ${sIdx + 1} của bài toán bị lộ đáp án (${leak.illegalValue}). Đề bài: "${problemText}". Hãy soạn lại RIÊNG bậc này với câu hỏi gợi mở KHÔNG chứa đáp án. Chỉ trả đúng 1 JSON object: {"cau_hoi":"...","ky_nang":"${badStep.ky_nang || 'doc_hieu_de'}","dap_an_cho_me":"${badStep.dap_an_cho_me || ''}","goi_y":{"muc_1_do_vat":"...","muc_2_hinh_ve":"..."}}` }
+                      ];
+                      const stepRetryResp = await env.AI.run(chosenModel, { messages: stepRetryMessages, max_tokens: 200, temperature: 0.2 }).catch(() => null);
+                      if (stepRetryResp) {
+                        const stepNorm = normalizeAiResponse(stepRetryResp);
+                        if (stepNorm.parsed && stepNorm.parsed.cau_hoi) {
+                          const testCheck = checkAnswerLeak(promptId, { dap_an_cuoi_cho_me: parsed.dap_an_cuoi_cho_me, cac_bac: [stepNorm.parsed] }, context);
+                          if (!testCheck.leaked) {
+                            parsed.cac_bac[sIdx] = {
+                              ...badStep,
+                              cau_hoi: stepNorm.parsed.cau_hoi,
+                              goi_y: stepNorm.parsed.goi_y || badStep.goi_y,
+                              ky_nang: stepNorm.parsed.ky_nang || badStep.ky_nang,
+                            };
+                            stepFixed = true;
+                            logGuardEvent(env, ctx, {
+                              familyId,
+                              sessionId,
+                              promptId,
+                              field: leak.field,
+                              beforeText: leak.beforeText,
+                              afterText: "Tự động soạn lại riêng bậc không lộ đáp án",
+                              outcome: "sua_bac",
+                            });
+                          }
+                        }
+                      }
+                    } catch (sErr) {
+                      console.warn("Single-step leak retry error:", sErr);
                     }
                   }
+                  // Vẫn lộ hoặc hết giờ: dùng câu an toàn CHỈ CHO RIÊNG BẬC ĐÓ
+                  if (!stepFixed) {
+                    const kyNang = badStep.ky_nang || 'default';
+                    badStep.cau_hoi = SKILL_SAFE_QUESTIONS[kyNang] || DEFAULT_GUARD_FALLBACKS['cac_bac[].cau_hoi'] || "Con thử nói cách suy nghĩ của con ở bước này nhé?";
+                    badStep.goi_y = {
+                      muc_1_do_vat: DEFAULT_GUARD_FALLBACKS['cac_bac[].goi_y.muc_1_do_vat'] || "Con đếm xem có bao nhiêu nhóm đồ vật nào?",
+                      muc_2_hinh_ve: DEFAULT_GUARD_FALLBACKS['cac_bac[].goi_y.muc_2_hinh_ve'] || "Vẽ sơ đồ đoạn thẳng để dễ nhìn hơn nhé."
+                    };
+                    logGuardEvent(env, ctx, {
+                      familyId,
+                      sessionId,
+                      promptId,
+                      field: leak.field,
+                      beforeText: leak.beforeText,
+                      afterText: badStep.cau_hoi,
+                      outcome: "chan_an_toan",
+                    });
+                  }
                 }
-              } catch (lErr) {
-                console.warn("Retry leak error:", lErr);
               }
+              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
             }
           }
 
-                    // 3. Đợt 18 · Chặng 1: Máy kiểm phép tính (code, không phải AI)
-          if ((promptId === "p3_explain" || promptId === "p3_explain_v2") && parsed) {
+          // 3. Đợt 23V: Máy kiểm phép tính - sửa trực tiếp bằng code (correctLessonMath), bỏ gọi AI viết lại cả bài
+          if ((promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3") && parsed) {
             let mathCheck = validateAllLessonMath(parsed);
-
-            // Nếu phát hiện phép tính sai: gọi lại AI soạn lại bậc đó kèm kết quả đúng
-            if (mathCheck.hasError && timeLeft() > 10000) {
-              try {
-                const errorDetails = mathCheck.errors.map(e => `Phép tính "${e.expr}" sai, kết quả đúng là "${e.correction}"`).join(". ");
-                const retryPrompt = `CẢNH BÁO TOÁN HỌC: ${errorDetails}. Hãy kiểm tra và soạn lại các bậc cho chính xác. Tuyệt đối không để sai phép tính. Chỉ trả JSON.`;
-                const retryMessages = [
-                  ...messages,
-                  { role: "assistant", content: rawOutput },
-                  { role: "user", content: retryPrompt }
-                ];
-                const mathRetryResp = await env.AI.run(chosenModel, { messages: retryMessages, max_tokens, temperature: 0.2 }).catch(() => null);
-                if (mathRetryResp) {
-                  const mathNorm = normalizeAiResponse(mathRetryResp);
-                  if (mathNorm.parsed) {
-                    const secondMathCheck = validateAllLessonMath(mathNorm.parsed);
-                    if (!secondMathCheck.hasError) {
-                      parsed = mathNorm.parsed;
-                      rawOutput = JSON.stringify(parsed, null, 2);
-                      mathCheck = secondMathCheck;
-                      mathCheck.errors.forEach(err => {
-                        logGuardEvent(env, ctx, {
-                          familyId,
-                          sessionId,
-                          promptId,
-                          field: err.field,
-                          beforeText: err.expr,
-                          afterText: err.correction,
-                          outcome: "sua_bac",
-                        });
-                      });
-                    }
-                  }
-                }
-              } catch (mErr) {
-                console.warn("Math retry error:", mErr);
-              }
-            }
-
-            // Nếu sau retry (hoặc không đủ thời gian) vẫn còn sai: tự động sửa số và ghi guard_log loại sua_phep_tinh
-            const finalMathCheck = validateAllLessonMath(parsed);
-            if (finalMathCheck.hasError) {
+            if (mathCheck.hasError) {
               const corrected = correctLessonMath(parsed);
               parsed = corrected.lessonData;
-              rawOutput = JSON.stringify(parsed, null, 2);
-              corrected.changes.forEach(ch => {
+              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
+              corrected.changes.forEach((ch) => {
                 logGuardEvent(env, ctx, {
                   familyId,
                   sessionId,
@@ -833,7 +885,7 @@ export default {
                 calculations: mathCheck.calculations,
                 summary: mathCheck.summary,
               };
-              rawOutput = JSON.stringify(parsed, null, 2);
+              rawOutput = (promptId === "p3_explain_v3" || promptId === "p3_extra_v3") ? JSON.stringify(parsed) : JSON.stringify(parsed, null, 2);
             }
           }
 
@@ -851,14 +903,14 @@ export default {
           }
 
           // Đợt 20 · Chặng 1: Lưu bài vào lesson_cache & ghi log ai_calls đo token
-          if (isExplain && cacheKey && validated.response) {
+          if (isExplain && promptId !== "p3_explain_v3" && cacheKey && validated.response) {
             await storeInLessonCache(env, {
               cacheKey,
               problemText: rawProblem,
               grade,
               bookSeries,
               subject,
-              promptVersion: promptId === "p3_explain_v2" ? "v2" : "v1",
+              promptVersion: promptId === "p3_explain_v3" ? "v3" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
               childProfileHash,
               lessonObj: validated.response,
               tokensSaved: 1950,
@@ -871,14 +923,14 @@ export default {
             session_id: sessionId,
             endpoint: "/chat",
             prompt_id: promptId || "p3_explain_v2",
-            prompt_version: promptId === "p3_explain_v2" ? "v2" : "v1",
+            prompt_version: promptId === "p3_explain_v3" ? "v3" : (promptId === "p3_explain_v2" ? "v2" : "v1"),
             model: chosenModel,
             tokens_in: estimateTokens(JSON.stringify(messages)),
             tokens_out: estimateTokens(rawOutput),
             latency_ms: elapsed,
             ms: elapsed,
             ok: 1,
-            status: "ok",
+            status: isPrefetch ? "prefetch" : "ok",
             cache_hit: 0,
             estimated: 1,
           });
