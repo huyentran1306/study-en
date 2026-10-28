@@ -12,6 +12,7 @@ import { handle as handleDot15Ai } from "./dot15_ai.js";
 import { handle as handleDot15System } from "./dot15_system.js";
 import { handle as handleDot15Teacher } from "./dot15_teacher.js";
 import { handle as handleDot16Seasons, getPublicSeasons } from "./dot16_seasons.js";
+import { logAiCall } from "./dot20_token.js";
 
 // Helper: Response JSON
 export function jsonResponse(data, status = 200, headers = {}) {
@@ -266,7 +267,10 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
       ]);
 
       let publicPromptStudio = null;
-      const rawPrompts = configMap["prompt_studio:config"];
+      let rawPrompts = configMap["prompt_studio:config"] || configMap["prompt_studio%3Aconfig"];
+      if (typeof rawPrompts === "string") {
+        try { rawPrompts = JSON.parse(rawPrompts); } catch (_) {}
+      }
       if (rawPrompts && typeof rawPrompts === "object") {
         const cfg = rawPrompts.prompts || rawPrompts;
         publicPromptStudio = {};
@@ -286,18 +290,18 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
         }
       }
 
-      let publicAiConfig = null;
-      const rawAi = configMap["prompt_studio:ai_config"];
-      if (rawAi && typeof rawAi === "object") {
-        publicAiConfig = {
-          model: rawAi.model,
-          temperature: rawAi.temperature,
-          max_tokens: rawAi.max_tokens,
-          timeout_ms: rawAi.timeout_ms,
-          prompt_version: rawAi.prompt_version,
-          pedagogy_routing: Array.isArray(rawAi.pedagogy_routing) ? rawAi.pedagogy_routing : undefined,
-        };
+      let rawAi = configMap["prompt_studio:ai_config"] || configMap["prompt_studio%3Aai_config"];
+      if (typeof rawAi === "string") {
+        try { rawAi = JSON.parse(rawAi); } catch (_) {}
       }
+      const publicAiConfig = {
+        model: rawAi?.model || "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        temperature: typeof rawAi?.temperature === "number" ? rawAi.temperature : 0.3,
+        max_tokens: rawAi?.max_tokens || 1400,
+        timeout_ms: rawAi?.timeout_ms || 75000,
+        prompt_version: rawAi?.prompt_version || rawAi?.p3_version || "v2",
+        pedagogy_routing: Array.isArray(rawAi?.pedagogy_routing) ? rawAi.pedagogy_routing : undefined,
+      };
 
       const promptUp = updatedMap["prompt_studio:config"];
       const aiUp = updatedMap["prompt_studio:ai_config"];
@@ -755,6 +759,8 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
       aiModel = null,
     } = body;
 
+    const effectiveMethodRuleId = body.methodRuleId || body.method_rule_id || (body.methodRule && body.methodRule.id) || "fallback";
+
     const sessionId = id || "ses_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
     try {
@@ -778,7 +784,7 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
         grade,
         problemText,
         problemType,
-        methodRuleId,
+        effectiveMethodRuleId,
         stepsTotal,
         scopeCategory,
         aiLatencyMs,
@@ -2300,8 +2306,16 @@ export async function handleMicroStep(request, env, ctx, corsHeaders) {
     child_name = "Con",
   } = body;
 
-  const session = await getAuthSession(request, env);
-  const familyId = session?.family_id || body.family_id || request.headers.get("X-Family-Id");
+  let familyId = body.family_id || request.headers.get("X-Family-Id") || "";
+  if (familyId) {
+    try { familyId = decodeURIComponent(familyId); } catch (_) {}
+  }
+  try {
+    const authSession = await authenticateSession(request, env);
+    if (authSession && authSession.family_id) {
+      familyId = authSession.family_id;
+    }
+  } catch (_) {}
 
   const sysPrompt = `Bạn là chuyên gia sư phạm tiểu học. Khi con đang kẹt ở một bước toán, nhiệm vụ của bạn là chẻ nhỏ bước đó thành một câu hỏi nhỏ hơn (micro-step).
 QUY TẮC BẮT BUỘC:
@@ -2393,6 +2407,24 @@ Hãy chẻ nhỏ câu hỏi cho ${child_name}:`;
   result.micro_index = micro_index;
   const latencyMs = Date.now() - startedAt;
 
+  if (env?.DB) {
+    ctx?.waitUntil?.(
+      logAiCall(env, {
+        family_id: familyId,
+        session_id: body.session_id || null,
+        endpoint: "/api/v1/ai/micro-step",
+        prompt_id: "micro_step",
+        prompt_version: "v1",
+        model: chosenModel,
+        tokens_in: 0,
+        tokens_out: 0,
+        latency_ms: latencyMs,
+        ms: latencyMs,
+        ok: 1,
+      }).catch(() => {})
+    );
+  }
+
   return jsonResponse({
     ok: true,
     micro_step: result,
@@ -2416,6 +2448,17 @@ export async function handleJudgeAnswer(request, env, ctx, corsHeaders) {
     problem_text = "",
     child_name = "Con",
   } = body;
+
+  let familyId = body.family_id || request.headers.get("X-Family-Id") || "";
+  if (familyId) {
+    try { familyId = decodeURIComponent(familyId); } catch (_) {}
+  }
+  try {
+    const authSession = await authenticateSession(request, env);
+    if (authSession && authSession.family_id) {
+      familyId = authSession.family_id;
+    }
+  } catch (_) {}
 
   if (!child_speech || !child_speech.trim()) {
     return jsonResponse({
@@ -2540,6 +2583,25 @@ Hãy đánh giá câu trả lời của ${child_name}:`;
   }
 
   const latencyMs = Date.now() - startedAt;
+
+  if (env?.DB) {
+    ctx?.waitUntil?.(
+      logAiCall(env, {
+        family_id: familyId,
+        session_id: body.session_id || null,
+        endpoint: "/api/v1/ai/judge-answer",
+        prompt_id: "judge_answer",
+        prompt_version: "v1",
+        model: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        tokens_in: 0,
+        tokens_out: 0,
+        latency_ms: latencyMs,
+        ms: latencyMs,
+        ok: 1,
+      }).catch(() => {})
+    );
+  }
+
   return jsonResponse({
     ok: true,
     verdict: result,

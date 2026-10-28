@@ -79,7 +79,7 @@ export function normalizeAiResponse(response) {
  *    - POST /db/query | POST /db/execute | GET /db/kv/:key | POST /db/kv/:key
  */
 
-import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin, buildLearnerProfile, handleProgressReport, handleMicroStep, handleJudgeAnswer, handleAdaptiveBrother, handleTraitAnalysis } from "./v1_routes.js";
+import { handleV1Route, jsonResponse as v1JsonResponse, authenticateAdmin, authenticateSession, buildLearnerProfile, handleProgressReport, handleMicroStep, handleJudgeAnswer, handleAdaptiveBrother, handleTraitAnalysis } from "./v1_routes.js";
 import { checkVisionRateLimit, validateImageBytes, resolvePromptTemplate, executeVisionAI } from "./vision.js";
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS } from "./guard.js";
@@ -568,8 +568,19 @@ export default {
         const promptId = request.headers.get("X-Prompt-Id") || "";
         const sessionId = request.headers.get("X-Session-Id") || "";
         const problemText = request.headers.get("X-Problem-Text") || "";
-        const familyId = request.headers.get("X-Family-Id") || "";
+        let familyId = request.headers.get("X-Family-Id") || "";
+        if (familyId) {
+          try { familyId = decodeURIComponent(familyId); } catch (_) {}
+        }
         const childId = request.headers.get("X-Child-Id") || "";
+
+        // Đợt 23T Mục 5: Lấy family_id từ phiên Bearer token thay vì chỉ tin header
+        try {
+          const authSession = await authenticateSession(request, env);
+          if (authSession && authSession.family_id) {
+            familyId = authSession.family_id;
+          }
+        } catch (_) {}
 
         // Đợt 18 · Chặng 2: Hồ sơ con cho AI (Gấu nhớ con {{ho_so_con}})
         let childProfile = null;
@@ -979,7 +990,7 @@ export default {
         const row = await env.DB.prepare(
           "SELECT key, value, updated_at FROM _kv_store WHERE key = ? OR key = ? ORDER BY updated_at DESC LIMIT 1"
         ).bind(key, rawKey).first();
-        if (!row) return jsonResponse({ key, value: null, found: false }, 404, corsHeaders);
+        if (!row) return jsonResponse({ key, value: null, found: false }, 200, corsHeaders);
         let parsed = row.value;
         try { parsed = JSON.parse(row.value); } catch {}
         return jsonResponse({ key: row.key, value: parsed, updated_at: row.updated_at, found: true }, 200, corsHeaders);
