@@ -1445,7 +1445,9 @@ export async function handleV1Route(request, env, ctx, pathname, corsHeaders) {
     const body = await request.json().catch(() => ({}));
     const { childId = null, week = "Tuần này", snapshot = {}, expiresDays = 7 } = body;
 
-    const days = [7, 14].includes(Number(expiresDays)) ? Number(expiresDays) : 7;
+    // Gói 36: người dùng tự nhập thời hạn link, số nguyên 1–30 ngày (sai thì về 7)
+    const nDays = Number(expiresDays);
+    const days = Number.isInteger(nDays) && nDays >= 1 && nDays <= 30 ? nDays : 7;
     const expiresAt = new Date(Date.now() + days * 86400000).toISOString();
     const token = "rep_" + generateCleanCode(18).toLowerCase();
 
