@@ -326,10 +326,10 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
   // 1.4 Đọc ảnh qua Vision AI (không lưu ảnh vào R2 hay bất kỳ đâu)
   const checkId = `chk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const notRead = (lyDo = READ_RETRY_MESSAGE, extra = {}) =>
-    jsonResponse({ check_id: checkId, de_bai: problemText, cac_dong: [], doc_duoc: false, ly_do: lyDo, ...extra }, 200, corsHeaders);
+    jsonResponse({ check_id: checkId, de_bai: problemText, cac_dong: [], doc_duoc: false, ly_do: lyDo, read_attempts: 1 + (extra.retries || 0), retried: (extra.retries || 0) > 0, ...extra }, 200, corsHeaders);
 
   if (!imageBytes || imageBytes.length === 0) {
-    return notRead("Chưa nhận được ảnh, mẹ chụp lại giúp nhé");
+    return notRead("Chưa nhận được ảnh, chụp lại giúp Gấu nhé");
   }
   if (!env.AI) {
     return jsonResponse({ error: "ai_unavailable", message: "Máy chủ AI chưa sẵn sàng, mẹ thử lại sau nhé." }, 503, corsHeaders);
@@ -342,7 +342,8 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
 
   let readResult = null;
   let modelUsed = null;
-  const ai = await executeVisionAI({ env, imageBytes, prompt, promptId: "p14a_read_work" }).catch((e) => ({
+  // Prompt 32 mục 7: lần đọc 1 chỉ dùng model chính, tối đa 18 giây; lần đọc 2 do vòng dưới gọi model dự phòng
+  const ai = await executeVisionAI({ env, imageBytes, prompt, promptId: "p14a_read_work", primaryOnly: true, primaryTimeoutMs: 18000 }).catch((e) => ({
     success: false,
     error: "vision_failed",
     message: e?.message,
@@ -369,8 +370,10 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
   }
 
   let retryCount = 0;
-  // Thử lại tối đa 2 lần nếu chưa đọc được hoặc lỗi
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  // Prompt 32 mục 7: lần đọc đầu thất bại → gọi lại ĐÚNG MỘT lần bằng model dự phòng (khác model chính),
+  // trước khi báo "chưa đọc rõ". Tổng thời gian tối đa ~26 giây (12s + 14s) thay vì 3 lần × 12s.
+  const fallbackVisionModel = env.VISION_MODEL_FALLBACK || "@cf/meta/llama-4-scout-17b-16e-instruct";
+  for (let attempt = 1; attempt <= 1; attempt++) {
     if (readResult && readResult.doc_duoc !== false && !looksLikeReadEcho(readResult) && Array.isArray(readResult.cac_dong) && readResult.cac_dong.length > 0) {
       break;
     }
@@ -380,7 +383,7 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
       ? `${prompt}\n\nCHÚ Ý ĐẶC BIỆT: Trang vở có chữ viết tay của học sinh. BẮT BUỘC đặt "doc_duoc": true. Chép đủ từng dòng từ lời giải, phép tính đến đáp số vào "cac_dong".`
       : `Hãy chép lại trung thực toàn bộ chữ viết tay và phép tính của học sinh trong ảnh vở này. BẮT BUỘC đặt "doc_duoc": true.\nTrả về JSON: {"doc_duoc": true, "de_bai": "...", "cac_dong": [{"so": 1, "noi_dung": "..."}]}`;
 
-    const aiRetry = await executeVisionAI({ env, imageBytes, prompt: retryPrompt, promptId: "p14a_read_work" }).catch((e) => {
+    const aiRetry = await executeVisionAI({ env, imageBytes, prompt: retryPrompt, promptId: "p14a_read_work", forceModel: fallbackVisionModel, forceTimeoutMs: 14000 }).catch((e) => {
       console.warn(`[check_work.read] Retry ${attempt} failed:`, e?.message);
       return null;
     });
@@ -444,7 +447,7 @@ export async function handleCheckWorkRead(request, env, corsHeaders) {
     }
   }
 
-  return jsonResponse({ check_id: checkId, de_bai: deBai, cac_dong: lines, doc_duoc: true, ly_do: "", model: modelUsed }, 200, corsHeaders);
+  return jsonResponse({ check_id: checkId, de_bai: deBai, cac_dong: lines, doc_duoc: true, ly_do: "", model: modelUsed, read_attempts: 1 + retryCount, retried: retryCount > 0, read_ms: Date.now() - tStart }, 200, corsHeaders);
 }
 
 /**

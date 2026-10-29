@@ -84,6 +84,8 @@ import { checkVisionRateLimit, validateImageBytes, resolvePromptTemplate, execut
 import { validateAndGuardAiOutput } from "./admin_stitch_routes.js";
 import { validateAndGuard, checkAnswerLeak, logGuardEvent, DEFAULT_GUARD_FALLBACKS, SKILL_SAFE_QUESTIONS } from "./guard.js";
 import { validateAllLessonMath, correctLessonMath } from "./arithmetic.js";
+import { isAnswerRequest, refusalReply, flattenJsonReply, hasBrokenVietnamese } from "./chat_safety.js";
+import { fixLessonSteps } from "./lesson_fix.js";
 import { handleCheckWorkRead, handleCheckWorkGrade, handleCheckWorkGet, handleCheckWorkHistory } from "./check_work.js";
 import { handleTeachBackTranscribe, handleTeachBackGrade, handleTeachBackConfirm } from "./teach_back.js";
 import {
@@ -117,7 +119,8 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": isAllowedOrigin && origin ? origin : "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id, X-Problem-Text, X-Family-Id",
+      // Prompt 32: thiếu header ở đây thì trình duyệt chặn preflight → cả lời gọi /chat hỏng. Liệt kê đủ mọi header app gửi.
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id, X-Problem-Text, X-Family-Id, X-Child-Id, X-Grade, X-Subject, X-Book-Series, X-Bypass-Cache, X-Prefetch, X-Hint-Question, X-Xung-Ho, X-Fix-Count, X-Fix-Reason",
       "Access-Control-Max-Age": "86400",
     };
 
@@ -693,6 +696,44 @@ export default {
           }
         }
 
+        // Prompt 32 mục 1: "Hỏi thêm AI" (p4_chat). Xin đáp án / giải hộ / cho con chép → từ chối bằng luật trong code,
+        // KHÔNG gọi AI, ghi sự kiện chặn 'xin_dap_an' vào guard_log (admin An toàn AI › Nhật ký bộ chặn).
+        const isParentChat = promptId === "p4_chat";
+        const lastUserMsg = [...messages].reverse().find((m) => m && m.role === "user" && typeof m.content === "string");
+        const lastQuestion = lastUserMsg ? lastUserMsg.content : "";
+        if (isParentChat && isAnswerRequest(lastQuestion)) {
+          let hintQuestion = request.headers.get("X-Hint-Question") || "";
+          let xungHo = request.headers.get("X-Xung-Ho") || "bố mẹ";
+          try { hintQuestion = decodeURIComponent(hintQuestion); } catch (_) {}
+          try { xungHo = decodeURIComponent(xungHo); } catch (_) {}
+          const refusal = refusalReply({ hintQuestion, ho: xungHo });
+          await logGuardEvent(env, ctx, {
+            familyId,
+            sessionId,
+            promptId: "p4_chat",
+            field: "xin_dap_an",
+            beforeText: lastQuestion,
+            afterText: refusal,
+            outcome: "xin_dap_an",
+          });
+          const elapsed = Date.now() - chatStartedAt;
+          await logAiCall(env, {
+            family_id: familyId, session_id: sessionId, endpoint: "/chat", prompt_id: "p4_chat", prompt_version: "v32",
+            model: "rule", tokens_in: 0, tokens_out: 0, latency_ms: elapsed, ms: elapsed, ok: 1, status: "guard_rule",
+            error_code: "xin_dap_an", cache_hit: 0, estimated: 0,
+          }).catch(() => {});
+          return jsonResponse({
+            response: refusal,
+            guarded: true,
+            guard_reason: "xin_dap_an",
+            error_code: null,
+            validator: { status: "Đã chặn", detail: "Phụ huynh xin đáp án: Gấu từ chối và đưa câu hỏi gợi mở", timestamp: new Date().toISOString() },
+            timing: { profile_ms, cache_ms: 0, ai_ms: 0, check_ms: 0, total_ms: elapsed },
+          }, 200, corsHeaders);
+        }
+        // Prompt 32: chỉ các prompt trả JSON mới được "nhắc lại JSON"; chat với phụ huynh luôn là văn bản thường
+        const expectsJson = /^p3_/.test(promptId) || (!promptId && /JSON/.test(systemContent) && !/văn bản thường|KHÔNG (trả|dùng|viết) JSON/i.test(systemContent));
+
         let cacheKey = null;
 
         let cache_ms = 0;
@@ -784,7 +825,7 @@ export default {
 // Headers đã được đọc ở đầu /chat
 
           // 1. Nếu định dạng sai (hỏng JSON hoặc thiếu bậc), retry 1 lần với yêu cầu JSON
-          if ((!parsed || ((promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3") && (!Array.isArray(parsed?.cac_bac) || parsed.cac_bac.length < 3))) && timeLeft() > 12000) {
+          if (expectsJson && (!parsed || ((promptId === "p3_explain" || promptId === "p3_explain_v2" || promptId === "p3_explain_v3") && (!Array.isArray(parsed?.cac_bac) || parsed.cac_bac.length < 3))) && timeLeft() > 12000) {
             try {
               const retryMessages = [
                 ...messages,
@@ -805,6 +846,32 @@ export default {
           }
 
           let guardOutcomeAction = null;
+
+          // Prompt 32 mục 1: chat với phụ huynh trả văn bản thường. Lỡ ra JSON thì ghép các trường chữ thành câu;
+          // chữ vỡ dấu ("hoỌc", "Bắ c") thì gọi lại một lần với nhiệt độ thấp trên model chính.
+          if (isParentChat) {
+            let text = flattenJsonReply(rawOutput);
+            if (hasBrokenVietnamese(text) && timeLeft() > 6000) {
+              try {
+                const again = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", { messages, max_tokens, temperature: 0.2 });
+                const againText = flattenJsonReply(normalizeAiResponse(again).rawOutput);
+                if (againText && !hasBrokenVietnamese(againText)) text = againText;
+              } catch (_) {}
+            }
+            const elapsed = Date.now() - chatStartedAt;
+            await logAiCall(env, {
+              family_id: familyId, session_id: sessionId, endpoint: "/chat", prompt_id: promptId || "chat", prompt_version: "v32",
+              model: chosenModel, tokens_in: estimateTokens(JSON.stringify(messages)), tokens_out: estimateTokens(text),
+              latency_ms: elapsed, ms: elapsed, ok: 1, status: "ok", cache_hit: 0, estimated: 1,
+            }).catch(() => {});
+            return jsonResponse({
+              response: text,
+              guarded: false,
+              error_code: null,
+              validator: { status: "Đạt", detail: "Văn bản thường", timestamp: new Date().toISOString() },
+              timing: { profile_ms, cache_ms, ai_ms, check_ms: 0, total_ms: elapsed },
+            }, 200, corsHeaders);
+          }
           // 2. Kiểm tra lộ đáp án theo GUARD_RULES
           const context = {
             problem_text: rawProblem || problemText,
@@ -917,6 +984,38 @@ export default {
           const checkStart = Date.now();
           const validated = await validateAndGuard(promptId, rawOutput, context, env, ctx);
 
+          // Prompt 32 mục 4 + 6: kiểm và sửa đúng chỗ bài v3 TRÊN MÁY CHỦ, trần ~6 giây, rồi mới lưu cache
+          let fix_ms = 0;
+          let fixInfo = null;
+          if (promptId === "p3_explain_v3" && validated.response) {
+            try {
+              const lessonObj = typeof validated.response === "string" ? JSON.parse(validated.response) : validated.response;
+              if (lessonObj && Array.isArray(lessonObj.cac_bac) && !(lessonObj.can_hoi_lai && String(lessonObj.can_hoi_lai).trim())) {
+                const fx = await fixLessonSteps(env, {
+                  lesson: lessonObj,
+                  problemText: rawProblem || problemText,
+                  subject: subject || "Toán",
+                  model: chosenModel,
+                  timeoutMs: Math.max(0, Math.min(6000, timeLeft() - 1500)),
+                  context,
+                });
+                fix_ms = fx.ms;
+                fixInfo = { fixed: fx.fixed, timed_out: fx.timedOut, issues_before: fx.before.issues.map((i) => i.kind), issues_after: fx.after.issues.map((i) => i.kind) };
+                const out = { ...fx.lesson, steps_checked: true, steps_check: fixInfo };
+                if (fx.fixed) {
+                  fx.before.issues.forEach((iss) => {
+                    logGuardEvent(env, ctx, { familyId, sessionId, promptId, field: "cac_bac[].cau_hoi", beforeText: iss.text, afterText: "Máy chủ soạn lại riêng bậc lỗi", outcome: "sua_bac_chung_chung" });
+                  });
+                } else if (fx.timedOut) {
+                  console.warn("[lesson_fix] quá trần thời gian, dùng bài trước khi sửa", fixInfo);
+                }
+                validated.response = JSON.stringify(out);
+              }
+            } catch (fxErr) {
+              console.warn("lesson_fix error:", fxErr);
+            }
+          }
+
           // Cập nhật validator_json vào learning_sessions nếu có sessionId
           if (sessionId && env.DB) {
             try {
@@ -925,6 +1024,20 @@ export default {
                 .run();
             } catch (vErr) {
               console.warn("Update session validator error:", vErr);
+            }
+          }
+
+          // Prompt 32 mục 3: lượt "sửa đúng chỗ" (p3_fix_steps_v3) → mỗi bậc được soạn lại là một sự kiện bộ chặn
+          if (promptId === "p3_fix_steps_v3" && parsed && Array.isArray(parsed.cac_bac)) {
+            const fixCount = Math.max(1, Math.min(5, parseInt(request.headers.get("X-Fix-Count") || "1", 10) || 1));
+            for (let i = 0; i < fixCount; i++) {
+              logGuardEvent(env, ctx, {
+                familyId, sessionId, promptId,
+                field: "cac_bac[].cau_hoi",
+                beforeText: (request.headers.get("X-Fix-Reason") ? decodeURIComponent(request.headers.get("X-Fix-Reason")) : "Bậc chung chung / lặp câu hỏi / thiếu bậc"),
+                afterText: "Soạn lại riêng bậc lỗi",
+                outcome: "sua_bac_chung_chung",
+              });
             }
           }
 
@@ -950,6 +1063,8 @@ export default {
             cache_ms,
             ai_ms,
             check_ms,
+            fix_ms,
+            fix: fixInfo,
             total_ms: elapsed,
           };
 
@@ -1186,7 +1301,7 @@ async function ensureDot14Tables(db) {
         field TEXT,
         before_text TEXT,
         after_text TEXT,
-        outcome TEXT CHECK(outcome IN ('regenerated','fallback','leaked'))
+        outcome TEXT
       );
     `).run();
     await db.prepare("CREATE INDEX IF NOT EXISTS idx_guard_log_family_created ON guard_log(family_id, created_at);").run();

@@ -15,7 +15,7 @@
   ],
   "vars": {
     "VISION_MODEL_PRIMARY": "@cf/meta/llama-3.2-11b-vision-instruct",
-    "VISION_MODEL_FALLBACK": "@cf/meta/llama-3.2-11b-vision-instruct",
+    "VISION_MODEL_FALLBACK": "@cf/meta/llama-4-scout-17b-16e-instruct",
     "OCR_PRIMARY_DAILY_NEURONS": 25000,
     "AI_DAILY_SOFT_LIMIT": 45000,
     "AI_DAILY_HARD_LIMIT": 60000,

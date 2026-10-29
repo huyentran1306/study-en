@@ -141,27 +141,37 @@ export async function handleSafetySummary(request, env, corsHeaders) {
     }
 
       // Đợt 18 · Chặng 3: Thẻ An toàn AI (số thật từ guard_log và learning_events)
-      const d18Row = await env.DB.prepare(`
+      // Prompt 32 mục 3: nối với sự kiện THẬT (guard_log, ai_calls, teach_backs, learning_events)
+      const d18Row = famId ? await env.DB.prepare(`
         SELECT 
           SUM(CASE WHEN outcome = 'sua_phep_tinh' THEN 1 ELSE 0 END) as math_fixed,
-          SUM(CASE WHEN outcome IN ('sua_bac', 'regenerated') THEN 1 ELSE 0 END) as steps_guarded
+          SUM(CASE WHEN outcome IN ('sua_bac', 'regenerated', 'fallback', 'chan_an_toan', 'sua_bac_chung_chung') THEN 1 ELSE 0 END) as steps_guarded,
+          SUM(CASE WHEN outcome = 'xin_dap_an' THEN 1 ELSE 0 END) as answer_requests
         FROM guard_log
         WHERE family_id = ? AND created_at >= datetime('now', ?)
-      `).bind(famId, since).first().catch(() => null);
+      `).bind(famId, since).first().catch(() => null) : null;
 
-      const d18Events = await env.DB.prepare(`
+      // Câu nhỏ hơn: mỗi lần /api/v1/ai/micro-step trả thành công
+      const microRow = famId ? await env.DB.prepare(`
+        SELECT COUNT(*) as cnt FROM ai_calls
+        WHERE family_id = ? AND endpoint = '/api/v1/ai/micro-step' AND ok = 1 AND created_at >= datetime('now', ?)
+      `).bind(famId, since).first().catch(() => null) : null;
+
+      // Gấu nghe con: trả lời bằng giọng (learning_events.voice_verdict) + lượt giảng lại (teach_backs)
+      const d18Events = famId ? await env.DB.prepare(`
         SELECT 
-          SUM(micro_steps) as micro_steps,
+          SUM(COALESCE(micro_steps, 0)) as micro_steps,
           SUM(CASE WHEN voice_verdict IS NOT NULL THEN 1 ELSE 0 END) as voice_count
         FROM learning_events
         WHERE family_id = ? AND created_at >= datetime('now', ?)
-      `).bind(famId, since).first().catch(() => null);
+      `).bind(famId, since).first().catch(() => null) : null;
 
       var dot18Safety = {
         phep_tinh_sai_da_bat: Number(d18Row?.math_fixed || 0),
         bac_bo_chan_sua_lai: Number(d18Row?.steps_guarded || 0),
-        cau_nho_hon_da_tao: Number(d18Events?.micro_steps || 0),
-        so_lan_gau_nghe_con: Number(d18Events?.voice_count || 0),
+        cau_nho_hon_da_tao: Math.max(Number(microRow?.cnt || 0), Number(d18Events?.micro_steps || 0)),
+        so_lan_gau_nghe_con: Number(d18Events?.voice_count || 0) + Number(teachStats.total || 0),
+        xin_dap_an_da_chan: Number(d18Row?.answer_requests || 0),
       };
 
     const totalGuardActions = guardStats.fallbacks + guardStats.regenerated;
@@ -179,7 +189,7 @@ export async function handleSafetySummary(request, env, corsHeaders) {
       feedback: feedbackStats,
       work_checks: workStats,
       teach_backs: teachStats,
-      dot18_safety: typeof dot18Safety !== 'undefined' ? dot18Safety : { phep_tinh_sai_da_bat: 0, bac_bo_chan_sua_lai: 0, cau_nho_hon_da_tao: 0, so_lan_gau_nghe_con: 0 },
+      dot18_safety: typeof dot18Safety !== 'undefined' ? dot18Safety : { phep_tinh_sai_da_bat: 0, bac_bo_chan_sua_lai: 0, cau_nho_hon_da_tao: 0, so_lan_gau_nghe_con: 0, xin_dap_an_da_chan: 0 },
       four_layer_safety: [
         { layer: 1, name: 'Prompt Sư phạm Socratic', status: 'active', desc: 'Không giải bài hộ, chia 3 bậc gợi ý' },
         { layer: 2, name: 'Bộ chặn rò rỉ đáp án (Guard Module)', status: 'active', desc: 'Kiểm tra số chữ/số nguyên, thay thế tự động nếu lộ' },

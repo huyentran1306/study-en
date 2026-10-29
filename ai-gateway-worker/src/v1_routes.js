@@ -13,6 +13,7 @@ import { handle as handleDot15System } from "./dot15_system.js";
 import { handle as handleDot15Teacher } from "./dot15_teacher.js";
 import { handle as handleDot16Seasons, getPublicSeasons } from "./dot16_seasons.js";
 import { logAiCall } from "./dot20_token.js";
+import { correctLessonMath } from "./arithmetic.js"; // Prompt 32: thiếu import làm bài anh em không được máy kiểm phép tính
 
 // Helper: Response JSON
 export function jsonResponse(data, status = 200, headers = {}) {

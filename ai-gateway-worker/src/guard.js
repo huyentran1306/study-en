@@ -449,7 +449,9 @@ export function checkAnswerLeak(promptId, data, context = {}) {
     
     // Cụm từ đáp án ngắn (2-6 từ, hỗ trợ cả cụm có số)
     const answerPhrases = [];
-    [data.dap_an_cuoi_cho_me, ...(steps.map(s => s?.dap_an_cho_me || s?.answerForParent))].forEach(v => {
+    // Prompt 32: nhớ cụm từ đến từ đâu (-1 = đáp số cuối, i = đáp án bậc i) để bậc sau được nhắc kết quả bậc trước
+    const answerPhraseSrc = [];
+    [data.dap_an_cuoi_cho_me, ...(steps.map(s => s?.dap_an_cho_me || s?.answerForParent))].forEach((v, vi) => {
       const trimmed = String(v || "").trim().toLowerCase();
       if (!trimmed) return;
       const normTrimmed = viNumberWords(trimmed).toLowerCase();
@@ -457,12 +459,15 @@ export function checkAnswerLeak(promptId, data, context = {}) {
       if (words.length >= 2 && words.length <= 6) {
         if (!problemLower.includes(trimmed)) {
           answerPhrases.push(trimmed);
+          answerPhraseSrc.push(vi - 1);
         }
         if (normTrimmed !== trimmed && !problemLower.includes(normTrimmed)) {
           answerPhrases.push(normTrimmed);
+          answerPhraseSrc.push(vi - 1);
         }
       }
     });
+    const finalPhrases = new Set(answerPhrases.filter((_, k) => answerPhraseSrc[k] === -1));
     let leaked = false;
     const leakReasons = [];
     const leaks = [];
@@ -508,7 +513,8 @@ export function checkAnswerLeak(promptId, data, context = {}) {
           }
         });
 
-        answerPhrases.forEach((phrase) => {
+        // Prompt 32: bỏ qua cụm là đáp án của bậc TRƯỚC (kết quả trung gian), trừ khi nó cũng là đáp số cuối
+        answerPhrases.filter((ph, k) => answerPhraseSrc[k] === -1 || answerPhraseSrc[k] >= idx || finalPhrases.has(ph)).forEach((phrase) => {
           if (normQ.toLowerCase().includes(phrase)) {
             leaked = true;
             leakReasons.push(`Bậc ${stepNo} lộ cụm từ đáp án "${phrase}" trong câu hỏi`);

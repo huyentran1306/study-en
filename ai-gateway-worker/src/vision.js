@@ -304,9 +304,10 @@ export async function resolvePromptTemplate({ promptId, clientPrompt, env }) {
 /**
  * Thực thi gọi Vision AI với Primary model (12s timeout) và Fallback (10s timeout)
  */
-export async function executeVisionAI({ env, imageBytes, prompt, promptId }) {
+export async function executeVisionAI({ env, imageBytes, prompt, promptId, forceModel = null, forceTimeoutMs = 14000, primaryOnly = false, primaryTimeoutMs = 12000 }) {
   const primaryModel = env.VISION_MODEL_PRIMARY || '@cf/meta/llama-3.2-11b-vision-instruct';
-  const fallbackModel = env.VISION_MODEL_FALLBACK || '@cf/meta/llama-3.2-11b-vision-instruct';
+  // Prompt 32 mục 7: model dự phòng KHÁC model chính, để lần đọc thứ 2 thật sự có cơ hội đọc được
+  const fallbackModel = env.VISION_MODEL_FALLBACK || '@cf/meta/llama-4-scout-17b-16e-instruct';
 
   const softLimit = Number(env.AI_DAILY_SOFT_LIMIT || 45000);
   const hardLimit = Number(env.AI_DAILY_HARD_LIMIT || 60000);
@@ -334,8 +335,20 @@ export async function executeVisionAI({ env, imageBytes, prompt, promptId }) {
   const temperature = isToy ? 0.2 : 0;
 
   // Helper thực thi model với timeout
+  // Prompt 32 mục 7: llama-4-scout / gemma-3 / mistral-small nhận ảnh qua messages + image_url (data URL),
+  // còn llama-3.2-vision / llava nhận { prompt, image: [bytes] }.
+  const usesMessagesFormat = (m) => /llama-4|gemma-3|mistral-small|qwen/i.test(m);
+  const toDataUrl = () => {
+    let bin = '';
+    const bytes = imageBytes instanceof Uint8Array ? imageBytes : new Uint8Array(imageBytes);
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    const mime = bytes[0] === 0x89 ? 'image/png' : (bytes[0] === 0x52 ? 'image/webp' : 'image/jpeg');
+    return `data:${mime};base64,${btoa(bin)}`;
+  };
   const runModel = async (modelName) => {
-    const payload = { prompt, image: [...imageBytes], max_tokens: maxTokens, temperature };
+    const payload = usesMessagesFormat(modelName)
+      ? { messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: toDataUrl() } }] }], max_tokens: maxTokens, temperature }
+      : { prompt, image: [...imageBytes], max_tokens: maxTokens, temperature };
     try {
       return await env.AI.run(modelName, payload);
     } catch (err) {
@@ -363,17 +376,29 @@ export async function executeVisionAI({ env, imageBytes, prompt, promptId }) {
   let fallbackUsed = false;
   let executionScope = isToy ? 'toy' : 'ocr_primary';
 
+  // Prompt 32 mục 7: gọi thẳng một model chỉ định (lần đọc thứ 2 của chấm vở)
+  if (forceModel) {
+    try {
+      const response = await runWithTimeout(forceModel, forceTimeoutMs);
+      analysis = response?.response || response?.description || '';
+      const usagePromise = recordAiUsage(env.DB, { scope: 'ocr_fallback', model: forceModel, promptLength: prompt.length, outputLength: analysis.length, hasImage: true }).catch(() => {});
+      return { success: true, status: 200, analysis, model: forceModel, fallback_used: true, latency_ms: Date.now() - startTime, usagePromise };
+    } catch (forceErr) {
+      return { success: false, status: 502, error: 'vision_failed', message: forceErr.message };
+    }
+  }
+
   // 1. Thử primary model nếu không bị soft limit
   if (!directFallback) {
     try {
-      const response = await runWithTimeout(primaryModel, 12000);
+      const response = await runWithTimeout(primaryModel, primaryTimeoutMs);
       analysis = response?.response || response?.description || '';
       modelUsed = primaryModel;
       executionScope = isToy ? 'toy' : 'ocr_primary';
     } catch (primaryErr) {
       console.warn(`Primary vision model (${primaryModel}) thất bại:`, primaryErr.message);
-      // Nếu primary và fallback giống nhau, không gọi lại model cũ để tránh lãng phí
-      if (primaryModel === fallbackModel) {
+      // Nếu primary và fallback giống nhau, hoặc nơi gọi tự lo lần đọc lại (chấm vở), không gọi tiếp ở đây
+      if (primaryModel === fallbackModel || primaryOnly) {
         return {
           success: false,
           status: 502,
