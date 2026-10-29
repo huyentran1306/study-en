@@ -106,6 +106,10 @@ import {
   handleAiFeedbackClose,
 } from "./safety.js";
 
+// Danh sách dùng chung với kem-con-hoc/src/workerHeaders.js. Thêm header: sửa cả hai, deploy Worker TRƯỚC frontend.
+export const WORKER_ALLOW_HEADERS_VALUE =
+  "Content-Type, Authorization, X-Prompt-Id, X-Session-Id, X-Problem-Text, X-Family-Id, X-Grade, X-Book-Series, X-Subject, X-Child-Id, X-Bypass-Cache, X-Prefetch, X-Hint-Question, X-Xung-Ho, X-Fix-Count, X-Fix-Reason";
+
 export default {
   async fetch(request, env, ctx) {
     const origin = request.headers.get("Origin") || "";
@@ -119,8 +123,7 @@ export default {
     const corsHeaders = {
       "Access-Control-Allow-Origin": isAllowedOrigin && origin ? origin : "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      // Prompt 32: thiếu header ở đây thì trình duyệt chặn preflight → cả lời gọi /chat hỏng. Liệt kê đủ mọi header app gửi.
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Prompt-Id, X-Session-Id, X-Problem-Text, X-Family-Id, X-Child-Id, X-Grade, X-Subject, X-Book-Series, X-Bypass-Cache, X-Prefetch, X-Hint-Question, X-Xung-Ho, X-Fix-Count, X-Fix-Reason",
+      "Access-Control-Allow-Headers": WORKER_ALLOW_HEADERS_VALUE,
       "Access-Control-Max-Age": "86400",
     };
 
@@ -879,6 +882,9 @@ export default {
             session_id: sessionId,
           };
 
+          // Prompt 32 (sau deploy): đo riêng thời gian soạn lại bậc bị chặn (trước đây không nằm trong timing nào)
+          let leak_fix_ms = 0;
+          let leak_fix_calls = 0;
           if (parsed) {
             let leakCheck = checkAnswerLeak(promptId, parsed, context);
 
@@ -895,7 +901,10 @@ export default {
                         { role: "system", content: "Bạn là chuyên gia sư phạm tiểu học. Chỉ trả lời bằng đúng 1 JSON object viết liền 1 dòng, không có chữ dẫn." },
                         { role: "user", content: `Bậc ${sIdx + 1} của bài toán bị lộ đáp án (${leak.illegalValue}). Đề bài: "${rawProblem || problemText}". Hãy soạn lại RIÊNG bậc này với câu hỏi gợi mở KHÔNG chứa đáp án. Chỉ trả đúng 1 JSON object: {"cau_hoi":"...","ky_nang":"${badStep.ky_nang || 'doc_hieu_de'}","dap_an_cho_me":"${badStep.dap_an_cho_me || ''}","goi_y":{"muc_1_do_vat":"...","muc_2_hinh_ve":"..."}}` }
                       ];
+                      const leakFixStart = Date.now();
                       const stepRetryResp = await env.AI.run(chosenModel, { messages: stepRetryMessages, max_tokens: 200, temperature: 0.2 }).catch(() => null);
+                      leak_fix_ms += Date.now() - leakFixStart;
+                      leak_fix_calls += 1;
                       if (stepRetryResp) {
                         const stepNorm = normalizeAiResponse(stepRetryResp);
                         if (stepNorm.parsed && stepNorm.parsed.cau_hoi) {
@@ -1062,6 +1071,8 @@ export default {
             profile_ms,
             cache_ms,
             ai_ms,
+            leak_fix_ms,
+            leak_fix_calls,
             check_ms,
             fix_ms,
             fix: fixInfo,
