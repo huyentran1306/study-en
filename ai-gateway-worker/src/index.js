@@ -50,7 +50,7 @@ export function normalizeAiResponse(response) {
 /**
  * ADVANCED AI, VECTORIZE, R2 & D1 GATEWAY WORKER (VERSION 3.0.0)
  * 
- * 🌐 Live URL: https://ai-gateway-worker.trann46698.workers.dev
+ * 🌐 Live URL: https://ai-gateway-worker.trannth1306.workers.dev
  * 
  * BỘ TÍNH NĂNG CAO CẤP TÍCH HỢP:
  * -------------------------------------------------------------------------
@@ -1235,10 +1235,10 @@ export default {
       return jsonResponse(
         {
           service: "Advanced Cloudflare AI, Vectorize, R2 & D1 Gateway",
-          owner: "Huyen Tran (trann46698)",
+          owner: "Huyen Tran (trannth1306)",
           status: "online",
           version: "3.0.0",
-          gateway_url: "https://ai-gateway-worker.trann46698.workers.dev",
+          gateway_url: "https://ai-gateway-worker.trannth1306.workers.dev",
           modules: {
             "1_AI_IMAGE_GENERATION": [
               "POST /images/generate     -> Tạo ảnh nghệ thuật từ mô tả văn bản (Flux 1 / SDXL)"
