@@ -85,6 +85,18 @@ export async function handle(request, env, ctx, pathname, method, corsHeaders, a
     const fam = await safeFirst(env, "SELECT count(*) AS total FROM families");
     const activeFam = await safeFirst(env, "SELECT count(DISTINCT family_id) AS n FROM learning_sessions WHERE datetime(started_at) >= datetime('now', ?)", [since]);
     const kids = await safeFirst(env, "SELECT count(*) AS total FROM children");
+    // Gói 41: hồ sơ con của app gia đình nằm trong state đồng bộ (_kv_store, key "fam:<id>:state"),
+    // bảng children thường trống nên trước đây "Học sinh" luôn ra null. Đếm số con trong state của các gia đình còn tồn tại.
+    // Value có 2 dạng: state trực tiếp ({ children: [...] }) hoặc bản cũ { ts, state: { children: [...] } }.
+    const kidsKv = await safeFirst(
+      env,
+      `SELECT COALESCE(SUM(n), 0) AS total FROM (
+         SELECT COALESCE(json_array_length(value, '$.children'), json_array_length(value, '$.state.children'), 0) AS n
+         FROM _kv_store
+         WHERE key LIKE 'fam:%:state' AND json_valid(value)
+           AND substr(key, 5, length(key) - 10) IN (SELECT id FROM families)
+       )`
+    );
     const activeKids = await safeFirst(env, "SELECT count(DISTINCT child_id) AS n FROM learning_sessions WHERE child_id IS NOT NULL AND child_id <> '' AND datetime(started_at) >= datetime('now', ?)", [since]);
     const ses = await safeFirst(
       env,
@@ -153,8 +165,11 @@ export async function handle(request, env, ctx, pathname, method, corsHeaders, a
         metrics: {
           totalFamilies: num(fam?.total),
           activeFamilies: num(activeFam?.n),
-          // Bảng children có thể trống khi hồ sơ con chỉ nằm trong trạng thái đồng bộ: khi đó trả null thay vì 0
-          totalStudents: Number(kids?.total || 0) > 0 ? Number(kids.total) : null,
+          // Lấy số lớn nhất trong: bảng children, hồ sơ con trong state, số con đã có buổi học trong kỳ
+          totalStudents: (() => {
+            const best = Math.max(Number(kids?.total || 0), Number(kidsKv?.total || 0), Number(activeKids?.n || 0));
+            return best > 0 ? best : null;
+          })(),
           activeStudents: num(activeKids?.n),
           totalSessions,
           avgMinutes: Number(ses?.timed || 0) > 0 && ses?.avgSec != null ? Math.round((ses.avgSec / 60) * 10) / 10 : null,
