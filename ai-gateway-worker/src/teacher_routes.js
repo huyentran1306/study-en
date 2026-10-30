@@ -375,6 +375,58 @@ export async function handleTeacherRoute(request, env, ctx, pathname, method, co
     }
 
     // -----------------------------------------------------------------------
+    // TÌM KIẾM HỌC SINH, BÀI TẬP, LỚP HỌC (GET /api/v1/teacher/search?q=...)
+    // -----------------------------------------------------------------------
+    if (pathname === "/api/v1/teacher/search" && method === "GET") {
+      const url = new URL(request.url);
+      const q = (url.searchParams.get("q") || "").trim();
+      if (!q) {
+        return jsonResponse({ ok: true, query: "", students: [], assignments: [], classes: [] }, 200, corsHeaders);
+      }
+      const pattern = `%${q}%`;
+
+      const studentRows = await env.DB.prepare(`
+        SELECT cs.id, cs.class_id as classId, cs.roster_name as rosterName,
+               cs.claim_code as claimCode, cs.status,
+               c.name as className, c.grade
+        FROM class_students cs
+        JOIN classes c ON cs.class_id = c.id
+        WHERE c.teacher_id = ? AND (cs.roster_name LIKE ? OR cs.claim_code LIKE ?)
+        ORDER BY cs.roster_name ASC
+        LIMIT 20
+      `).bind(session.teacher_id, pattern, pattern).all();
+
+      const assignmentRows = await env.DB.prepare(`
+        SELECT a.id, a.class_id as classId, a.title, a.subject, a.due_at as dueAt, a.status,
+               c.name as className, c.grade,
+               (SELECT COUNT(*) FROM assignment_items ai WHERE ai.assignment_id = a.id) as itemCount
+        FROM assignments a
+        JOIN classes c ON a.class_id = c.id
+        WHERE c.teacher_id = ? AND (a.title LIKE ? OR a.subject LIKE ?)
+        ORDER BY a.created_at DESC
+        LIMIT 20
+      `).bind(session.teacher_id, pattern, pattern).all();
+
+      const classRows = await env.DB.prepare(`
+        SELECT c.id, c.name, c.grade, c.school_year as schoolYear, c.join_code as joinCode,
+               (SELECT COUNT(*) FROM class_students cs WHERE cs.class_id = c.id AND cs.status = 'active') as activeStudentsCount,
+               (SELECT COUNT(*) FROM assignments a WHERE a.class_id = c.id AND a.status = 'published') as publishedAssignmentsCount
+        FROM classes c
+        WHERE c.teacher_id = ? AND (c.name LIKE ? OR c.grade LIKE ? OR c.join_code LIKE ?)
+        ORDER BY c.created_at DESC
+        LIMIT 10
+      `).bind(session.teacher_id, pattern, pattern, pattern).all();
+
+      return jsonResponse({
+        ok: true,
+        query: q,
+        students: studentRows.results || [],
+        assignments: assignmentRows.results || [],
+        classes: classRows.results || []
+      }, 200, corsHeaders);
+    }
+
+    // -----------------------------------------------------------------------
     // THƯ VIỆN "CÁCH CÔ DẠY" (/api/v1/teacher/method-notes)
     // -----------------------------------------------------------------------
     if (pathname === "/api/v1/teacher/method-notes" && method === "GET") {
