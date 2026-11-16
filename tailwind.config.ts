@@ -10,6 +10,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        // Đảo Tám Chuyện: HUD đè lên bản đồ chỉ khi màn hình đủ rộng VÀ đủ cao.
+        hud: { raw: "(min-width: 1024px) and (min-height: 740px)" },
+      },
       fontFamily: {
         sans: ["var(--font-sans)", "Inter", "system-ui", "-apple-system", "sans-serif"],
         kawaii: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],

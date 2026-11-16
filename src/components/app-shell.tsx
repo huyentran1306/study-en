@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { CommandPalette } from "@/components/command-palette";
+import { OPEN_LOGIN_EVENT } from "@/lib/auth-events";
 
 /** Ambient mesh background with subtle glow, zero visual distractions */
 function ProBackground() {
@@ -51,6 +52,19 @@ function AppContent({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const immersive = pathname.startsWith("/island");
+
+  // Hộp đăng nhập mở theo yêu cầu (khách vẫn dùng app bình thường).
+  const [loginOpen, setLoginOpen] = useState(false);
+  useEffect(() => {
+    const open = () => setLoginOpen(true);
+    window.addEventListener(OPEN_LOGIN_EVENT, open);
+    return () => window.removeEventListener(OPEN_LOGIN_EVENT, open);
+  }, []);
+  useEffect(() => {
+    if (isAuthenticated) setLoginOpen(false);
+  }, [isAuthenticated]);
+
   // Allow auth-callback page to bypass auth
   if (pathname === "/auth-callback") {
     return <>{children}</>;
@@ -89,12 +103,22 @@ function AppContent({ children }: { children: ReactNode }) {
     <>
       <ProBackground />
       <FloatingDecorations />
-      <Navbar />
+      {/* Đảo Tám Chuyện trên điện thoại: chế độ game toàn màn hình (ẩn menu web, game tự có thanh "Trang chủ"). */}
+      {immersive ? (
+        <div className="hidden md:contents">
+          <Navbar />
+        </div>
+      ) : (
+        <Navbar />
+      )}
       <main className="min-h-[calc(100vh-4rem)] relative z-10 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] md:pb-8">{children}</main>
-      <MobileBottomNav />
+      {!immersive && <MobileBottomNav />}
       <CommandPalette />
       <XPParticleLayer />
       <AchievementToast achievement={currentAchievement} onDismiss={dismiss} />
+      {loginOpen && !isAuthenticated && (
+        <AuthLoginModal onLogin={authLoginUser} onRegister={authRegisterUser} onContinueAsGuest={() => setLoginOpen(false)} />
+      )}
     </>
   );
 }

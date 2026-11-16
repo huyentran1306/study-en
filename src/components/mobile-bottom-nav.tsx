@@ -23,14 +23,17 @@ import {
   Sparkles,
   RotateCcw,
   LogOut,
+  LogIn,
   ChevronRight,
   ShieldCheck,
   Search,
+  TreePalm,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/contexts/game-context";
 import { StatsBar, XPBar } from "@/components/gamification";
 import LogoutDialog from "@/components/logout-dialog";
+import { openLogin } from "@/lib/auth-events";
 import { triggerCommandPalette } from "@/components/command-palette";
 import { soundFX } from "@/lib/sound-fx";
 
@@ -45,6 +48,7 @@ export function MobileBottomNav() {
     xp,
     resetProgress,
     logout,
+    isAuthenticated,
   } = useGame();
 
   // Close sheet when route changes
@@ -97,6 +101,13 @@ export function MobileBottomNav() {
     {
       title: "Chương Trình Trọng Tâm",
       items: [
+        {
+          href: "/island",
+          label: "Đảo Tám Chuyện · Chit Chat Island",
+          desc: "Game giao tiếp A1 → B1 trong 3 tháng",
+          icon: TreePalm,
+          badge: "MỚI",
+        },
         {
           href: "/lessons",
           label: "Kho Bài Học Thực Chiến & Call Khách",
@@ -489,7 +500,19 @@ export function MobileBottomNav() {
                     <span>Đặt lại tiến độ học tập</span>
                   </button>
 
-                  <LogoutDialog
+                  {!isAuthenticated && (
+                    <button
+                      onClick={() => {
+                        setSheetOpen(false);
+                        openLogin();
+                      }}
+                      className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span>Đăng nhập / Đăng ký (đang dùng chế độ khách)</span>
+                    </button>
+                  )}
+                  {isAuthenticated && <LogoutDialog
                     renderTrigger={
                       <button className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors">
                         <LogOut className="w-4 h-4" />
@@ -500,7 +523,7 @@ export function MobileBottomNav() {
                       logout();
                       setSheetOpen(false);
                     }}
-                  />
+                  />}
                 </div>
               </div>
             </motion.div>

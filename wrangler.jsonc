@@ -16,6 +16,14 @@
   "ai": {
     "binding": "AI"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "study-en-db",
+      "database_id": "f6e2c6e8-d2d0-482d-b98e-efc08d327d06",
+      "migrations_dir": "migrations"
+    }
+  ],
   "observability": {
     "enabled": true
   }
