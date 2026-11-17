@@ -75,7 +75,9 @@ export default function IslandPathPage() {
       {/* Đầu trang */}
       <div className="flex items-center gap-3">
         <BackLink />
-        <Avatar who="bo" size={52} />
+        <span className="hidden sm:block shrink-0">
+          <Avatar who="bo" size={52} />
+        </span>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight truncate">Chào {mounted ? username || "Bơ" : "Bơ"}!</h1>
           <p className="font-semibold text-[#6B4A30] text-sm sm:text-base">{mounted && s.sprint?.on ? "Nước rút: hôm nay học khoảng 25 phút nhé." : "Hôm nay học khoảng 10–15 phút nhé."}</p>

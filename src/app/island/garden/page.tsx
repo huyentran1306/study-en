@@ -118,7 +118,7 @@ export default function GardenPage() {
 
       {reward && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 bg-[#4A3222]/40" onClick={() => setReward(null)} role="dialog" aria-modal="true" aria-label="Thu hoạch">
-          <div className="cci-card-wood w-full max-w-sm p-6 flex flex-col items-center gap-3 text-center anim-pop" onClick={(e) => e.stopPropagation()}>
+          <div className="cci-card-wood w-full max-w-sm p-6 flex flex-col items-center gap-3 text-center anim-pop max-h-[92dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-end gap-2">
               <div className="w-20">
                 <Character who="mallow" mood="happy" size="100%" />

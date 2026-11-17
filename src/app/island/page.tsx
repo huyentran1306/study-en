@@ -155,7 +155,7 @@ export default function IslandMapPage() {
                 type="button"
                 data-sfx="none"
                 aria-label={`${NPCS[r.who].name} — ${NPCS[r.who].role}`}
-                className="cci-sprite absolute hover:scale-105 active:scale-95 transition-transform"
+                className="cci-sprite cci-hit absolute hover:scale-105 active:scale-95 transition-transform"
                 style={{ left: P(r.x, 1280), top: P(r.y, 800), width: P(r.w, 1280), zIndex: 3 }}
                 onClick={() => {
                   sfx.chirp(r.who);
@@ -197,7 +197,7 @@ export default function IslandMapPage() {
           })}
           <Pin
             x={1022}
-            y={560}
+            y={592}
             icon={Briefcase}
             tone="#C96A2B"
             label={mounted && officeOpen ? "Văn phòng Mây" : "???"}
@@ -346,10 +346,10 @@ function Pin({ x, y, icon: Icon, tone, label, locked = false, badge, href, onCli
   const Ico = locked ? Lock : Icon;
   const inner = (
     <>
-      <span className={cx("flex items-center justify-center rounded-full shrink-0", !locked && "gem")} style={{ width: "2.2cqw", height: "2.2cqw", minWidth: 18, minHeight: 18, background: locked ? "#D5C29C" : undefined, "--tone": tone } as React.CSSProperties}>
+      <span className={cx("cci-pin-gem flex items-center justify-center rounded-full shrink-0", !locked && "gem")} style={{ width: "2.2cqw", height: "2.2cqw", minWidth: 18, minHeight: 18, background: locked ? "#D5C29C" : undefined, "--tone": tone } as React.CSSProperties}>
         <Ico style={{ width: "1.2cqw", height: "1.2cqw", minWidth: 10, minHeight: 10, color: "#fff" }} strokeWidth={2.6} />
       </span>
-      {label}
+      <span className="cci-pin-label">{label}</span>
       {badge != null && (
         <span className="absolute -top-[1cqw] -right-[0.9cqw] min-w-[2cqw] h-[2cqw] px-[0.45cqw] rounded-full bg-[#F2C14E] border-2 border-[#4A3222] flex items-center justify-center anim-bounce" style={{ fontSize: "max(9px, 1cqw)" }}>
           {badge}
@@ -358,15 +358,15 @@ function Pin({ x, y, icon: Icon, tone, label, locked = false, badge, href, onCli
       {!locked && <span aria-hidden className="absolute left-1/2 top-full -translate-x-1/2 w-0 h-0" style={{ borderLeft: "0.55cqw solid transparent", borderRight: "0.55cqw solid transparent", borderTop: "0.65cqw solid #4A3222" }} />}
     </>
   );
-  const cls = "relative inline-flex items-center whitespace-nowrap font-baloo font-extrabold transition-transform hover:-translate-y-0.5";
+  const cls = "cci-pin relative inline-flex items-center whitespace-nowrap font-baloo font-extrabold transition-transform hover:-translate-y-0.5";
   return (
     <div className="absolute -translate-x-1/2" style={{ left: P(x, 1280), top: P(y, 800), zIndex: 6 }}>
       {href ? (
-        <Link href={href} data-sfx="open" className={cls} style={style} title={title}>
+        <Link href={href} data-sfx="open" className={cls} style={style} title={title || label} aria-label={label}>
           {inner}
         </Link>
       ) : (
-        <button type="button" data-sfx="open" onClick={onClick} className={cls} style={style} title={title}>
+        <button type="button" data-sfx="open" onClick={onClick} className={cls} style={style} title={title || label} aria-label={label}>
           {inner}
         </button>
       )}

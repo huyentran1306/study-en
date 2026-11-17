@@ -230,7 +230,7 @@ export default function FarmPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className={cx("font-baloo font-extrabold leading-tight truncate", sl.rare && "text-[#A4521D]")}>{sl.rare ? `✨ ${RARE[sl.kind].vi}` : sp.vi}</div>
-                      <div className="text-[11px] font-bold text-[#1F4E5F] truncate">{ready ? STAGE[3] : `${STAGE[stage]} · ${fmtLeft(g.minsLeft)}`}</div>
+                      <div className="text-[11px] font-bold text-[#1F4E5F] leading-tight">{ready ? STAGE[3] : `${STAGE[stage]} · ${fmtLeft(g.minsLeft)}`}</div>
                     </div>
                   </div>
                   <div className="h-2 rounded-full bg-[#DCEFF5] overflow-hidden">
@@ -339,7 +339,7 @@ export default function FarmPage() {
       {/* Chọn giống cho ô trống */}
       {picker !== null && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 bg-[#4A3222]/40" onClick={() => setPicker(null)} role="dialog" aria-modal="true" aria-label="Chọn giống">
-          <div className="cci-card-wood w-full max-w-md p-5 flex flex-col gap-3 anim-pop" onClick={(e) => e.stopPropagation()}>
+          <div className="cci-card-wood w-full max-w-md p-5 flex flex-col gap-3 anim-pop max-h-[92dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <Avatar who="mallow" size={48} />
               <div className="flex-1">

@@ -86,7 +86,7 @@ export function JourneyPanel({ onClose }: { onClose: () => void }) {
   }, [onClose]);
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3 bg-[#4A3222]/40" onClick={onClose} role="dialog" aria-modal="true" aria-label="Hành trình hôm nay">
-      <div className="cci-card-wood w-full max-w-lg p-5 flex flex-col gap-4 anim-pop" onClick={(e) => e.stopPropagation()}>
+      <div className="cci-card-wood w-full max-w-lg p-4 sm:p-5 flex flex-col gap-3 sm:gap-4 anim-pop max-h-[92dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3">
           <span className="w-12 h-12 rounded-[14px] border-[3px] border-[#4A3222] bg-[#FFF1C7] flex items-center justify-center">
             <MapIcon className="w-6 h-6" />

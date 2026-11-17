@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function IslandLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`cci ${baloo.variable} ${nunito.variable} min-h-[calc(100vh-4rem)] -mb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] md:mb-[-2rem] md:pb-8`}>
+    <div className={`cci ${baloo.variable} ${nunito.variable} min-h-[100dvh] md:min-h-[calc(100vh-4rem)] -mb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] md:mb-[-2rem] md:pb-8`}>
       <IslandTopBar />
       {children}
       <IslandAudio />

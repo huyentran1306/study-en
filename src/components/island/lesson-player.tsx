@@ -277,7 +277,7 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
             npc={ch.npc}
             kicker={`Chương ${ch.id} · Nhiệm vụ ngày 3`}
             title={`Nói chuyện với ${NPCS[ch.npc].name}`}
-            goal="Lần này đáp án được giấu đi. Bấm mic và nói câu trả lời của bạn — mình sẽ chấm từng từ. Kẹt thì bấm “Hiện 3 lựa chọn”."
+            goal="Lần này đáp án được giấu đi. Bấm mic và nói câu trả lời — câu mẫu hay câu của riêng bạn đều được, miễn hợp tình huống. Kẹt thì bấm “Hiện 3 lựa chọn”."
             items={[
               { icon: Mic, name: "3 lượt nhập vai bằng giọng nói", mins: "5 phút" },
               { icon: LifeBuoy, name: "1 tình huống cứu nguy", mins: "1 phút" },

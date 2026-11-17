@@ -276,7 +276,7 @@ function Inner() {
             </button>
           ))}
         </div>
-        <button type="button" className="cci-btn cci-btn-primary cci-btn-big self-start" data-sfx="open" onClick={begin}>
+        <button type="button" className="cci-btn cci-btn-primary cci-btn-big w-full sm:w-auto sm:self-start !whitespace-normal text-center" data-sfx="open" onClick={begin}>
           Bắt đầu · 8 câu nghe{supported ? " + 4 câu nói" : ""} <ArrowRight className="w-5 h-5" />
         </button>
       </div>

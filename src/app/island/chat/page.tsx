@@ -154,8 +154,8 @@ function Inner() {
         <BackLink />
         <Avatar who={ch.npc} size={50} />
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-2xl font-extrabold leading-tight truncate">Tám chuyện với {npc.name}</h1>
-          <p className="text-sm font-semibold text-[#6B4A30] truncate">
+          <h1 className="text-lg sm:text-2xl font-extrabold leading-tight">Tám chuyện với {npc.name}</h1>
+          <p className="text-[13px] sm:text-sm font-semibold text-[#6B4A30] leading-snug line-clamp-2">
             Chủ đề: {ch.chat.topic} · {ch.level}
           </p>
         </div>
@@ -198,9 +198,11 @@ function Inner() {
               );
             })}
           </div>
-          <label className="flex items-center gap-2 text-[13px] font-bold text-[#6B4A30] cursor-pointer select-none">
-            <input type="checkbox" checked={twistOn} onChange={(e) => setTwistOn(e.target.checked)} className="w-4 h-4 accent-[#3F7A34]" />
-            <Zap className="w-3.5 h-3.5 text-[#C99A1E]" /> Tình huống bất ngờ: <span className="font-semibold">{plan.twist.vi}</span>
+          <label className="flex items-start gap-2 text-[13px] font-bold text-[#6B4A30] cursor-pointer select-none leading-snug">
+            <input type="checkbox" checked={twistOn} onChange={(e) => setTwistOn(e.target.checked)} className="w-4 h-4 mt-0.5 shrink-0 accent-[#3F7A34]" />
+            <span>
+              <Zap className="inline w-3.5 h-3.5 -mt-0.5 text-[#C99A1E]" /> Tình huống bất ngờ: <span className="font-semibold">{plan.twist.vi}</span>
+            </span>
           </label>
         </div>
       )}
@@ -328,7 +330,7 @@ function Inner() {
         <input
           value={listening ? interim : input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={listening ? "Đang nghe..." : "Nhập hoặc bấm mic để nói tiếng Anh..."}
+          placeholder={listening ? "Đang nghe..." : "Gõ hoặc bấm mic để nói…"}
           className="flex-1 min-w-0 h-12 rounded-[16px] border-[3px] border-[#8B5E3C] bg-white px-4 font-semibold outline-none focus:border-[#3F7A34]"
           disabled={listening}
         />

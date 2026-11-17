@@ -177,7 +177,7 @@ export function GardenAnimals() {
               data-sfx="none"
               aria-label={`${a.name} — bấm để nghe`}
               title={a.name}
-              className="block w-full hover:scale-105 active:scale-95 transition-transform"
+              className="cci-hit relative block w-full hover:scale-105 active:scale-95 transition-transform"
               onClick={() => {
                 const n = counts[a.id] || 0;
                 const i = n % a.lines.length;
