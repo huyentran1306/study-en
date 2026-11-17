@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, BookOpen, Check, RotateCcw, Volume2, X } from "lucide-react";
 import { Character } from "@/components/island/character";
-import { BackLink, Feedback, cx, shuffle } from "@/components/island/ui";
+import { BackLink, cx, shuffle } from "@/components/island/ui";
 import { CHAPTERS } from "@/lib/island/curriculum";
 import { completeMission, currentChapterId, dueWords, gradeWord, today, useIsland, type WordCard } from "@/lib/island/progress";
 import { speak } from "@/lib/island/speech";
@@ -160,19 +160,14 @@ function Inner() {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Stat label="Từ trong sổ" value={mounted ? all.length : 0} />
         <Stat label="Đến hạn hôm nay" value={mounted ? due.length : 0} accent />
         <Stat label="Đã nhớ tốt" value={mounted ? all.filter((w) => w.box >= 4).length : 0} />
       </div>
 
       {mounted && all.length === 0 ? (
-        <Feedback ok={false} silent title="Sổ từ đang trống">
-          Học xong bài học đầu tiên để 6 từ mới tự động vào sổ.{" "}
-          <Link className="underline font-extrabold" href="/island/lesson/1">
-            Học Chương 1
-          </Link>
-        </Feedback>
+        <EmptyBook ch={currentChapterId(s)} />
       ) : (
         <div className="cci-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex-1">
@@ -230,11 +225,73 @@ function Inner() {
   );
 }
 
+const HOW = [
+  { n: 1, t: "Học một bài", d: "Mỗi chương có khoảng 6 từ mới" },
+  { n: 2, t: "Từ tự vào sổ", d: "Học xong là có thẻ, khỏi chép tay" },
+  { n: 3, t: "Ôn lúc sắp quên", d: "Thẻ nhớ tốt giãn dần 1 → 30 ngày" },
+];
+
+/** Sổ còn trống: giải thích cách sổ đầy lên và cho nghe trước các từ sắp học. */
+function EmptyBook({ ch }: { ch: number }) {
+  const chapter = CHAPTERS.find((c) => c.id === ch) || CHAPTERS[0];
+  return (
+    <div className="cci-card-wood p-4 sm:p-6 flex flex-col gap-5">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="w-24 sm:w-28 shrink-0 self-center rounded-[22px] bg-[#E4EFC9] pt-3 flex justify-center">
+          <Character who="kero" mood="talk" size="82%" />
+        </div>
+        <div className="flex-1 min-w-0 text-center sm:text-left">
+          <h2 className="text-xl sm:text-2xl font-extrabold leading-tight">Sổ còn trống, chưa có từ nào để ôn</h2>
+          <p className="font-semibold text-[#6B4A30] mt-1">
+            Từ chỉ vào sổ sau khi bạn học xong một bài. Học xong Chương {chapter.id} là có ngay {chapter.words.length} thẻ đầu tiên, ngày mai ôn lần đầu.
+          </p>
+        </div>
+        <Link href={`/island/lesson/${chapter.id}`} className="cci-btn cci-btn-primary cci-btn-big gloss shrink-0 self-center">
+          Học Chương {chapter.id} <ArrowRight className="w-5 h-5" />
+        </Link>
+      </div>
+
+      <ol className="grid grid-cols-3 gap-2 sm:gap-3">
+        {HOW.map((h) => (
+          <li key={h.n} className="clay rounded-[18px] bg-white px-2.5 py-2.5 sm:px-4 sm:py-3 flex flex-col sm:flex-row items-center sm:items-start gap-1.5 sm:gap-3 text-center sm:text-left">
+            <span className="gem w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-baloo font-extrabold text-white" style={{ ["--tone" as string]: "#3F7A34" }}>
+              {h.n}
+            </span>
+            <span className="min-w-0">
+              <span className="block font-extrabold leading-tight text-sm sm:text-base">{h.t}</span>
+              <span className="block text-[11px] sm:text-xs font-semibold text-[#6B4A30] leading-snug">{h.d}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="flex flex-col gap-2.5">
+        <div className="text-sm font-extrabold text-[#4A3222]">
+          Nghe trước các từ của Chương {chapter.id} · {chapter.title}
+        </div>
+        <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {chapter.words.map((w) => (
+            <li key={w.en}>
+              <button type="button" onClick={() => speak(w.en)} className="w-full rounded-[16px] border-2 border-dashed border-[#D8BF92] bg-[#FFFBF2] px-3 py-2 flex items-center gap-2 text-left hover:bg-white">
+                <Volume2 className="w-4 h-4 shrink-0 text-[#3F7A34]" />
+                <span className="min-w-0">
+                  <span className="block font-baloo font-extrabold leading-tight">{w.en}</span>
+                  <span className="block text-xs font-semibold text-[#6B4A30] leading-tight">{w.vi}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
-    <div className="cci-card px-4 py-3" style={accent ? { background: "#FFF1C7" } : undefined}>
-      <div className="font-baloo font-extrabold text-3xl leading-none">{value}</div>
-      <div className="text-sm font-bold text-[#6B4A30] mt-1">{label}</div>
+    <div className="cci-card px-3 py-2.5 sm:px-4 sm:py-3" style={accent ? { background: "#FFF1C7" } : undefined}>
+      <div className="font-baloo font-extrabold text-2xl sm:text-3xl leading-none">{value}</div>
+      <div className="text-xs sm:text-sm font-bold text-[#6B4A30] mt-1 leading-tight">{label}</div>
     </div>
   );
 }

@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, BookOpen, Calendar, Check, ChevronDown, Coffee, Crown, Ear, Flame, Hand, Lock, MessageCircle, Mic, Plane, Repeat, ShoppingBasket, Signpost, Star, Stethoscope, Phone, Utensils, PartyPopper, Frown, Briefcase, Feather, Zap, AudioLines, MessageSquareQuote, Fish } from "lucide-react";
+import { ArrowRight, BookOpen, Calendar, Check, ChevronDown, Coffee, Crown, Ear, Flame, Hand, Lock, MessageCircle, Mic, Plane, Repeat, ShoppingBasket, Signpost, Star, Stethoscope, Phone, Utensils, PartyPopper, Frown, Briefcase, Feather, Zap, AudioLines, MessageSquareQuote, Fish, Sprout, BookHeart } from "lucide-react";
 import { Avatar } from "@/components/island/character";
 import { BackLink, cx } from "@/components/island/ui";
 import { SyncBadge } from "@/components/island/sync-badge";
+import { ProfileCard, SprintCard } from "@/components/island/sprint";
 import { CHALLENGES, CHAPTERS, LEVELS, MISSIONS, NPCS, TOTAL_WEEKS, missionHref, type Level } from "@/lib/island/curriculum";
 import {
   calendarWeek,
+  collection,
   currentChapterId,
   duePhrases,
   food,
@@ -76,7 +78,7 @@ export default function IslandPathPage() {
         <Avatar who="bo" size={52} />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight truncate">Chào {mounted ? username || "Bơ" : "Bơ"}!</h1>
-          <p className="font-semibold text-[#6B4A30] text-sm sm:text-base">Hôm nay học khoảng 10–15 phút nhé.</p>
+          <p className="font-semibold text-[#6B4A30] text-sm sm:text-base">{mounted && s.sprint?.on ? "Nước rút: hôm nay học khoảng 25 phút nhé." : "Hôm nay học khoảng 10–15 phút nhé."}</p>
           <SyncBadge className="mt-1" />
         </div>
         <div className="cci-card-wood flex items-center gap-1.5 px-3 h-11 shrink-0" title="Chuỗi ngày học">
@@ -84,6 +86,10 @@ export default function IslandPathPage() {
           <span className="font-baloo font-extrabold text-lg">{mounted ? streak(s) : 0}</span>
         </div>
       </div>
+
+      {/* Nước rút 30 ngày + Hồ sơ của tôi */}
+      <SprintCard mounted={mounted} />
+      <ProfileCard mounted={mounted} />
 
       {/* Kế hoạch 3 tháng */}
       <div className="grid md:grid-cols-[1.4fr_1fr] gap-4">
@@ -133,10 +139,12 @@ export default function IslandPathPage() {
       </div>
 
       {/* Luyện thêm mỗi ngày */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <PracticeCard href="/island/garden" icon={Sprout} bg="#EAF3DC" title="Vườn Nhiệm Vụ" desc={mounted ? `Luống tuần này: ${missionsDone(s, curId)}/${MISSIONS.length} nhiệm vụ · ${Object.keys(s.garden).length}/13 luống đã thu hoạch` : "Mỗi nhiệm vụ làm cây lớn thêm"} />
         <PracticeCard href={`/island/reflex?ch=${curId}`} icon={Zap} bg="#FFF1C7" title="Ao Phản Xạ" desc={mounted && reflexSec !== null ? `Phản xạ trung bình ${reflexSec.toFixed(1)} giây · càng thấp càng giỏi` : "NPC hỏi, bạn có vài giây để đáp — đo tốc độ phản xạ"} />
         <PracticeCard href="/island/phrases" icon={MessageSquareQuote} bg="#EAF3DC" title="Sổ câu khung" desc={mounted ? `${Object.keys(s.phrases).length} câu · ${duePhrases(s).length} câu đến hạn ôn` : "Nghe tiếng Việt → nói ngay câu tiếng Anh"} />
         <PracticeCard href={`/island/sounds?ch=${curId}`} icon={AudioLines} bg="#D7ECF5" title="Phát âm chuẩn" desc="Cặp âm người Việt hay lẫn: ship/sheep, three/tree, âm cuối -s, -ed" />
+        <PracticeCard href="/island/collection" icon={BookHeart} bg="#FBE3E7" title="Sổ sưu tập" desc={mounted ? `${collection(s).have}/${collection(s).total} món · hải sản, cây, truyện bạn bè, công trình` : "Gom hải sản, cây, truyện bạn bè — mỗi món một câu tiếng Anh"} />
         <PracticeCard href="/island/farm" icon={Fish} bg="#E6F5FA" title="Ao Tôm Cua" desc={mounted ? `${shells(s)} vỏ sò · ${food(s)} thức ăn — học để nuôi ao lớn hơn` : "Học để kiếm vỏ sò, nuôi tôm cua"} />
       </div>
 

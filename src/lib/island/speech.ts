@@ -165,9 +165,18 @@ const CONTRACTIONS: Record<string, string> = {
   "won't": "will not", "isn't": "is not", "doesn't": "does not", "you'd": "you would", "machine's": "machine is",
 };
 
+/** Từ riêng (tên, quê của người học) được bỏ qua khi chấm vì máy nhận giọng tiếng Anh hay nghe sai. */
+let lenient = new Set<string>();
+export function setLenientWords(words: string[]) {
+  lenient = new Set(words.flatMap((w) => normWords(w)));
+}
+
 export function normWords(s: string): string[] {
   const cleaned = s
     .toLowerCase()
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[’‘]/g, "'")
     .replace(/[“”"]/g, " ")
     .replace(/[^a-z0-9'\s-]/g, " ")
@@ -192,7 +201,8 @@ export function scoreSpeech(said: string, target: string): { score: number; mark
     for (const p of parts) {
       total++;
       const n = saidBag.get(p) || 0;
-      if (n > 0) {
+      if (lenient.has(p)) hit++;
+      else if (n > 0) {
         saidBag.set(p, n - 1);
         hit++;
       } else ok = false;

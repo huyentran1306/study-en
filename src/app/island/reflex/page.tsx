@@ -8,7 +8,8 @@ import { Avatar, Character } from "@/components/island/character";
 import { BackLink, Feedback, Stars, WordMarks, cx, shuffle } from "@/components/island/ui";
 import { CHAPTERS, NPCS, type Level, type NpcId } from "@/lib/island/curriculum";
 import { FILLERS, FILLER_KEYS, FILLER_QS, REFLEX, SWAPS } from "@/lib/island/drills";
-import { currentChapterId, isUnlocked, logReflex, recentReflexSec, useIsland, type ReflexMode } from "@/lib/island/progress";
+import { personalizeDeep } from "@/lib/island/me";
+import { addFix, currentChapterId, isUnlocked, logReflex, recentReflexSec, useIsland, type ReflexMode } from "@/lib/island/progress";
 import { ensureMic, normWords, scoreSpeech, speak, stopSpeaking, useListen } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
 import { useGame } from "@/contexts/game-context";
@@ -111,7 +112,7 @@ function buildItems(mode: ReflexMode, ch: number): Item[] {
   });
 }
 
-async function aiJudge(item: Item, said: string, level: string): Promise<{ ok: boolean; better: string; note: string } | null> {
+async function aiJudge(item: Item, said: string, level: string): Promise<{ ok: boolean; better: string; note: string; fixed: string } | null> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 4500);
   try {
@@ -121,9 +122,9 @@ async function aiJudge(item: Item, said: string, level: string): Promise<{ ok: b
       body: JSON.stringify({ q: item.prompt, answer: said, samples: item.samples, level }),
       signal: ctl.signal,
     });
-    const j = (await res.json()) as { ok?: boolean; better?: string; note?: string; ai?: boolean };
+    const j = (await res.json()) as { ok?: boolean; better?: string; note?: string; fixed?: string; ai?: boolean };
     if (!j.ai || typeof j.ok !== "boolean") return null;
-    return { ok: j.ok, better: j.better || "", note: j.note || "" };
+    return { ok: j.ok, better: j.fixed || j.better || "", note: j.note || "", fixed: j.fixed || "" };
   } catch {
     return null;
   } finally {
@@ -223,6 +224,8 @@ function Inner() {
         const ai = await aiJudge(item, said, chapter.level);
         if (token !== tokenRef.current) return;
         res = { ok: ai ? ai.ok : local, ms, said, better: ai?.better, note: ai?.note };
+        // Câu đúng ý nhưng còn lỗi ngữ pháp → lưu vào Sổ lỗi sai để ôn lại.
+        if (ai?.ok && ai.fixed) addFix(said, ai.fixed, ai.note, item.ch);
       }
       setResults((r) => [...r, res]);
       setPhase("result");
@@ -333,7 +336,7 @@ function Inner() {
       setUseVoice(false);
       setMicMsg("Không dùng được micro (chưa cho phép hoặc máy không có micro) — chuyển sang chế độ bấm chọn.");
     }
-    const list = buildItems(mode, chId);
+    const list = personalizeDeep(buildItems(mode, chId), s.profile);
     setItems(list);
     setResults([]);
     setCombo(0);

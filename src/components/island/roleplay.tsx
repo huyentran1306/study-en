@@ -5,6 +5,7 @@ import { ArrowRight, Eye, Keyboard, LifeBuoy, Volume2, Zap } from "lucide-react"
 import { NPCS, RESCUE_BAG, type NpcId, type Option, type SceneId } from "@/lib/island/curriculum";
 import { scoreSpeech, speak, stopSpeaking, useListen } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
+import { addFix } from "@/lib/island/progress";
 import { Scene } from "./scene";
 import { Bubble, Feedback, MicButton, SpeakButtons, WordMarks, cx, shuffle } from "./ui";
 
@@ -16,6 +17,30 @@ export interface RpTurn {
   hints: string[];
   options: Option[];
   rescue?: { slow: string; slowVi: string };
+  /** Trình độ + chương của lượt này: để AI chấm câu trả lời tự do và lưu lỗi sai. */
+  level?: string;
+  ch?: number;
+}
+
+/** Hỏi AI: câu trả lời tự do (không khớp lựa chọn nào) có hợp tình huống không. null = AI không chấm được. */
+async function judgeFree(turn: RpTurn, said: string, sample: string): Promise<{ ok: boolean; better: string; note: string; fixed: string } | null> {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const res = await fetch("/api/island-reflex", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q: turn.npcLine, answer: said, samples: [sample], level: turn.level || "A2" }),
+      signal: ctl.signal,
+    });
+    const j = (await res.json()) as { ai?: boolean; ok?: boolean; better?: string; note?: string; fixed?: string };
+    if (!j.ai || typeof j.ok !== "boolean") return null;
+    return { ok: j.ok, better: j.better || "", note: j.note || "", fixed: j.fixed || "" };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 export type RpMode = "choose" | "speak" | "challenge";
@@ -64,7 +89,8 @@ function TurnView({ turn, mode, onSolved, onNext, last }: { turn: RpTurn; mode: 
   const [tries, setTries] = useState(0);
   const [solved, setSolved] = useState(false);
   const [badIdx, setBadIdx] = useState<number | null>(null);
-  const [heard, setHeard] = useState<{ text: string; marks?: { word: string; ok: boolean }[]; matched: boolean } | null>(null);
+  const [heard, setHeard] = useState<{ text: string; marks?: { word: string; ok: boolean }[]; matched: boolean; free?: { ok: boolean; better: string; note: string; fixed: string; saved: boolean } } | null>(null);
+  const [judging, setJudging] = useState(false);
   const [showOptions, setShowOptions] = useState(mode !== "speak");
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
@@ -110,26 +136,48 @@ function TurnView({ turn, mode, onSolved, onNext, last }: { turn: RpTurn; mode: 
     }
   };
 
-  const handleSpeech = (text: string) => {
-    if (!text.trim()) return;
-    let best = -1;
-    let bestScore = 0;
-    options.forEach((o, i) => {
-      const sc = scoreSpeech(text, o.en).score;
-      if (sc > bestScore) {
-        bestScore = sc;
-        best = i;
-      }
-    });
+  const handleSpeech = async (text: string) => {
+    if (!text.trim() || solved || judging) return;
     const correctIdx = options.findIndex((o) => o.ok);
-    if (best >= 0 && bestScore >= 0.6) {
-      setHeard({ text, marks: scoreSpeech(text, options[best].en).marks, matched: true });
+    const toCorrect = scoreSpeech(text, options[correctIdx].en);
+    // 1) Nói gần đúng câu mẫu → tính đúng.
+    if (toCorrect.score >= 0.6) {
+      setHeard({ text, marks: toCorrect.marks, matched: true });
       setShowOptions(true);
-      choose(best, true);
-    } else {
-      setTries((t) => t + 1);
-      setHeard({ text, marks: scoreSpeech(text, options[correctIdx].en).marks, matched: false });
+      choose(correctIdx, true);
+      return;
     }
+    // 2) Nói gần như y hệt một lựa chọn sai (khớp cả hai chiều) → báo sai kèm lý do.
+    let bad = -1;
+    options.forEach((o, i) => {
+      if (!o.ok && scoreSpeech(text, o.en).score >= 0.85 && scoreSpeech(o.en, text).score >= 0.85) bad = i;
+    });
+    if (bad >= 0) {
+      setHeard({ text, marks: scoreSpeech(text, options[bad].en).marks, matched: true });
+      setShowOptions(true);
+      choose(bad, true);
+      return;
+    }
+    // 3) Câu của riêng bạn → AI chấm theo ý, không bắt khớp từng chữ.
+    if (!isRescue) {
+      setJudging(true);
+      const j = await judgeFree(turn, text, options[correctIdx].en);
+      setJudging(false);
+      if (j?.ok) {
+        const saved = !!j.fixed && addFix(text, j.fixed, j.note, turn.ch || 0);
+        setHeard({ text, matched: true, free: { ...j, saved } });
+        setShowOptions(true);
+        choose(correctIdx, true);
+        return;
+      }
+      if (j) {
+        setTries((t) => t + 1);
+        setHeard({ text, marks: toCorrect.marks, matched: false, free: { ...j, saved: false } });
+        return;
+      }
+    }
+    setTries((t) => t + 1);
+    setHeard({ text, marks: toCorrect.marks, matched: false });
   };
 
   const onMic = async () => {
@@ -225,7 +273,7 @@ function TurnView({ turn, mode, onSolved, onNext, last }: { turn: RpTurn; mode: 
             ) : (
               <div className="flex flex-col gap-3">
                 <p className="font-semibold text-[15px]">
-                  Bấm mic và <b>nói câu trả lời của bạn</b> thành tiếng. Mình sẽ chấm từng từ.
+                  Bấm mic và <b>nói câu trả lời của bạn</b> thành tiếng. Nói câu mẫu hay câu của riêng bạn đều được — miễn là hợp tình huống.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className="cci-btn !min-h-[40px] !text-sm" onClick={() => setShowOptions(true)}>
@@ -279,6 +327,7 @@ function TurnView({ turn, mode, onSolved, onNext, last }: { turn: RpTurn; mode: 
           <p className="text-sm font-semibold text-[#A4521D]">Trình duyệt này chưa hỗ trợ nhận giọng nói. Hãy dùng Chrome hoặc Safari, hoặc gõ câu trả lời.</p>
         )}
         {listening && interim && <p className="font-semibold text-[#6B4A30]">“{interim}”</p>}
+        {judging && <p className="font-bold text-[#6B4A30] anim-pop">Đang chấm câu của bạn…</p>}
         {error && <p className="text-sm font-bold text-[#A4521D]">{error}</p>}
 
         {heard && (
@@ -294,7 +343,30 @@ function TurnView({ turn, mode, onSolved, onNext, last }: { turn: RpTurn; mode: 
                 <WordMarks marks={heard.marks} />
               </div>
             )}
-            {!heard.matched && <p className="text-sm font-semibold">Chưa khớp lựa chọn nào. Thử nói lại chậm và rõ hơn nhé — không bị trừ điểm đâu!</p>}
+            {heard.free?.ok && (
+              <div className="rounded-[14px] px-3 py-2 bg-[#EAF3DC] border-2 border-[#6FAE4F] flex flex-col gap-0.5">
+                <span className="text-sm font-extrabold text-[#2C5A25]">Câu của riêng bạn, hợp tình huống — tính đúng!</span>
+                {heard.free.fixed && (
+                  <>
+                    <button type="button" data-sfx="none" onClick={() => speak(heard.free!.fixed, { who: "you" })} className="text-left font-extrabold text-[15px]">
+                      Sửa nhẹ: {heard.free.fixed} <Volume2 className="inline w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[13px] font-semibold text-[#6B4A30]">
+                      {heard.free.note}
+                      {heard.free.saved && " · Đã lưu vào Sổ lỗi sai."}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+            {!heard.matched &&
+              (heard.free ? (
+                <p className="text-sm font-semibold">
+                  Câu này chưa hợp tình huống.{heard.free.note ? ` ${heard.free.note}.` : ""} Thử lại nhé — không bị trừ điểm đâu!
+                </p>
+              ) : (
+                <p className="text-sm font-semibold">Chưa khớp câu mẫu. Thử nói lại chậm và rõ hơn nhé — không bị trừ điểm đâu!</p>
+              ))}
           </div>
         )}
 

@@ -2,11 +2,13 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Lightbulb, ListChecks, Mic, Send, Sparkles, Volume2, Zap } from "lucide-react";
+import Link from "next/link";
+import { Check, Lightbulb, ListChecks, Mic, NotebookPen, Send, Sparkles, Volume2, Zap } from "lucide-react";
 import { Avatar } from "@/components/island/character";
 import { BackLink, cx } from "@/components/island/ui";
 import { CHAPTERS, NPCS, RESCUE_BAG } from "@/lib/island/curriculum";
-import { addChatTurn, completeMission, currentChapterId, isUnlocked, markChatTask, useIsland } from "@/lib/island/progress";
+import { aboutLearner, personalizeDeep } from "@/lib/island/me";
+import { addChatTurn, addFix, markChatDone, completeMission, currentChapterId, isUnlocked, markChatTask, useIsland } from "@/lib/island/progress";
 import { CHAT_TASKS } from "@/lib/island/drills";
 import { sfx } from "@/lib/island/sfx";
 import { speak, stopSpeaking, useListen } from "@/lib/island/speech";
@@ -30,7 +32,9 @@ function Inner() {
   const { addXP } = useGame();
   const chParam = Number(sp.get("ch"));
   const chId = chParam && CHAPTERS.some((c) => c.id === chParam) ? chParam : currentChapterId(s);
-  const ch = CHAPTERS.find((c) => c.id === chId)!;
+  const rawCh = CHAPTERS.find((c) => c.id === chId)!;
+  const profile = s.profile;
+  const ch = useMemo(() => personalizeDeep(rawCh, profile), [rawCh, profile]);
   const npc = NPCS[ch.npc];
 
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
@@ -90,6 +94,7 @@ function Inner() {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [msgs, busy]);
 
+  const fixes = msgs.filter((m) => m.role === "user" && m.correction);
   const suggestions = useMemo(() => ch.turns.map((t) => t.options.find((o) => o.ok)!.en), [ch]);
   const unlockedChapters = CHAPTERS.filter((c) => isUnlocked(s, c.id));
 
@@ -109,10 +114,11 @@ function Inner() {
       const res = await fetch("/api/island-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ npcName: npc.name, persona: ch.chat.persona, topic: ch.chat.topic, level: ch.level, history, message: content, twist: twistOn && plan ? plan.twist.instruction : undefined }),
+        body: JSON.stringify({ npcName: npc.name, persona: ch.chat.persona, topic: ch.chat.topic, level: ch.level, history, message: content, twist: twistOn && plan ? plan.twist.instruction : undefined, about: aboutLearner(profile) }),
       });
       const data = (await res.json()) as { reply: string; correction: { fixed: string; note: string } | null; offline?: boolean };
       setOffline(!!data.offline);
+      if (!data.offline && data.correction?.fixed) addFix(content, data.correction.fixed, data.correction.note || "", ch.id);
       setMsgs((m) => [
         ...m.map((x) => (x.id === userMsg.id ? { ...x, correction: data.offline ? undefined : data.correction, checked: !data.offline } : x)),
         { id: idRef.current++, role: "assistant", content: data.reply },
@@ -126,6 +132,7 @@ function Inner() {
     }
     if (nTurns >= GOAL && !rewarded) {
       setRewarded(true);
+      markChatDone();
       if (s.chapters[ch.id]?.lesson && !s.chapters[ch.id]?.chat) {
         completeMission(ch.id, "chat", 30);
         addXP(30);
@@ -258,6 +265,27 @@ function Inner() {
         {turns >= GOAL && (
           <div className="self-center text-center rounded-[16px] px-4 py-2 bg-[#EAF3DC] border-2 border-[#3F7A34] font-bold text-[#2C5A25] anim-pop">
             🎉 Xong {GOAL} lượt! Bạn có thể tám tiếp bao lâu tuỳ thích.
+          </div>
+        )}
+        {turns >= GOAL && fixes.length > 0 && (
+          <div className="self-stretch rounded-[18px] border-[3px] border-[#E0A26E] bg-[#FFF6EA] px-4 py-3 flex flex-col gap-2 anim-pop">
+            <div className="font-baloo font-extrabold text-lg leading-tight flex items-center gap-2">
+              <NotebookPen className="w-5 h-5 text-[#A4521D]" /> Tổng kết: {fixes.length} câu cần nói lại
+            </div>
+            <ul className="flex flex-col gap-1.5">
+              {fixes.map((m) => (
+                <li key={m.id} className="text-sm leading-snug">
+                  <span className="block font-semibold text-[#A4521D] line-through decoration-[#C96A2B]/60">{m.content}</span>
+                  <button type="button" data-sfx="none" onClick={() => speak(m.correction!.fixed, { who: "you" })} className="text-left font-extrabold">
+                    {m.correction!.fixed} <Volume2 className="inline w-3.5 h-3.5 text-[#3F7A34]" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <Link href="/island/phrases?fix=1" data-sfx="whoosh" className="cci-btn cci-btn-primary self-start">
+              Luyện nói lại {fixes.length} câu này
+            </Link>
+            <span className="text-xs font-semibold text-[#6B4A30]">Các câu này đã vào Sổ lỗi sai và sẽ quay lại đúng lúc bạn sắp quên.</span>
           </div>
         )}
         {turns >= GOAL && <NextStep />}

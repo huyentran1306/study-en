@@ -2,20 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BookOpen, Briefcase, Check, Fish, Coffee, Flame, Gift, Hammer, Heart, Lock, Map as MapIcon, MessageCircle, Plane, Route, ShoppingBasket, Signpost, Star, Volume2, X, Zap, Flower2 } from "lucide-react";
-import { MAP_BG } from "@/components/island/art";
+import { ArrowRight, BookHeart, BookOpen, Briefcase, Fish, Shell, Sprout, Coffee, Flame, Gift, Hammer, Heart, Lock, Map as MapIcon, MessageCircle, Plane, Route, ShoppingBasket, Signpost, Star, Volume2, X, Zap, Flower2 } from "lucide-react";
+import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
 import { SyncBadge } from "@/components/island/sync-badge";
 import { GardenAnimals, IslandBuilds, BuildPanel } from "@/components/island/garden";
 import { JourneyPanel } from "@/components/island/journey";
-import { SeaCreature } from "@/components/island/farm-art";
-import type { FarmKind } from "@/lib/island/state";
+import { Swimmers, type SwimItem } from "@/components/island/pond-scene";
 import { AudioToggles } from "@/components/island/audio-controls";
 import { FullscreenButton } from "@/components/island/island-chrome";
 import { CHAPTERS, MISSIONS, NPCS, PLACES, type NpcId, type SceneId } from "@/lib/island/curriculum";
 import { BUILDS, NPC_STORIES } from "@/lib/island/drills";
-import { activeSlot, chestOpened, currentChapterId, readyCount, dueWords, duePhrases, friendship, isUnlocked, islandLevel, nextMission, streak, todayPlan, totalStars, useIsland, type PlanStep } from "@/lib/island/progress";
+import { SPRINT_DAYS, sprintInfo, activeSlot, collection, growth, shells, chestOpened, currentChapterId, missionsDone, readyCount, dueWords, duePhrases, friendship, isUnlocked, islandLevel, nextMission, streak, todayPlan, totalStars, useIsland, type PlanStep } from "@/lib/island/progress";
 import { speak } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
 import { DAILY_ROADMAP_DATA } from "@/data/daily-roadmap-data";
@@ -38,12 +37,6 @@ const RESIDENTS: { who: NpcId; x: number; y: number; w: number; delay: number; s
   { who: "kero", x: 388, y: 520, w: 66, delay: 0, scene: "pond" },
 ];
 
-const POND_POS: [number, number][] = [
-  [20, 606],
-  [238, 604],
-  [84, 644],
-  [200, 650],
-];
 
 const SCENE_NPC: Record<SceneId, NpcId> = { cafe: "miso", market: "mallow", airport: "pip", pond: "kero", tree: "pip" };
 
@@ -87,6 +80,7 @@ export default function IslandMapPage() {
   const nm = nextMission(s, curId);
   const plan = todayPlan(s);
   const planDone = plan.filter((p) => p.done).length;
+  const sprint = sprintInfo(s);
   const step = plan.find((p) => !p.done) || null;
   const line = keroLine(step, cur.npc, cur.quest, nm);
   const lv = islandLevel(s.xp);
@@ -95,7 +89,13 @@ export default function IslandMapPage() {
   const officeOpen = isUnlocked(s, 9);
   const goHref = step ? step.href : "/island/path";
   const ready = readyCount(s);
-  const pondKids = Array.from({ length: s.farm.size }, (_, i) => activeSlot(s, i)?.kind).filter((k): k is FarmKind => !!k).slice(0, POND_POS.length);
+  const plotsReady = CHAPTERS.filter((c) => missionsDone(s, c.id) >= MISSIONS.length && !s.garden[String(c.id)]).length;
+  const dex = collection(s);
+  const pondKids: SwimItem[] = [];
+  for (let i = 0; i < s.farm.size; i++) {
+    const sl = activeSlot(s, i);
+    if (sl) pondKids.push({ id: i, kind: sl.kind, size: sl.kind === "shrimp" ? 15 : sl.kind === "crab" ? 17 : 19, ready: growth(sl).pct >= 1, rare: sl.rare });
+  }
 
   // Báo khi đảo vừa mở thêm món mới (so với lần trước thấy).
   useEffect(() => {
@@ -117,12 +117,17 @@ export default function IslandMapPage() {
   }, [toast]);
 
   return (
-    <div className="max-w-[1320px] mx-auto px-2 sm:px-4 py-3 sm:py-5">
-      {/* Bản đồ 16:10 co theo chiều cao màn hình (trừ navbar 4rem + lề) để luôn thấy trọn khu vườn. */}
-      <div className="cci-mapfit relative mx-auto w-full lg:w-[min(100%,calc((100dvh-6.5rem)*1.6))]">
+    <div className="max-w-[1320px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
+      {/* Biển bao quanh đảo */}
+      <div aria-hidden className="cci-ocean" />
+      {/* Bản đồ 16:10 co theo chiều cao màn hình (trừ navbar, lề và bề dày khối đảo) để luôn thấy trọn khu vườn. */}
+      <div className="cci-mapfit relative z-[1] mx-auto w-full mb-8 lg:mb-12 lg:w-[min(100%,calc((100dvh-9rem)*1.6))]">
         {/* ── Bản đồ ── */}
-        <div className="relative w-full overflow-hidden rounded-[22px] sm:rounded-[28px] border-[3px] border-[#8B5E3C]" style={{ aspectRatio: "1280 / 800", containerType: "inline-size", background: "#9CCB6A" }}>
-          <svg viewBox="0 0 1280 800" className="absolute inset-0 w-full h-full" aria-hidden="true" dangerouslySetInnerHTML={{ __html: MAP_BG }} />
+        <div className="cci-diorama relative w-full overflow-hidden rounded-[22px] sm:rounded-[28px] border-[3px] border-[#8B5E3C]" style={{ aspectRatio: "1280 / 800", containerType: "inline-size", background: "#9CCB6A" }}>
+          <svg viewBox="0 0 1280 800" className="absolute inset-0 w-full h-full" aria-hidden="true" dangerouslySetInnerHTML={{ __html: MAP_BG_3D }} />
+          <div aria-hidden className="cci-light" />
+          <div aria-hidden className="cci-cloudshade" style={{ top: "18%", width: "26cqw", height: "12cqw", animationDuration: "70s" }} />
+          <div aria-hidden className="cci-cloudshade" style={{ top: "58%", width: "20cqw", height: "9cqw", animationDuration: "95s", animationDelay: "-40s" }} />
 
           {/* Đồ xây đảo (mở theo cấp) */}
           {mounted && <IslandBuilds level={lv.level} />}
@@ -150,7 +155,7 @@ export default function IslandMapPage() {
                 type="button"
                 data-sfx="none"
                 aria-label={`${NPCS[r.who].name} — ${NPCS[r.who].role}`}
-                className="absolute hover:scale-105 active:scale-95 transition-transform"
+                className="cci-sprite absolute hover:scale-105 active:scale-95 transition-transform"
                 style={{ left: P(r.x, 1280), top: P(r.y, 800), width: P(r.w, 1280), zIndex: 3 }}
                 onClick={() => {
                   sfx.chirp(r.who);
@@ -170,7 +175,7 @@ export default function IslandMapPage() {
             );
           })}
           {/* Bơ ở quảng trường */}
-          <div className="absolute" style={{ left: P(560, 1280), top: P(384, 800), width: P(86, 1280), zIndex: 3 }}>
+          <div className="cci-sprite absolute" style={{ left: P(560, 1280), top: P(384, 800), width: P(86, 1280), zIndex: 3 }}>
             <Character who="bo" mood="idle" size="100%" delay={0.3} />
           </div>
 
@@ -178,187 +183,134 @@ export default function IslandMapPage() {
           <GardenAnimals />
 
           {/* Ao Tôm Cua: con đang nuôi bơi trong hồ */}
-          {mounted &&
-            pondKids.map((k, i) => (
-              <div key={i} aria-hidden className="absolute pointer-events-none anim-floaty" style={{ left: P(POND_POS[i][0], 1280), top: P(POND_POS[i][1], 800), width: P(44, 1280), zIndex: 2, animationDelay: `${i * 0.5}s` }}>
-                <SeaCreature kind={k} />
-              </div>
-            ))}
-          <Link
-            href="/island/farm"
-            data-sfx="open"
-            className="absolute -translate-x-1/2 inline-flex items-center whitespace-nowrap font-baloo font-extrabold hover:-translate-y-0.5 transition-transform"
-            style={{ left: P(176, 1280), top: P(540, 800), zIndex: 6, fontSize: "max(10px, 1.33cqw)", gap: "0.6cqw", padding: "0.7cqw 1.25cqw", borderRadius: "1.1cqw", border: "3px solid #4E8FA8", background: "#E6F5FA", boxShadow: "0 4px 0 #4E8FA8" }}
-          >
-            <Fish style={{ width: "max(12px, 1.4cqw)", height: "max(12px, 1.4cqw)", color: "#2F7A93" }} />
-            Ao Tôm Cua
-            {mounted && ready > 0 && (
-              <span className="absolute -top-[1.2cqw] -right-[1.2cqw] min-w-[2.2cqw] h-[2.2cqw] px-[0.5cqw] rounded-full bg-[#F2C14E] border-2 border-[#4A3222] flex items-center justify-center anim-bounce" style={{ fontSize: "max(9px, 1.1cqw)" }}>
-                {ready}
-              </span>
-            )}
-          </Link>
-
-          {/* Nhãn địa điểm */}
+          {mounted && pondKids.length > 0 && (
+            <div className="absolute" style={{ left: P(26, 1280), top: P(572, 800), width: P(248, 1280), height: P(148, 800), zIndex: 2 }}>
+              <Swimmers mode="top" items={pondKids} />
+            </div>
+          )}
+          {/* Ghim địa điểm: cùng một kiểu, chỗ chưa mở thì mờ đi */}
+          <Pin x={490} y={244} icon={Sprout} tone="#5E9E3E" label="Vườn Nhiệm Vụ" href="/island/garden" badge={mounted && plotsReady > 0 ? plotsReady : null} />
+          <Pin x={182} y={548} icon={Fish} tone="#2F8FB0" label="Ao Tôm Cua" href="/island/farm" badge={mounted && ready > 0 ? ready : null} />
           {SPOTS.map((sp) => {
             const unlocked = mounted ? sceneUnlocked(sp.scene) : true;
-            const Icon = unlocked ? sp.icon : Lock;
-            return (
-              <button
-                key={sp.scene}
-                type="button"
-                data-sfx="open"
-                onClick={() => setOpen(sp.scene)}
-                className="absolute -translate-x-1/2 inline-flex items-center whitespace-nowrap font-baloo font-extrabold hover:-translate-y-0.5 transition-transform"
-                style={{
-                  left: P(sp.x, 1280),
-                  top: P(sp.y, 800),
-                  zIndex: 6,
-                  fontSize: "max(10px, 1.33cqw)",
-                  gap: "0.6cqw",
-                  padding: "0.7cqw 1.25cqw",
-                  borderRadius: "1.1cqw",
-                  border: "3px solid #8B5E3C",
-                  background: "#FBF0D9",
-                  boxShadow: "0 4px 0 #8B5E3C",
-                  opacity: unlocked ? 1 : 0.85,
-                }}
-              >
-                <Icon style={{ width: "max(12px, 1.4cqw)", height: "max(12px, 1.4cqw)", color: unlocked ? sp.color : "#8B5E3C" }} />
-                {sp.label}
-              </button>
-            );
+            return <Pin key={sp.scene} x={sp.x} y={sp.y} icon={sp.icon} tone={sp.color} label={sp.label} locked={!unlocked} onClick={() => setOpen(sp.scene)} />;
           })}
-          {/* Văn phòng Mây: lộ trình 30 ngày Call khách (mở ở B1) */}
-          <div className="absolute -translate-x-1/2" style={{ left: P(1022, 1280), top: P(560, 800), zIndex: 6 }}>
-            <button
-              type="button"
-              data-sfx="open"
-              onClick={() => setPanel("office")}
-              className="inline-flex items-center whitespace-nowrap font-baloo font-extrabold anim-floaty"
-              style={{ fontSize: "max(10px, 1.33cqw)", gap: "0.6cqw", padding: "0.7cqw 1.25cqw", borderRadius: "1.1cqw", border: "3px solid #8B5E3C", background: mounted && officeOpen ? "#FFF1C7" : "#FBF0D9", boxShadow: "0 4px 0 #8B5E3C" }}
-              title="Văn phòng Mây — luyện Call khách 30 ngày (mở ở cấp B1)"
-            >
-              {mounted && officeOpen ? <Briefcase style={{ width: "max(12px, 1.4cqw)", height: "max(12px, 1.4cqw)", color: "#A4521D" }} /> : <Lock style={{ width: "max(12px, 1.4cqw)", height: "max(12px, 1.4cqw)" }} />}
-              {mounted && officeOpen ? "Văn phòng Mây" : "???"}
-            </button>
-          </div>
+          <Pin
+            x={1022}
+            y={560}
+            icon={Briefcase}
+            tone="#C96A2B"
+            label={mounted && officeOpen ? "Văn phòng Mây" : "???"}
+            locked={!(mounted && officeOpen)}
+            onClick={() => setPanel("office")}
+            title="Văn phòng Mây — luyện Call khách 30 ngày (mở ở cấp B1)"
+          />
         </div>
 
-        {/* ── HUD: trên máy tính nằm đè lên bản đồ, trên điện thoại xếp dưới bản đồ ── */}
-        <div className="grid gap-3 mt-3 sm:grid-cols-2 hud:contents">
-          {/* Hồ sơ */}
-          <div className="hud:absolute hud:left-5 hud:top-5 flex flex-col gap-2.5 hud:z-10">
-            <div className="cci-card-wood flex items-center gap-3 pl-2 pr-4 py-2">
-              <Avatar who="bo" size={52} />
-              <div className="flex flex-col gap-1 w-40">
-                <div className="flex justify-between items-baseline">
-                  <span className="font-baloo font-extrabold text-xl leading-none truncate max-w-[100px]">{mounted ? username || "Bơ" : "Bơ"}</span>
-                  <span className="text-xs font-extrabold text-[#6B4A30]">Lv {mounted ? lv.level : 1}</span>
-                </div>
-                <div className="h-3 rounded-full bg-[#EAD9B8] border-2 border-[#8B5E3C] overflow-hidden">
-                  <div className="h-full bg-[#6FAE4F]" style={{ width: `${mounted ? lv.pct : 0}%` }} />
-                </div>
+        {/* ── HUD: máy tính đè lên bản đồ (gọn 4 góc), điện thoại xếp dưới bản đồ ── */}
+        <div className="flex flex-col gap-3 mt-10 hud:contents">
+          {/* Thẻ người chơi */}
+          <div className="order-2 hud:absolute hud:left-4 hud:top-4 hud:z-10 self-start flex items-center gap-3 rounded-[22px] clay pl-1.5 pr-2 py-1.5">
+            <div className="relative shrink-0">
+              <Avatar who="bo" size={50} />
+              <span className="absolute -bottom-1 -right-1.5 min-w-[24px] h-[24px] px-1 rounded-full bg-[#F2C14E] border-[2.5px] border-[#4A3222] font-baloo font-extrabold text-[13px] leading-none flex items-center justify-center" title="Cấp đảo">
+                {mounted ? lv.level : 1}
+              </span>
+            </div>
+            <div className="flex flex-col gap-1 min-w-0 w-[136px]">
+              <span className="font-baloo font-extrabold text-lg leading-none truncate">{mounted ? username || "Bơ" : "Bơ"}</span>
+              <div className="h-2.5 rounded-full bg-[#EAD9B8] overflow-hidden">
+                <div className="h-full rounded-full bg-[#6FAE4F] transition-all" style={{ width: `${mounted ? lv.pct : 0}%` }} />
               </div>
+              <span className="text-[11px] font-bold text-[#6B4A30] leading-none">
+                Cấp đảo {mounted ? lv.level : 1} · {mounted ? lv.pct : 0}%
+              </span>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Link href="/island/words" className="cci-btn cci-btn-primary !min-h-[40px] !text-[15px] !px-3">
-                <BookOpen className="w-4 h-4" /> Sổ từ
-                {mounted && due > 0 && <span className="ml-0.5 rounded-full bg-[#F2C14E] text-[#4A3222] text-xs px-1.5 py-0.5">{due}</span>}
-              </Link>
-              <Link href={`/island/reflex?ch=${curId}`} className="cci-btn !min-h-[40px] !text-[15px] !px-3">
-                <Zap className="w-4 h-4 text-[#C99A1E]" /> Phản xạ
-              </Link>
-              <Link href="/island/path" className="cci-btn !min-h-[40px] !text-[15px] !px-3">
-                <Route className="w-4 h-4" /> Lộ trình
-              </Link>
-            </div>
-            <SyncBadge className="self-start" />
+            <SyncBadge compact />
           </div>
 
-          {/* Chỉ số */}
-          <div className="hud:absolute hud:right-5 hud:top-5 flex gap-2.5 items-start sm:justify-end hud:z-10">
-            <div className="cci-card-wood flex items-center gap-2 h-[46px] px-3.5" title="Chuỗi ngày học · tổng số sao">
-              <Flame className="w-5 h-5" fill="#F29A4E" stroke="#4A3222" />
-              <span className="font-baloo font-extrabold text-lg">{mounted ? streak(s) : 0}</span>
-              <span className="w-0.5 h-5 bg-[#EAD9B8] mx-1" />
-              <Star className="w-5 h-5" fill="#F2C14E" stroke="#4A3222" />
-              <span className="font-baloo font-extrabold text-lg">{mounted ? totalStars(s) : 0}</span>
+          {/* Thanh công cụ: dọc bên trái trên máy tính, hàng ngang trên điện thoại */}
+          <nav className="order-3 hud:absolute hud:left-4 hud:top-[100px] hud:z-10 grid grid-cols-6 hud:grid-cols-1 gap-2 hud:gap-2.5" aria-label="Công cụ học">
+            <RailBtn href="/island/words" icon={BookOpen} label="Sổ từ" tone="#3F7A34" badge={mounted && due > 0 ? due : null} />
+            <RailBtn href={`/island/reflex?ch=${curId}`} icon={Zap} label="Phản xạ" tone="#D9A92F" />
+            <RailBtn href="/island/path" icon={Route} label="Lộ trình" tone="#4E7FB8" />
+            <RailBtn href="/island/collection" icon={BookHeart} label="Sưu tập" tone="#C8553D" badge={mounted && dex.claimable ? "!" : null} />
+            <RailBtn onClick={() => setPanel("build")} icon={Hammer} label="Xây đảo" tone="#8B5E3C" />
+            <RailBtn href="/island/chat" icon={MessageCircle} label="Tám AI" tone="#7A5BC7" />
+          </nav>
+
+          {/* Góc phải: chỉ số + cài đặt */}
+          <div className="order-1 hud:absolute hud:right-4 hud:top-4 hud:z-10 flex items-center justify-between hud:justify-end gap-2.5">
+            <div className="flex items-center gap-3 h-[50px] px-4 rounded-full clay font-baloo font-extrabold text-lg">
+              <span className="flex items-center gap-1.5" title="Chuỗi ngày học">
+                <Flame className="w-5 h-5" fill="#F29A4E" stroke="#4A3222" /> {mounted ? streak(s) : 0}
+              </span>
+              <span className="flex items-center gap-1.5" title="Tổng số sao">
+                <Star className="w-5 h-5" fill="#F2C14E" stroke="#4A3222" /> {mounted ? totalStars(s) : 0}
+              </span>
+              <Link href="/island/farm" className="flex items-center gap-1.5 hover:-translate-y-0.5 transition-transform" title="Vỏ sò — tiêu ở Ao Tôm Cua">
+                <Shell className="w-5 h-5 text-[#C99A1E]" /> {mounted ? shells(s) : 0}
+              </Link>
             </div>
-            <button type="button" data-sfx="open" onClick={() => setPanel("build")} className="cci-btn !w-[46px] !h-[46px] !min-h-0 !p-0" aria-label="Đảo của bạn" title="Đảo của bạn — xây thêm bằng XP">
-              <Hammer className="w-5 h-5" />
+            <div className="flex items-center gap-0.5 h-[50px] px-1 rounded-full clay">
+              <AudioToggles flat />
+              <span className="hidden md:contents">
+                <FullscreenButton flat />
+              </span>
+            </div>
+          </div>
+
+          {/* Thanh dưới: Kero nhắc + hành trình hôm nay + nút đi tiếp */}
+          <div className="order-1 hud:absolute hud:left-1/2 hud:-translate-x-1/2 hud:bottom-4 hud:z-10 hud:w-[min(780px,calc(100%-12rem))] flex items-center gap-3 rounded-[24px] clay p-2 pl-2.5">
+            <button
+              type="button"
+              data-sfx="none"
+              className="shrink-0 hover:scale-105 transition-transform"
+              onClick={() => {
+                sfx.chirp("kero");
+                setTimeout(() => speak(line.en, { who: "kero" }), 300);
+              }}
+              aria-label="Nghe Kero nói"
+              title="Nghe Kero nói"
+            >
+              <Avatar who="kero" size={58} />
             </button>
-            <Link href="/island/chat" className="cci-btn !w-[46px] !h-[46px] !min-h-0 !p-0" aria-label="Tám chuyện với AI" title="Tám chuyện với AI">
-              <MessageCircle className="w-5 h-5" />
+            <button type="button" data-sfx="open" onClick={() => setPanel("journey")} className="flex-1 min-w-0 text-left group" title="Xem hành trình hôm nay">
+              <span className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#3F7A34]">
+                <MapIcon className="w-3.5 h-3.5 shrink-0" />
+                <span className="shrink-0">{mounted && sprint.on ? `Ngày ${sprint.day}/${SPRINT_DAYS} · ` : "Hôm nay "}{mounted ? planDone : 0}/{mounted ? plan.length : 3}</span>
+                <span className="flex items-center gap-1 shrink-0">
+                  {plan.map((p) => {
+                    const ok = mounted && p.done;
+                    const isNext = mounted && p === step;
+                    return <span key={p.key} className="w-2.5 h-2.5 rounded-full" style={{ background: ok ? "#3F7A34" : isNext ? "#F2C14E" : "#E6D6B6", boxShadow: isNext ? "0 0 0 2px #FFF1C7" : undefined }} />;
+                  })}
+                  <Gift className={cx("w-3.5 h-3.5 ml-0.5", mounted && planDone === plan.length && !chestOpened(s) ? "text-[#C96A2B] anim-bounce" : "text-[#D8BF92]")} />
+                </span>
+                <span className="truncate normal-case tracking-normal text-[#6B4A30] group-hover:underline underline-offset-2">{mounted ? (step ? step.title : chestOpened(s) ? "Xong hôm nay 🎉" : "Rương thưởng đang chờ!") : cur.quest.vi}</span>
+              </span>
+              <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">{mounted ? line.en : cur.quest.en}</span>
+              <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug truncate">{mounted ? line.vi : cur.quest.vi}</span>
+            </button>
+            <Link
+              href={mounted ? goHref : "#"}
+              onClick={(e) => {
+                if (mounted && !step) {
+                  e.preventDefault();
+                  setPanel("journey");
+                }
+              }}
+              data-sfx="whoosh"
+              className="gloss shrink-0 flex flex-col items-center justify-center rounded-[18px] h-[62px] px-4 min-w-[112px] text-white hover:-translate-y-0.5 active:translate-y-0.5 transition-transform"
+              style={{ background: "linear-gradient(180deg,#5E9E3E,#3F7A34)", border: "3px solid #2C5A25", boxShadow: "0 4px 0 #2C5A25" }}
+            >
+              <span className="text-[11px] font-bold opacity-90 leading-none">{mounted && step ? `Bước ${planDone + 1}/${plan.length} · ~${step.mins}′` : "Hôm nay"}</span>
+              <span className="font-baloo font-extrabold text-[18px] leading-tight flex items-center gap-1 mt-0.5">
+                {!mounted ? "Bắt đầu" : step ? "Đi thôi" : chestOpened(s) ? "Xong!" : "Mở rương"}
+                {mounted && !step ? <Gift className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+              </span>
             </Link>
-            <AudioToggles />
-            <span className="hidden md:contents">
-              <FullscreenButton />
-            </span>
           </div>
-
-          {/* Hành trình hôm nay */}
-          <button
-            type="button"
-            data-sfx="open"
-            onClick={() => setPanel("journey")}
-            className="hud:absolute hud:left-5 hud:bottom-5 hud:w-[290px] hud:z-10 cci-card-wood px-4 py-3 flex flex-col gap-1.5 text-left hover:-translate-y-0.5 transition-transform"
-          >
-            <div className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.1em] uppercase text-[#3F7A34]">
-              <MapIcon className="w-3.5 h-3.5" /> Hành trình hôm nay · {mounted ? planDone : 0}/3
-            </div>
-            <div className="font-baloo font-extrabold text-lg leading-tight">
-              {mounted ? (step ? step.title : chestOpened(s) ? "Xong hôm nay! 🎉" : "Mở rương thưởng!") : cur.quest.vi}
-            </div>
-            <div className="flex items-center gap-1.5">
-              {plan.map((p, i) => {
-                const ok = mounted && p.done;
-                const isNext = mounted && p === step;
-                return (
-                  <span key={p.key} className="flex items-center gap-1.5">
-                    <span
-                      className="w-[24px] h-[24px] rounded-full inline-flex items-center justify-center text-[11px] font-extrabold"
-                      style={{ background: ok ? "#3F7A34" : "#FFF", color: ok ? "#fff" : "#6B4A30", border: `3px solid ${ok ? "#3F7A34" : isNext ? "#F2C14E" : "#D8BF92"}` }}
-                    >
-                      {ok ? <Check className="w-3 h-3" strokeWidth={4} /> : i + 1}
-                    </span>
-                    {i < 2 && <span className="w-3 h-0.5 bg-[#D8BF92]" />}
-                  </span>
-                );
-              })}
-              <Gift className={cx("w-5 h-5 ml-1", mounted && planDone === 3 && !chestOpened(s) ? "text-[#C96A2B] anim-bounce" : "text-[#D8BF92]")} />
-              <span className="text-[12px] font-bold text-[#6B4A30] ml-auto truncate">Ch.{cur.id} · Tuần {cur.week}</span>
-            </div>
-          </button>
-
-          {/* Kero gợi ý */}
-          <div className="hud:absolute hud:left-[330px] hud:right-[150px] hud:bottom-5 hud:max-w-[580px] hud:z-10 cci-card-wood px-3.5 py-3 flex gap-3 items-center sm:col-span-2 hud:col-span-1">
-            <button type="button" data-sfx="none" onClick={() => { sfx.chirp("kero"); setTimeout(() => speak(line.en, { who: "kero" }), 300); }} aria-label="Nghe Kero nói">
-              <Avatar who="kero" size={64} />
-            </button>
-            <div className="min-w-0 flex-1">
-              <span className="cci-chip !text-xs !py-0.5 !rounded-full">Kero · Hướng dẫn viên</span>
-              <div className="text-[17px] font-extrabold leading-snug mt-1">{mounted ? line.en : cur.quest.en}</div>
-              <div className="text-sm font-semibold text-[#6B4A30]">{mounted ? line.vi : cur.quest.vi}</div>
-            </div>
-          </div>
-
-          {/* Nút chính: dẫn tới bước tiếp theo của hành trình */}
-          <Link
-            href={mounted ? goHref : "#"}
-            onClick={(e) => {
-              if (mounted && !step) {
-                e.preventDefault();
-                setPanel("journey");
-              }
-            }}
-            data-sfx="whoosh"
-            className="hud:absolute hud:right-6 hud:bottom-6 hud:z-10 sm:col-span-2 hud:col-span-1 flex hud:flex-col items-center justify-center gap-2 hud:gap-0.5 rounded-[20px] hud:rounded-full h-14 hud:w-[100px] hud:h-[100px] text-white font-baloo font-extrabold text-lg hud:text-[14px] leading-tight text-center"
-            style={{ background: "#3F7A34", border: "4px solid #2C5A25", boxShadow: "0 5px 0 #2C5A25" }}
-          >
-            {mounted && !step ? <Gift className="w-7 h-7" /> : <MessageCircle className="w-7 h-7" />}
-            {!mounted ? "Bắt đầu" : step ? `Bước ${planDone + 1}/3` : chestOpened(s) ? "Hôm nay xong" : "Mở rương"}
-          </Link>
         </div>
       </div>
 
@@ -376,6 +328,72 @@ export default function IslandMapPage() {
       {panel === "build" && <BuildPanel level={lv.level} pct={lv.pct} onClose={() => setPanel(null)} />}
       {panel === "office" && <OfficePanel open={officeOpen} onClose={() => setPanel(null)} />}
     </div>
+  );
+}
+
+/** Ghim địa điểm trên bản đồ. Chỗ chưa mở: nền mờ, viền đứt, chữ nhỏ hơn. */
+function Pin({ x, y, icon: Icon, tone, label, locked = false, badge, href, onClick, title }: { x: number; y: number; icon: React.ElementType; tone: string; label: string; locked?: boolean; badge?: number | string | null; href?: string; onClick?: () => void; title?: string }) {
+  const style: React.CSSProperties = {
+    fontSize: locked ? "max(9px, 1.08cqw)" : "max(10px, 1.22cqw)",
+    gap: "0.5cqw",
+    padding: "0.32cqw 1cqw 0.32cqw 0.32cqw",
+    borderRadius: 999,
+    background: locked ? "rgba(248,240,222,.88)" : "linear-gradient(180deg,#FFFFFF,#FFF3DA)",
+    border: locked ? "2px dashed #B79A6E" : "2.5px solid #4A3222",
+    boxShadow: locked ? "none" : "inset 0 2px 0 #fff, 0 3px 0 rgba(74,50,34,.65), 0 9px 12px -4px rgba(40,30,10,.4)",
+    color: locked ? "#8B6B48" : "#4A3222",
+  };
+  const Ico = locked ? Lock : Icon;
+  const inner = (
+    <>
+      <span className={cx("flex items-center justify-center rounded-full shrink-0", !locked && "gem")} style={{ width: "2.2cqw", height: "2.2cqw", minWidth: 18, minHeight: 18, background: locked ? "#D5C29C" : undefined, "--tone": tone } as React.CSSProperties}>
+        <Ico style={{ width: "1.2cqw", height: "1.2cqw", minWidth: 10, minHeight: 10, color: "#fff" }} strokeWidth={2.6} />
+      </span>
+      {label}
+      {badge != null && (
+        <span className="absolute -top-[1cqw] -right-[0.9cqw] min-w-[2cqw] h-[2cqw] px-[0.45cqw] rounded-full bg-[#F2C14E] border-2 border-[#4A3222] flex items-center justify-center anim-bounce" style={{ fontSize: "max(9px, 1cqw)" }}>
+          {badge}
+        </span>
+      )}
+      {!locked && <span aria-hidden className="absolute left-1/2 top-full -translate-x-1/2 w-0 h-0" style={{ borderLeft: "0.55cqw solid transparent", borderRight: "0.55cqw solid transparent", borderTop: "0.65cqw solid #4A3222" }} />}
+    </>
+  );
+  const cls = "relative inline-flex items-center whitespace-nowrap font-baloo font-extrabold transition-transform hover:-translate-y-0.5";
+  return (
+    <div className="absolute -translate-x-1/2" style={{ left: P(x, 1280), top: P(y, 800), zIndex: 6 }}>
+      {href ? (
+        <Link href={href} data-sfx="open" className={cls} style={style} title={title}>
+          {inner}
+        </Link>
+      ) : (
+        <button type="button" data-sfx="open" onClick={onClick} className={cls} style={style} title={title}>
+          {inner}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Ô công cụ trên thanh dọc bên trái. */
+function RailBtn({ href, onClick, icon: Icon, label, tone, badge }: { href?: string; onClick?: () => void; icon: React.ElementType; label: string; tone: string; badge?: number | string | null }) {
+  const cls = "clay relative flex flex-col items-center justify-center gap-1 rounded-[18px] h-[60px] hud:w-[62px] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform";
+  const inner = (
+    <>
+      <span className="gem w-[30px] h-[30px] rounded-full flex items-center justify-center" style={{ "--tone": tone } as React.CSSProperties}>
+        <Icon className="w-4 h-4 text-white" strokeWidth={2.6} />
+      </span>
+      <span className="font-baloo font-extrabold text-[11px] leading-none text-[#4A3222] whitespace-nowrap">{label}</span>
+      {badge != null && <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-[#F2C14E] border-2 border-[#4A3222] text-[11px] font-extrabold flex items-center justify-center">{badge}</span>}
+    </>
+  );
+  return href ? (
+    <Link href={href} data-sfx="open" className={cls} title={label}>
+      {inner}
+    </Link>
+  ) : (
+    <button type="button" data-sfx="open" onClick={onClick} className={cls} title={label}>
+      {inner}
+    </button>
   );
 }
 

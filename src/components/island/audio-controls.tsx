@@ -41,7 +41,7 @@ export function IslandAudio() {
 }
 
 /** Hai nút bật/tắt hiệu ứng và nhạc nền (dùng nổi ở góc màn hình, hoặc nằm trong HUD trên điện thoại). */
-export function AudioToggles({ sound: s0, music: m0, className = "" }: { sound?: boolean; music?: boolean; className?: string }) {
+export function AudioToggles({ sound: s0, music: m0, className = "", flat = false }: { sound?: boolean; music?: boolean; className?: string; flat?: boolean }) {
   const sSub = useSyncExternalStore(subscribeAudio, soundOn, () => false);
   const mSub = useSyncExternalStore(subscribeAudio, musicOn, () => false);
   const sound = s0 ?? sSub;
@@ -55,7 +55,7 @@ export function AudioToggles({ sound: s0, music: m0, className = "" }: { sound?:
           setSoundOn(next);
           if (next) sfx.correct();
         }}
-        className="w-11 h-11 rounded-full flex items-center justify-center border-[3px] border-[#8B5E3C] bg-[#FBF3E2] text-[#4A3222] shadow-[0_3px_0_#8B5E3C] hover:-translate-y-0.5 transition-transform"
+        className={flat ? "w-10 h-10 rounded-full flex items-center justify-center text-[#4A3222] hover:bg-[#F3E6CC] transition-colors" : "w-11 h-11 rounded-full flex items-center justify-center border-[3px] border-[#8B5E3C] bg-[#FBF3E2] text-[#4A3222] shadow-[0_3px_0_#8B5E3C] hover:-translate-y-0.5 transition-transform"}
         aria-label={sound ? "Tắt hiệu ứng âm thanh" : "Bật hiệu ứng âm thanh"}
         title={sound ? "Tắt hiệu ứng âm thanh" : "Bật hiệu ứng âm thanh"}
       >
@@ -65,8 +65,8 @@ export function AudioToggles({ sound: s0, music: m0, className = "" }: { sound?:
         type="button"
         onClick={() => setMusicOn(!music)}
         disabled={!sound}
-        className="w-11 h-11 rounded-full flex items-center justify-center border-[3px] border-[#8B5E3C] shadow-[0_3px_0_#8B5E3C] hover:-translate-y-0.5 transition-transform disabled:opacity-40"
-        style={{ background: music && sound ? "#3F7A34" : "#FBF3E2", color: music && sound ? "#fff" : "#4A3222" }}
+        className={flat ? "w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 hover:brightness-95" : "w-11 h-11 rounded-full flex items-center justify-center border-[3px] border-[#8B5E3C] shadow-[0_3px_0_#8B5E3C] hover:-translate-y-0.5 transition-transform disabled:opacity-40"}
+        style={{ background: music && sound ? "#3F7A34" : flat ? "transparent" : "#FBF3E2", color: music && sound ? "#fff" : "#4A3222" }}
         aria-label={music ? "Tắt nhạc nền" : "Bật nhạc nền"}
         title={music ? "Tắt nhạc nền" : "Bật nhạc nền đảo"}
       >

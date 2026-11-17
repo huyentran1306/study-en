@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Check, Eye, MessageSquareQuote, RotateCcw, Volume2, X } from "lucide-react";
+import { ArrowRight, Check, Eye, MessageSquareQuote, NotebookPen, RotateCcw, UserRound, Volume2, X } from "lucide-react";
 import { Character } from "@/components/island/character";
 import { BackLink, Feedback, MicButton, WordMarks, cx, shuffle } from "@/components/island/ui";
 import { CHAPTERS } from "@/lib/island/curriculum";
 import { backfillPhrases, completeMission, currentChapterId, duePhrases, gradePhrase, today, useIsland, type PhraseCard } from "@/lib/island/progress";
 import { scoreSpeech, speak, stopSpeaking, useListen } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
+import { personalize } from "@/lib/island/me";
 import { useGame } from "@/contexts/game-context";
 import { NextStep } from "@/components/island/journey";
 
@@ -25,7 +26,12 @@ function Inner() {
     backfillPhrases();
   }, []);
 
+  const profile = s.profile;
+  /** Câu hiển thị: thẻ thường được thay tên/quê/nghề mẫu bằng Hồ sơ của tôi; khoá lưu vẫn là câu gốc. */
+  const shown = (c: PhraseCard) => (c.kind ? { en: c.en, vi: c.vi } : { en: personalize(c.en, profile), vi: personalize(c.vi, profile) });
   const all = Object.values(s.phrases);
+  const fixes = all.filter((p) => p.kind === "fix");
+  const mine = all.filter((p) => p.kind === "me");
   const due = duePhrases(s);
   const chParam = Number(sp.get("ch"));
   const missionCh = chParam && s.chapters[chParam]?.lesson ? chParam : currentChapterId(s);
@@ -36,7 +42,7 @@ function Inner() {
   const [attempt, setAttempt] = useState<{ said: string; score: number; marks: { word: string; ok: boolean }[] } | null>(null);
   const [stats, setStats] = useState({ ok: 0, again: 0 });
   const [finished, setFinished] = useState(false);
-  const [filter, setFilter] = useState<number | "all">("all");
+  const [filter, setFilter] = useState<number | "all" | "fix" | "me">("all");
   const { supported, listening, interim, error, listen, stop } = useListen();
 
   const start = (cards: PhraseCard[], limit = 12) => {
@@ -49,6 +55,18 @@ function Inner() {
   };
 
   const card = session?.[idx];
+  const view = card ? shown(card) : null;
+
+  // Từ buổi Tám AI bấm "Luyện nói lại": vào thẳng phiên ôn lỗi sai.
+  const autoFix = sp.get("fix") === "1";
+  const autoRef = useRef(false);
+  useEffect(() => {
+    if (!mounted || !autoFix || autoRef.current) return;
+    autoRef.current = true;
+    const list = Object.values(s.phrases).filter((p) => p.kind === "fix");
+    if (list.length) start([...list].sort((a, b) => (a.due < b.due ? -1 : 1) || a.box - b.box).slice(0, 10), 10);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, autoFix]);
 
   const grade = (ok: boolean) => {
     if (!session || !card) return;
@@ -71,21 +89,24 @@ function Inner() {
   };
 
   const onMic = async () => {
-    if (!card) return;
+    if (!card || !view) return;
     if (listening) return stop();
     sfx.micOn();
     const said = await listen();
     if (!said.trim()) return;
-    const r = scoreSpeech(said, card.en);
+    const r = scoreSpeech(said, view.en);
     setAttempt({ said, ...r });
     setRevealed(true);
-    speak(card.en, { who: "you" });
+    speak(view.en, { who: "you" });
   };
 
   useEffect(() => () => stopSpeaking(), []);
 
-  const listed = useMemo(() => all.filter((p) => filter === "all" || p.ch === filter).sort((a, b) => a.ch - b.ch || a.box - b.box), [all, filter]);
-  const chapters = CHAPTERS.filter((c) => all.some((p) => p.ch === c.id));
+  const listed = useMemo(
+    () => all.filter((p) => (filter === "all" ? true : filter === "fix" || filter === "me" ? p.kind === filter : !p.kind && p.ch === filter)).sort((a, b) => (a.kind || "").localeCompare(b.kind || "") || a.ch - b.ch || a.box - b.box),
+    [all, filter],
+  );
+  const chapters = CHAPTERS.filter((c) => all.some((p) => !p.kind && p.ch === c.id));
 
   // ───── Xong phiên ─────
   if (session && finished) {
@@ -112,7 +133,7 @@ function Inner() {
   }
 
   // ───── Đang ôn ─────
-  if (session && card) {
+  if (session && card && view) {
     const passed = attempt && attempt.score >= 0.8;
     return (
       <div className="max-w-xl mx-auto px-3 sm:px-6 py-5 flex flex-col gap-4">
@@ -130,14 +151,25 @@ function Inner() {
 
         <div className="cci-card-wood !rounded-[28px] min-h-[220px] p-6 flex flex-col items-center justify-center gap-3 text-center">
           <span className="cci-chip !text-xs">
-            Chương {card.ch} · {BOX_LABEL[card.box]}
+            {card.kind === "fix" ? "Lỗi sai" : card.kind === "me" ? "Về tôi" : `Chương ${card.ch}`} · {BOX_LABEL[card.box]}
           </span>
-          <span className="text-sm font-bold text-[#6B4A30]">Nói câu này bằng tiếng Anh:</span>
-          <span className="font-baloo font-extrabold text-2xl sm:text-3xl leading-tight">“{card.vi}”</span>
+          {card.kind === "fix" ? (
+            <>
+              <span className="text-sm font-bold text-[#6B4A30]">Lần trước bạn nói:</span>
+              <span className="font-baloo font-extrabold text-xl sm:text-2xl leading-tight text-[#A4521D] line-through decoration-[#C96A2B]/60">“{card.said}”</span>
+              {card.vi && <span className="text-sm font-semibold text-[#6B4A30]">Gợi ý: {card.vi}</span>}
+              <span className="text-sm font-extrabold text-[#2C5A25]">Nói lại cho đúng nhé</span>
+            </>
+          ) : (
+            <>
+              <span className="text-sm font-bold text-[#6B4A30]">Nói câu này bằng tiếng Anh:</span>
+              <span className="font-baloo font-extrabold text-2xl sm:text-3xl leading-tight">“{view.vi}”</span>
+            </>
+          )}
           {revealed && (
             <div className="anim-flip flex flex-col items-center gap-1">
-              {attempt ? <WordMarks marks={attempt.marks} /> : <span className="font-baloo font-extrabold text-xl text-[#3F7A34]">{card.en}</span>}
-              <button type="button" data-sfx="none" className="text-xs font-extrabold text-[#3F7A34] inline-flex items-center gap-1 mt-1" onClick={() => speak(card.en, { who: "you" })}>
+              {attempt ? <WordMarks marks={attempt.marks} /> : <span className="font-baloo font-extrabold text-xl text-[#3F7A34]">{view.en}</span>}
+              <button type="button" data-sfx="none" className="text-xs font-extrabold text-[#3F7A34] inline-flex items-center gap-1 mt-1" onClick={() => speak(view.en, { who: "you" })}>
                 <Volume2 className="w-3.5 h-3.5" /> Nghe câu chuẩn
               </button>
             </div>
@@ -160,7 +192,7 @@ function Inner() {
               data-sfx="flip"
               onClick={() => {
                 setRevealed(true);
-                speak(card.en, { who: "you" });
+                speak(view.en, { who: "you" });
               }}
             >
               <Eye className="w-4 h-4" /> {supported ? "Bí quá, xem đáp án" : "Nghĩ xong, xem đáp án"}
@@ -209,7 +241,7 @@ function Inner() {
 
       {mounted && all.length === 0 ? (
         <Feedback ok={false} silent title="Sổ câu đang trống">
-          Học xong bài học đầu tiên để các câu hay nhất của bài tự vào sổ.{" "}
+Học xong bài học đầu tiên để các câu hay nhất của bài tự vào sổ.{" "}
           <Link className="underline font-extrabold" href="/island/lesson/1">
             Học Chương 1
           </Link>
@@ -232,12 +264,63 @@ function Inner() {
         </div>
       )}
 
+      {mounted && (
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="cci-card p-4 flex items-center gap-3" style={{ background: "#FFF6EA" }}>
+            <span className="gem w-11 h-11 shrink-0 rounded-[14px] flex items-center justify-center text-white" style={{ ["--tone" as string]: "#C96A2B" }}>
+              <NotebookPen className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="font-baloo font-extrabold text-lg leading-tight">Sổ lỗi sai · {fixes.length} câu</div>
+              <p className="text-xs font-semibold text-[#6B4A30] leading-snug">{fixes.length ? "Những câu AI đã sửa cho bạn. Nói lại cho tới khi thuộc." : "Mỗi câu AI sửa cho bạn khi tám chuyện sẽ tự vào đây."}</p>
+            </div>
+            {fixes.length > 0 ? (
+              <button type="button" className="cci-btn cci-btn-primary shrink-0" data-sfx="open" onClick={() => start(fixes, 10)}>
+                Luyện
+              </button>
+            ) : (
+              <Link href="/island/chat" className="cci-btn shrink-0" data-sfx="whoosh">
+                Tám AI
+              </Link>
+            )}
+          </div>
+          <div className="cci-card p-4 flex items-center gap-3" style={{ background: "#EEF6FB" }}>
+            <span className="gem w-11 h-11 shrink-0 rounded-[14px] flex items-center justify-center text-white" style={{ ["--tone" as string]: "#2F8FB0" }}>
+              <UserRound className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="font-baloo font-extrabold text-lg leading-tight">Về tôi · {mine.length} câu</div>
+              <p className="text-xs font-semibold text-[#6B4A30] leading-snug">{mine.length ? "Câu giới thiệu về chính bạn: tên, quê, nghề, sở thích." : "Điền Hồ sơ của tôi để luyện câu nói về chính bạn."}</p>
+            </div>
+            {mine.length > 0 ? (
+              <button type="button" className="cci-btn cci-btn-primary shrink-0" data-sfx="open" onClick={() => start(mine, 10)}>
+                Luyện
+              </button>
+            ) : (
+              <Link href="/island/me" className="cci-btn shrink-0" data-sfx="whoosh">
+                Điền hồ sơ
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
       {mounted && all.length > 0 && (
         <>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={cx("cci-btn !min-h-[38px] !text-sm !rounded-full", filter === "all" && "cci-btn-primary")} onClick={() => setFilter("all")}>
               Tất cả
             </button>
+            {mine.length > 0 && (
+              <button type="button" className={cx("cci-btn !min-h-[38px] !text-sm !rounded-full", filter === "me" && "cci-btn-primary")} onClick={() => setFilter("me")}>
+                Về tôi
+              </button>
+            )}
+            {fixes.length > 0 && (
+              <button type="button" className={cx("cci-btn !min-h-[38px] !text-sm !rounded-full", filter === "fix" && "cci-btn-primary")} onClick={() => setFilter("fix")}>
+                Lỗi sai
+              </button>
+            )}
             {chapters.map((c) => (
               <button key={c.id} type="button" className={cx("cci-btn !min-h-[38px] !text-sm !rounded-full", filter === c.id && "cci-btn-primary")} onClick={() => setFilter(c.id)}>
                 Ch.{c.id} {c.title}
@@ -245,12 +328,15 @@ function Inner() {
             ))}
           </div>
           <ul className="grid sm:grid-cols-2 gap-3">
-            {listed.map((p) => (
-              <li key={p.en} className="cci-card !shadow-none !border-2 px-4 py-3 flex items-start gap-3">
+            {listed.map((card) => {
+              const p = { ...card, ...shown(card) };
+              return (
+              <li key={card.en} className="cci-card !shadow-none !border-2 px-4 py-3 flex items-start gap-3">
                 <button type="button" data-sfx="none" onClick={() => speak(p.en, { who: "you" })} className="w-9 h-9 shrink-0 rounded-xl border-2 border-[#8B5E3C] bg-[#FBF0D9] flex items-center justify-center" aria-label={`Nghe ${p.en}`}>
                   <Volume2 className="w-4 h-4" />
                 </button>
                 <div className="min-w-0 flex-1">
+                  {p.kind === "fix" && <div className="text-[13px] font-semibold text-[#A4521D] line-through decoration-[#C96A2B]/60 leading-tight">{p.said}</div>}
                   <div className="font-baloo font-extrabold text-[17px] leading-tight">{p.en}</div>
                   <div className="text-sm font-semibold text-[#6B4A30]">{p.vi}</div>
                   <div className="flex items-center gap-1 mt-1.5" title={BOX_LABEL[p.box]}>
@@ -261,7 +347,8 @@ function Inner() {
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </>
       )}

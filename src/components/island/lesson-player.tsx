@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BookOpen, Crown, Ear, Gamepad2, LifeBuoy, Lock, MessageCircle, Mic, Repeat, Sparkles } from "lucide-react";
+import { personalizeDeep } from "@/lib/island/me";
 import { CHAPTERS, NPCS, getChallenge, getChapter, type Chapter } from "@/lib/island/curriculum";
 import { completeChallenge, completeMission, isChallengeUnlocked, isUnlocked, useIsland } from "@/lib/island/progress";
 import { useGame } from "@/contexts/game-context";
@@ -25,7 +26,7 @@ const STEPS = [
 ] as const;
 
 function turnsOf(ch: Chapter): RpTurn[] {
-  return ch.turns.map((t) => ({ ...t, npc: ch.npc, scene: ch.scene }));
+  return ch.turns.map((t) => ({ ...t, npc: ch.npc, scene: ch.scene, level: ch.level, ch: ch.id }));
 }
 function rescueOf(ch: Chapter): RpTurn {
   return {
@@ -59,7 +60,9 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
   const island = useIsland();
   const { addXP } = useGame();
   const challenge = id.startsWith("c") ? getChallenge(id) : undefined;
-  const chapter = challenge ? undefined : getChapter(Number(id));
+  // Thay tên/quê/nghề mẫu bằng Hồ sơ của tôi (chỉ lúc hiển thị; tiến độ vẫn lưu theo nội dung gốc).
+  const profile = island.profile;
+  const chapter = useMemo(() => (challenge ? undefined : personalizeDeep(getChapter(Number(id)), profile)), [challenge, id, profile]);
   const mode: LessonMode = challenge ? "challenge" : rawMode;
 
   const [started, setStarted] = useState(false);
@@ -72,11 +75,11 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
   const challengeTurns = useMemo<RpTurn[]>(() => {
     if (!challenge) return [];
     return challenge.chapters.flatMap((cid) => {
-      const ch = getChapter(cid)!;
+      const ch = personalizeDeep(getChapter(cid)!, profile);
       const t = turnsOf(ch);
       return [t[0], t[2]];
     });
-  }, [challenge]);
+  }, [challenge, profile]);
 
   useEffect(() => {
     if (reward) sfx.win();

@@ -32,6 +32,31 @@ export interface PhraseCard {
   box: number;
   due: string;
   seen: number;
+  /** "fix" = câu AI đã sửa cho bạn (Sổ lỗi sai) · "me" = câu nói về chính bạn (từ Hồ sơ). */
+  kind?: "fix" | "me";
+  /** Với thẻ "fix": câu bạn đã nói sai. */
+  said?: string;
+}
+
+/** Hồ sơ của người học: dùng để thay tên/quê/nghề/sở thích mẫu bằng thông tin thật. Tất cả là tiếng Anh, trừ *Vi. */
+export interface Profile {
+  name: string;
+  hometown: string;
+  /** Nghề, không kèm mạo từ: "software tester". */
+  job: string;
+  jobVi: string;
+  /** Sở thích dạng V-ing: "playing badminton". */
+  hobby: string;
+  hobbyVi: string;
+  at: string;
+}
+
+/** Chế độ nước rút 30 ngày. */
+export interface Sprint {
+  on: boolean;
+  start: string; // YYYY-MM-DD
+  at: string; // ISO lần bật/tắt gần nhất
+  doneAt?: string; // ngày hoàn thành ngày 30
 }
 
 export type ReflexMode = "quick" | "swap" | "filler";
@@ -58,6 +83,8 @@ export interface FarmSlot {
   at: string; // ISO lúc thả giống
   boost: number; // số lần cho ăn (0..3)
   done?: string; // ISO lúc thu hoạch
+  rare?: boolean; // con hiếm (tôm vàng, cua xanh, tôm hùm tím) — bán giá gấp đôi
+  tipped?: boolean; // đã bán cho khách ở chợ (nhận tiền thưởng một lần)
 }
 
 export interface FarmState {
@@ -66,6 +93,8 @@ export interface FarmState {
   foodUsed: number;
   size: number; // số ô ao: 3 / 6 / 9
   slots: Record<string, FarmSlot>;
+  caught: Record<string, number>; // số con đã vớt theo loại: "shrimp", "shrimp-rare"...
+  dexClaimed: number; // số mốc thưởng Sổ sưu tập đã nhận
 }
 
 export interface IslandState {
@@ -87,7 +116,11 @@ export interface IslandState {
   daily: Record<string, string[]>;
   /** Ao nuôi tôm cua. */
   farm: FarmState;
+  /** Vườn Nhiệm Vụ: chương → lúc thu hoạch luống (ISO). */
+  garden: Record<string, string>;
   placement?: { level: string; score: number; at: string };
+  profile?: Profile;
+  sprint?: Sprint;
   /** Thời điểm người dùng bấm "bắt đầu lại kế hoạch" (ISO) — để ngày bắt đầu mới thắng khi gộp. */
   planResetAt?: string;
   /** user_id mà dữ liệu này thuộc về (undefined = khách, chưa đăng nhập). */
@@ -108,7 +141,7 @@ export function todayStr(): string {
 }
 
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {} } };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {} };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -137,11 +170,20 @@ export function normalizeState(input: unknown): IslandState {
     chatTasks: {},
     sounds: {},
     daily: {},
-    farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {} },
+    farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 },
+    garden: {},
   };
+  if (x.garden && typeof x.garden === "object") {
+    for (const [k, v] of Object.entries(x.garden as Record<string, unknown>)) {
+      if (/^\d{1,3}$/.test(k) && typeof v === "string" && !Number.isNaN(Date.parse(v))) out.garden[k] = v.slice(0, 40);
+    }
+  }
   if (x.farm && typeof x.farm === "object") {
     const f = x.farm as Record<string, unknown>;
-    out.farm = { earned: num(f.earned, 0, 10_000_000), spent: num(f.spent, 0, 10_000_000), foodUsed: num(f.foodUsed, 0, 1_000_000), size: [3, 6, 9].includes(f.size as number) ? (f.size as number) : 3, slots: {} };
+    out.farm = { earned: num(f.earned, 0, 10_000_000), spent: num(f.spent, 0, 10_000_000), foodUsed: num(f.foodUsed, 0, 1_000_000), size: [3, 6, 9].includes(f.size as number) ? (f.size as number) : 3, slots: {}, caught: {}, dexClaimed: num(f.dexClaimed, 0, 50) };
+    if (f.caught && typeof f.caught === "object") {
+      for (const [k, v] of Object.entries(f.caught as Record<string, unknown>)) if (/^(shrimp|crab|lobster)(-rare)?$/.test(k)) out.farm.caught[k] = num(v, 0, 100_000);
+    }
     if (f.slots && typeof f.slots === "object") {
       for (const [k, v] of Object.entries(f.slots as Record<string, unknown>)) {
         if (!/^[0-8]$/.test(k) || !v || typeof v !== "object") continue;
@@ -149,6 +191,8 @@ export function normalizeState(input: unknown): IslandState {
         if (!FARM_KINDS.includes(sl.kind as FarmKind) || typeof sl.at !== "string" || Number.isNaN(Date.parse(sl.at))) continue;
         const slot: FarmSlot = { kind: sl.kind as FarmKind, at: sl.at.slice(0, 40), boost: num(sl.boost, 0, 3) };
         if (typeof sl.done === "string" && !Number.isNaN(Date.parse(sl.done))) slot.done = sl.done.slice(0, 40);
+        if (sl.rare === true) slot.rare = true;
+        if (sl.tipped === true) slot.tipped = true;
         out.farm.slots[k] = slot;
       }
     }
@@ -166,6 +210,8 @@ export function normalizeState(input: unknown): IslandState {
       const w = v as Record<string, unknown>;
       const en = str(w.en, 300) || k.slice(0, 300);
       out.phrases[en] = { en, vi: str(w.vi, 300), ch: num(w.ch, 0, 999), box: num(w.box, 0, 6, 1), due: date(w.due) || base.startDate, seen: num(w.seen, 0, 1_000_000) };
+      if (w.kind === "fix" || w.kind === "me") out.phrases[en].kind = w.kind;
+      if (w.kind === "fix" && str(w.said, 300)) out.phrases[en].said = str(w.said, 300);
     }
   }
   if (Array.isArray(x.reflex)) {
@@ -214,6 +260,20 @@ export function normalizeState(input: unknown): IslandState {
     const p = x.placement as Record<string, unknown>;
     const at = date(p.at);
     if (at) out.placement = { level: str(p.level, 4), score: num(p.score, 0, 100), at };
+  }
+  if (x.profile && typeof x.profile === "object") {
+    const p = x.profile as Record<string, unknown>;
+    const clean = (v: unknown) => str(v, 60).replace(/["\\\u0000-\u001f<>{}]/g, "").trim();
+    const prof: Profile = { name: clean(p.name), hometown: clean(p.hometown), job: clean(p.job), jobVi: clean(p.jobVi), hobby: clean(p.hobby), hobbyVi: clean(p.hobbyVi), at: typeof p.at === "string" && !Number.isNaN(Date.parse(p.at)) ? p.at.slice(0, 40) : "" };
+    if (prof.at && (prof.name || prof.hometown || prof.job || prof.hobby)) out.profile = prof;
+  }
+  if (x.sprint && typeof x.sprint === "object") {
+    const p = x.sprint as Record<string, unknown>;
+    const start = date(p.start);
+    if (start && typeof p.at === "string" && !Number.isNaN(Date.parse(p.at))) {
+      out.sprint = { on: p.on === true, start, at: p.at.slice(0, 40) };
+      if (date(p.doneAt)) out.sprint.doneAt = p.doneAt as string;
+    }
   }
   if (typeof x.planResetAt === "string" && !Number.isNaN(Date.parse(x.planResetAt))) out.planResetAt = x.planResetAt;
   if (typeof x.owner === "string" && x.owner) out.owner = x.owner.slice(0, 128);
@@ -274,7 +334,9 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
   for (const k of new Set([...Object.keys(a.farm.slots), ...Object.keys(b.farm.slots)])) {
     const x = a.farm.slots[k];
     const y = b.farm.slots[k];
-    const pick = !x ? y : !y ? x : slotVer(x) > slotVer(y) ? x : slotVer(y) > slotVer(x) ? y : { ...x, boost: Math.max(x.boost, y.boost) };
+    let pick = !x ? y : !y ? x : slotVer(x) > slotVer(y) ? x : slotVer(y) > slotVer(x) ? y : { ...x, boost: Math.max(x.boost, y.boost) };
+    // Cùng một mẻ (cùng lúc thả): đã bán cho khách ở máy nào thì coi như đã bán.
+    if (pick && x && y && x.at === y.at && (x.tipped || y.tipped)) pick = { ...pick, tipped: true };
     if (pick) farmSlots[k] = pick;
   }
   const farm: FarmState = {
@@ -283,6 +345,8 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
     foodUsed: Math.max(a.farm.foodUsed, b.farm.foodUsed),
     size: Math.max(a.farm.size, b.farm.size),
     slots: farmSlots,
+    caught: Object.fromEntries([...new Set([...Object.keys(a.farm.caught), ...Object.keys(b.farm.caught)])].map((k) => [k, Math.max(a.farm.caught[k] || 0, b.farm.caught[k] || 0)])),
+    dexClaimed: Math.max(a.farm.dexClaimed, b.farm.dexClaimed),
   };
   const placement = [a.placement, b.placement].filter(Boolean).sort((p, q) => (p!.at < q!.at ? 1 : -1))[0];
   const updatedAt = [a.updatedAt, b.updatedAt].filter(Boolean).sort().pop();
@@ -305,8 +369,20 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
     sounds,
     daily,
     farm,
+    garden: (() => {
+      const g: Record<string, string> = { ...b.garden };
+      for (const [k, v] of Object.entries(a.garden)) if (!g[k] || v < g[k]) g[k] = v;
+      return g;
+    })(),
   };
   if (placement) out.placement = placement;
+  const profile = [a.profile, b.profile].filter(Boolean).sort((p, q) => (p!.at < q!.at ? 1 : -1))[0];
+  if (profile) out.profile = profile;
+  const sprint = [a.sprint, b.sprint].filter(Boolean).sort((p, q) => (p!.at < q!.at ? 1 : -1))[0];
+  if (sprint) {
+    const doneAt = [a.sprint?.doneAt, b.sprint?.doneAt].filter(Boolean).sort()[0];
+    out.sprint = doneAt && sprint.start <= doneAt ? { ...sprint, doneAt } : sprint;
+  }
   if (ra || rb) out.planResetAt = ra >= rb ? ra : rb;
   if (a.owner || b.owner) out.owner = a.owner || b.owner;
   if (updatedAt) out.updatedAt = updatedAt;

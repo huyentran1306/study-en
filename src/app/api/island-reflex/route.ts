@@ -13,7 +13,7 @@ interface Body {
   level?: string;
 }
 
-function extractJson(raw: unknown): { ok?: unknown; better?: unknown; note?: unknown } | null {
+function extractJson(raw: unknown): { ok?: unknown; better?: unknown; note?: unknown; hasError?: unknown; fixed?: unknown } | null {
   if (raw && typeof raw === "object") return raw as never;
   if (typeof raw !== "string") return null;
   const a = raw.indexOf("{");
@@ -46,8 +46,10 @@ Example good answers: ${samples.map((x) => `"${x}"`).join(", ") || "(none)"}
 
 "ok" = true if the answer is an understandable, appropriate reply in this situation, even if short or slightly imperfect. Different content from the examples is fine. "ok" = false if it is off-topic, not English, or so broken it would confuse a listener.
 "better": one natural sentence the learner could say instead (keep their idea if it was appropriate). Max 15 words.
-"note": very short tip in Vietnamese (max 14 words), e.g. a grammar fix. Empty string if nothing to fix.
-Respond ONLY with JSON: {"ok": true, "better": "...", "note": "..."}`;
+"hasError": true ONLY if the learner's answer contains a real grammar or word-choice mistake (e.g. missing "to be", wrong tense, missing article, wrong preposition). Different content from the examples is NOT a mistake. Being short is NOT a mistake. Never count capitalization, punctuation, or a misspelled Vietnamese name or place (speech-to-text mangles them).
+"fixed": if hasError, the learner's OWN sentence with only the mistakes corrected (keep all their content and meaning; do not replace it with example content). Otherwise "".
+"note": if hasError, a very short tip in Vietnamese (max 14 words) naming the mistake. Otherwise "".
+Respond ONLY with JSON: {"ok": true, "better": "...", "hasError": false, "fixed": "", "note": ""}`;
 
   try {
     const { env } = await getCloudflareContext({ async: true });
@@ -59,12 +61,13 @@ Respond ONLY with JSON: {"ok": true, "better": "...", "note": "..."}`;
         { role: "system", content: system },
         { role: "user", content: "Judge now. JSON only." },
       ],
-      max_tokens: 120,
+      max_tokens: 200,
       temperature: 0.2,
     });
     const j = extractJson((result as { response?: unknown }).response);
     if (!j || typeof j.ok !== "boolean") throw new Error("Bad AI response");
-    return NextResponse.json({ ok: j.ok, better: String(j.better || "").slice(0, 200), note: String(j.note || "").slice(0, 160), ai: true });
+    const hasError = j.hasError === true && !!String(j.fixed || "").trim();
+    return NextResponse.json({ ok: j.ok, better: String(j.better || "").slice(0, 200), fixed: hasError ? String(j.fixed).trim().slice(0, 300) : "", note: hasError || !j.ok ? String(j.note || "").slice(0, 160) : "", ai: true });
   } catch (error) {
     console.error("island-reflex error:", error);
     return NextResponse.json({ ai: false });

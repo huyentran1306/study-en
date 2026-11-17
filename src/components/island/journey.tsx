@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, Gift, Map as MapIcon, X } from "lucide-react";
-import { chestOpened, openChest, todayPlan, useIsland } from "@/lib/island/progress";
+import { SPRINT_DAYS, chestOpened, openChest, sprintInfo, todayPlan, useIsland } from "@/lib/island/progress";
 import { useGame } from "@/contexts/game-context";
 import { sfx } from "@/lib/island/sfx";
 import { cx } from "./ui";
@@ -44,12 +44,14 @@ export function NextStep({ className = "" }: { className?: string }) {
   const plan = todayPlan(s);
   const done = plan.filter((p) => p.done).length;
   const next = plan.find((p) => !p.done);
+  const sp = sprintInfo(s);
+  const n = plan.length;
   return (
     <div className={cx("w-full rounded-[20px] border-[3px] border-dashed border-[#D9A92F] bg-[#FFF9EE] px-4 py-3 flex flex-col sm:flex-row items-center gap-3 text-left", className)}>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-extrabold uppercase tracking-wide text-[#A4521D]">Hành trình hôm nay · {done}/3</div>
+        <div className="text-xs font-extrabold uppercase tracking-wide text-[#A4521D]">{sp.on ? `Nước rút · Ngày ${sp.day}/${SPRINT_DAYS}` : "Hành trình hôm nay"} · {done}/{n}</div>
         <div className="font-baloo font-extrabold text-lg leading-tight">
-          {next ? `Tiếp theo: ${next.title}` : chestOpened(s) ? "Xong cả 3 bước hôm nay! Mai gặp lại nhé 🌙" : "Xong cả 3 bước — rương thưởng đang chờ!"}
+          {next ? `Tiếp theo: ${next.title}` : chestOpened(s) ? `Xong cả ${n} bước hôm nay! Mai gặp lại nhé 🌙` : `Xong cả ${n} bước — rương thưởng đang chờ!`}
         </div>
         {next && <div className="text-sm font-semibold text-[#6B4A30]">{next.desc} · ~{next.mins} phút</div>}
       </div>
@@ -74,6 +76,9 @@ export function JourneyPanel({ onClose }: { onClose: () => void }) {
   const plan = todayPlan(s);
   const done = plan.filter((p) => p.done).length;
   const firstOpen = plan.findIndex((p) => !p.done);
+  const sp = sprintInfo(s);
+  const n = plan.length;
+  const mins = plan.reduce((a, p) => a + p.mins, 0);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -87,15 +92,18 @@ export function JourneyPanel({ onClose }: { onClose: () => void }) {
             <MapIcon className="w-6 h-6" />
           </span>
           <div className="flex-1">
-            <h2 className="text-2xl font-extrabold leading-tight">Hành trình hôm nay</h2>
-            <p className="font-semibold text-[#6B4A30] text-sm">3 bước · khoảng 12 phút · làm theo thứ tự nhé</p>
+            <h2 className="text-2xl font-extrabold leading-tight">{sp.on ? `Nước rút · Ngày ${sp.day}/${SPRINT_DAYS}` : "Hành trình hôm nay"}</h2>
+            <p className="font-semibold text-[#6B4A30] text-sm">
+              {n} bước · khoảng {mins} phút · làm theo thứ tự nhé
+              {sp.on && sp.behind > 0 ? ` · đang chậm ${sp.behind} ngày` : ""}
+            </p>
           </div>
           <button type="button" onClick={onClose} className="cci-btn !min-h-[40px] !w-[40px] !p-0" aria-label="Đóng" data-sfx="close">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="h-3 rounded-full bg-[#EAD9B8] border-2 border-[#8B5E3C] overflow-hidden">
-          <div className="h-full bg-[#6FAE4F] transition-all" style={{ width: `${(done / 3) * 100}%` }} />
+          <div className="h-full bg-[#6FAE4F] transition-all" style={{ width: `${(done / n) * 100}%` }} />
         </div>
         <ol className="flex flex-col gap-2.5">
           {plan.map((p, i) => {
@@ -126,9 +134,22 @@ export function JourneyPanel({ onClose }: { onClose: () => void }) {
         </ol>
         <div className="flex items-center gap-3 rounded-[18px] px-4 py-3" style={{ background: "#FFF9EE", border: "3px dashed #D9A92F" }}>
           <Gift className="w-8 h-8 text-[#C96A2B] shrink-0" />
-          <div className="flex-1 text-sm font-bold text-[#6B4A30]">{chestOpened(s) ? "Đã mở rương hôm nay. Giữ chuỗi ngày học để đảo ngày càng đẹp!" : "Xong cả 3 bước để mở rương: +30 XP, xây đảo nhanh hơn."}</div>
-          {done === 3 && !chestOpened(s) && <ChestButton />}
+          <div className="flex-1 text-sm font-bold text-[#6B4A30]">{chestOpened(s) ? "Đã mở rương hôm nay. Giữ chuỗi ngày học để đảo ngày càng đẹp!" : `Xong cả ${n} bước để mở rương: +30 XP, xây đảo nhanh hơn.`}</div>
+          {done === n && !chestOpened(s) && <ChestButton />}
         </div>
+        {sp.on && sp.doneToday && !sp.finished && (
+          <Link href="/island/path" data-sfx="whoosh" className="cci-btn self-center">
+            Còn sức? Học vượt chặng ngày mai <ArrowRight className="w-4 h-4" />
+          </Link>
+        )}
+        {!sp.on && (
+          <Link href="/island/path" data-sfx="whoosh" className="text-sm font-extrabold text-[#A4521D] underline underline-offset-4 self-center">
+            ⚡ Muốn nhanh hơn? Bật Nước rút 30 ngày ở trang Lộ trình
+          </Link>
+        )}
+        <Link href="/island/garden" data-sfx="whoosh" className="text-sm font-extrabold text-[#2C5A25] underline underline-offset-4 self-center">
+          🌱 Mỗi nhiệm vụ tuần làm cây trong Vườn Nhiệm Vụ lớn thêm — xem vườn
+        </Link>
       </div>
     </div>
   );

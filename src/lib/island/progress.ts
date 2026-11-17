@@ -3,11 +3,14 @@
 // Tiến độ Chit Chat Island: lưu ngay trong trình duyệt (localStorage) để dùng offline,
 // và đồng bộ lên máy chủ (D1, /api/island/progress) khi người dùng đã đăng nhập.
 import { useSyncExternalStore } from "react";
-import { CHAPTERS, CHALLENGES, TOTAL_WEEKS, MISSIONS, type Chapter, type MissionKey, type NpcId, type Word } from "./curriculum";
-import { FRIEND_LEVELS, PHRASE_EXTRAS, SOUND_SETS } from "./drills";
-import { EXPAND_COST, FEED_CUT, MAX_FEED, SPECIES_BY_KIND, STARTER_SHELLS } from "./farm-data";
-import { freshState, mergeStates, normalizeState, sameContent, todayStr, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type ReflexRun, type WordCard } from "./state";
+import { CHAPTERS, CHALLENGES, TOTAL_WEEKS, MISSIONS, missionHref, type Chapter, type MissionKey, type NpcId, type Word } from "./curriculum";
+import { cleanField, lenientWords, mePhrases } from "./me";
+import { setLenientWords } from "./speech";
+import { BUILDS, FRIEND_LEVELS, NPC_STORIES, PHRASE_EXTRAS, SOUND_SETS } from "./drills";
+import { EXPAND_COST, FEED_CUT, MAX_FEED, RARE_SELL, SPECIES_BY_KIND, STARTER_SHELLS, rareChance } from "./farm-data";
+import { freshState, mergeStates, normalizeState, sameContent, todayStr, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
 
+export type { Profile, Sprint } from "./state";
 export type { ChapterProgress, IslandState, PhraseCard, ReflexMode, ReflexRun, WordCard } from "./state";
 
 const KEY = "cci-progress-v1";
@@ -44,12 +47,14 @@ function load(): IslandState {
   } catch {
     cache = fresh();
   }
+  setLenientWords(lenientWords(cache!.profile));
   return cache!;
 }
 
 /** Ghi vào trình duyệt; push=true thì hẹn đẩy lên máy chủ. */
 function persist(next: IslandState, push: boolean) {
   cache = next;
+  setLenientWords(lenientWords(next.profile));
   try {
     localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
@@ -60,6 +65,7 @@ function persist(next: IslandState, push: boolean) {
 }
 
 function save(next: IslandState) {
+  next = sprintHook(load(), next);
   persist({ ...next, updatedAt: new Date().toISOString() }, true);
 }
 
@@ -72,7 +78,7 @@ function markStudy(s: IslandState): IslandState {
   return s.studyDays.includes(t) ? s : { ...s, studyDays: [...s.studyDays, t].slice(-400) };
 }
 
-export type DailyStep = "mission" | "review" | "reflex";
+export type DailyStep = "mission" | "review" | "reflex" | "chat" | "unit";
 
 function markDaily(s: IslandState, step: DailyStep | "chest"): IslandState {
   const t = today();
@@ -384,6 +390,73 @@ export function gradeWord(en: string, remembered: boolean) {
   });
 }
 
+/** Đủ 5 lượt trong một buổi Tám AI (dùng cho ngày tổng kết của chế độ nước rút). */
+export function markChatDone() {
+  update((s) => markDaily(s, "chat"));
+}
+
+/** Lưu Hồ sơ của tôi và sinh lại các thẻ câu "nói về tôi". */
+export function saveProfile(p: Omit<Profile, "at">) {
+  update((s) => {
+    const profile: Profile = {
+      name: cleanField(p.name, 40),
+      hometown: cleanField(p.hometown, 40),
+      job: cleanField(p.job, 50).replace(/^(a|an|the)\s+/i, ""),
+      jobVi: cleanField(p.jobVi, 50),
+      hobby: cleanField(p.hobby, 50),
+      hobbyVi: cleanField(p.hobbyVi, 50),
+      at: new Date().toISOString(),
+    };
+    const phrases = { ...s.phrases };
+    const old: Record<string, PhraseCard> = {};
+    for (const k of Object.keys(phrases)) {
+      if (phrases[k].kind === "me") {
+        old[k] = phrases[k];
+        delete phrases[k];
+      }
+    }
+    for (const m of mePhrases(profile)) {
+      if (!phrases[m.en]) phrases[m.en] = old[m.en] || { ...m, ch: 0, box: 1, due: today(), seen: 0, kind: "me" };
+    }
+    return { ...s, profile, phrases };
+  });
+}
+
+const MAX_FIXES = 150;
+
+/** Sổ lỗi sai: lưu câu AI vừa sửa thành một thẻ ôn "nói lại câu đúng". Trả về true nếu là thẻ mới. */
+export function addFix(said: string, fixed: string, note: string, ch: number): boolean {
+  const en = fixed.replace(/\s+/g, " ").trim().slice(0, 300);
+  const was = said.replace(/\s+/g, " ").trim().slice(0, 300);
+  if (!en || !was || en.split(" ").length > 30) return false;
+  const s = load();
+  if (s.phrases[en]) return false;
+  const phrases = { ...s.phrases };
+  const fixes = Object.values(phrases).filter((x) => x.kind === "fix");
+  if (fixes.length >= MAX_FIXES) {
+    // Hết chỗ: bỏ thẻ đã thuộc nhất.
+    const drop = fixes.sort((a, b) => b.box - a.box || (a.due < b.due ? -1 : 1))[0];
+    delete phrases[drop.en];
+  }
+  phrases[en] = { en, vi: note.trim().slice(0, 300), ch, box: 1, due: today(), seen: 0, kind: "fix", said: was };
+  save({ ...s, phrases });
+  return true;
+}
+
+export function fixCards(s: IslandState): PhraseCard[] {
+  return Object.values(s.phrases).filter((p) => p.kind === "fix");
+}
+
+/** Bật chế độ nước rút 30 ngày (tính ngày 1 từ hôm nay). */
+export function startSprint() {
+  update((s) => ({ ...s, sprint: { on: true, start: today(), at: new Date().toISOString(), ...(s.sprint?.doneAt ? { doneAt: s.sprint.doneAt } : {}) } }));
+}
+
+/** Quay về nhịp 13 tuần. */
+export function stopSprint() {
+  update((s) => (s.sprint ? { ...s, sprint: { ...s.sprint, on: false, at: new Date().toISOString() } } : s));
+}
+
 export function addChatTurn() {
   update((s) => markStudy({ ...s, chatTurns: s.chatTurns + 1 }));
 }
@@ -529,8 +602,117 @@ function reflexPct(s: IslandState): number {
 
 // ───────────── Hành trình hôm nay ─────────────
 
+// ───────────── Nước rút 30 ngày ─────────────
+// 13 chương × 2 ngày (A: bài học + chỉ nghe + phản xạ · B: nhập vai nói + tám AI + phát âm + ôn thẻ)
+// + 3 ngày thử thách sau mỗi chặng + 1 ngày tổng kết = 30 ngày, khoảng 25 phút mỗi ngày.
+
+export interface SprintUnit {
+  day: number;
+  kind: "a" | "b" | "challenge" | "final";
+  ch?: number;
+  cid?: string;
+  title: string;
+}
+
+const A_KEYS: MissionKey[] = ["lesson", "listen", "reflex"];
+const B_KEYS: MissionKey[] = ["speak", "chat", "sound", "review"];
+
+export const SPRINT_UNITS: SprintUnit[] = (() => {
+  const out: SprintUnit[] = [];
+  for (const c of CHALLENGES) {
+    for (const id of c.chapters) {
+      const ch = CHAPTERS.find((x) => x.id === id);
+      if (!ch) continue;
+      out.push({ day: out.length + 1, kind: "a", ch: id, title: `${ch.title} · học & nghe` });
+      out.push({ day: out.length + 1, kind: "b", ch: id, title: `${ch.title} · nói & tám` });
+    }
+    out.push({ day: out.length + 1, kind: "challenge", cid: c.id, title: `Thử thách: ${c.title}` });
+  }
+  out.push({ day: out.length + 1, kind: "final", title: "Ngày tổng kết" });
+  return out;
+})();
+
+export const SPRINT_DAYS = SPRINT_UNITS.length;
+
+export function sprintUnitDone(s: IslandState, u: SprintUnit): boolean {
+  if (u.kind === "final") return !!s.sprint?.doneAt;
+  if (u.kind === "challenge") return !!s.challenges[u.cid!]?.done;
+  const p = s.chapters[u.ch!] || {};
+  return (u.kind === "a" ? A_KEYS : B_KEYS).every((k) => p[k]);
+}
+
+function sprintFirstOpen(s: IslandState): number {
+  return SPRINT_UNITS.findIndex((u) => !sprintUnitDone(s, u));
+}
+
+/** Sau mỗi thay đổi: nếu chặng của hôm nay vừa xong thì ghi vào nhật ký ngày (để bảng hành trình giữ nguyên chặng đó tới hết ngày). */
+function sprintHook(prev: IslandState, next: IslandState): IslandState {
+  if (!next.sprint?.on) return next;
+  const fo = sprintFirstOpen(prev);
+  if (fo < 0) return next;
+  const u = SPRINT_UNITS[fo];
+  if (u.kind === "final") {
+    const log = next.daily[today()] || [];
+    if (["review", "reflex", "chat"].every((k) => log.includes(k))) next = { ...next, sprint: { ...next.sprint, doneAt: today() } };
+  }
+  return sprintUnitDone(next, u) ? markDaily(next, "unit") : next;
+}
+
+export function sprintInfo(s: IslandState) {
+  const on = !!s.sprint?.on;
+  const fo = sprintFirstOpen(s);
+  const doneToday = (s.daily[today()] || []).includes("unit");
+  const idx = fo < 0 ? SPRINT_DAYS - 1 : doneToday ? Math.max(0, fo - 1) : fo;
+  const unitsDone = fo < 0 ? SPRINT_DAYS : fo;
+  const calDay = s.sprint ? Math.min(SPRINT_DAYS, Math.max(1, daysBetween(s.sprint.start, today()) + 1)) : 1;
+  return {
+    on,
+    /** Chặng đang hiện hôm nay (1..30). */
+    day: idx + 1,
+    unit: SPRINT_UNITS[idx],
+    unitsDone,
+    calDay,
+    /** Số ngày chậm so với lịch (0 = đang theo kịp hoặc vượt). */
+    behind: Math.max(0, calDay - 1 - unitsDone),
+    ahead: Math.max(0, unitsDone - calDay),
+    doneToday: doneToday || fo < 0,
+    finished: fo < 0,
+  };
+}
+
+function sprintPlan(s: IslandState): PlanStep[] {
+  const log = s.daily[today()] || [];
+  const u = sprintInfo(s).unit;
+  const nWords = dueWords(s).length;
+  const nPhrases = duePhrases(s).length;
+  const reviewDaily = (title: string): PlanStep => ({
+    key: "review",
+    title,
+    desc: nWords + nPhrases > 0 ? `${nWords} từ · ${nPhrases} câu đang chờ` : "Nhìn tiếng Việt → nói tiếng Anh",
+    href: nPhrases > 0 || nWords === 0 ? "/island/phrases" : "/island/words",
+    done: log.includes("review"),
+    mins: 4,
+  });
+  const reflexDaily: PlanStep = { key: "reflex", title: "Ao Phản Xạ", desc: "8 câu hỏi nhanh — mở miệng trong vài giây", href: "/island/reflex", done: log.includes("reflex"), mins: 4 };
+  if (u.kind === "final") {
+    return [reviewDaily("Ôn câu khung & lỗi sai"), reflexDaily, { key: "chat", title: "Tám chuyện tự do 5 lượt", desc: "Chọn chủ đề bạn thích nhất", href: "/island/chat", done: log.includes("chat"), mins: 8 }];
+  }
+  if (u.kind === "challenge") {
+    const c = CHALLENGES.find((x) => x.id === u.cid)!;
+    return [{ key: "challenge", title: `Thử thách: ${c.title}`, desc: c.subtitle, href: `/island/lesson/${c.id}`, done: !!s.challenges[c.id]?.done, mins: 10 }, reviewDaily("Ôn câu khung & lỗi sai"), reflexDaily];
+  }
+  const ch = CHAPTERS.find((c) => c.id === u.ch)!;
+  const p = s.chapters[ch.id] || {};
+  const steps: PlanStep[] = (u.kind === "a" ? A_KEYS : B_KEYS).map((k) => {
+    const m = MISSIONS.find((x) => x.key === k)!;
+    return { key: k, title: m.title, desc: `Chương ${ch.id} · ${ch.title}`, href: missionHref(k, ch.id), done: !!p[k], mins: m.mins };
+  });
+  if (u.kind === "a" && (nWords + nPhrases > 0 || log.includes("review"))) steps.push(reviewDaily("Ôn thẻ đến hạn"));
+  return steps;
+}
+
 export interface PlanStep {
-  key: DailyStep;
+  key: string;
   title: string;
   desc: string;
   href: string;
@@ -538,8 +720,9 @@ export interface PlanStep {
   mins: number;
 }
 
-/** 3 bước mỗi ngày, theo thứ tự nên làm: nhiệm vụ tuần → ôn thẻ đến hạn → Ao Phản Xạ. */
+/** Các bước hôm nay. Nhịp 13 tuần: nhiệm vụ tuần → ôn thẻ đến hạn → Ao Phản Xạ. Nước rút: 3–4 chặng của ngày. */
 export function todayPlan(s: IslandState): PlanStep[] {
+  if (s.sprint?.on) return sprintPlan(s);
   const log = s.daily[today()] || [];
   const curId = currentChapterId(s);
   const ch = CHAPTERS.find((c) => c.id === curId)!;
@@ -638,15 +821,18 @@ export function readyCount(s: IslandState): number {
 
 export type FarmResult = { ok: true } | { ok: false; reason: string };
 
-export function buySeed(kind: FarmKind, idx: number): FarmResult {
+export function buySeed(kind: FarmKind, idx: number): { ok: true; rare: boolean } | { ok: false; reason: string } {
   const s = load();
   const sp = SPECIES_BY_KIND[kind];
   if (idx < 0 || idx >= s.farm.size) return { ok: false, reason: "Ô ao không hợp lệ." };
   if (activeSlot(s, idx)) return { ok: false, reason: "Ô này đang nuôi rồi." };
   if (islandLevel(s.xp).level < sp.minLevel) return { ok: false, reason: `Cần đảo cấp ${sp.minLevel} để nuôi ${sp.vi}.` };
   if (shells(s) < sp.price) return { ok: false, reason: `Chưa đủ vỏ sò (cần ${sp.price}). Học thêm để kiếm nhé!` };
-  save({ ...s, farm: { ...s.farm, spent: s.farm.spent + sp.price, slots: { ...s.farm.slots, [String(idx)]: { kind, at: new Date().toISOString(), boost: 0 } } } });
-  return { ok: true };
+  const rare = Math.random() < rareChance(streak(s));
+  const slot: FarmSlot = { kind, at: new Date().toISOString(), boost: 0 };
+  if (rare) slot.rare = true;
+  save({ ...s, farm: { ...s.farm, spent: s.farm.spent + sp.price, slots: { ...s.farm.slots, [String(idx)]: slot } } });
+  return { ok: true, rare };
 }
 
 export function feedSlot(idx: number): FarmResult {
@@ -660,14 +846,31 @@ export function feedSlot(idx: number): FarmResult {
   return { ok: true };
 }
 
-export function harvestSlot(idx: number): { ok: true; earned: number; kind: FarmKind } | { ok: false; reason: string } {
+/** Giá bán một con (con hiếm gấp đôi). */
+export function sellPrice(slot: Pick<FarmSlot, "kind" | "rare">): number {
+  return SPECIES_BY_KIND[slot.kind].sell * (slot.rare ? RARE_SELL : 1);
+}
+
+export function harvestSlot(idx: number): { ok: true; earned: number; kind: FarmKind; rare: boolean; done: string } | { ok: false; reason: string } {
   const s = load();
   const sl = activeSlot(s, idx);
   if (!sl) return { ok: false, reason: "Ô này đang trống." };
   if (growth(sl).pct < 1) return { ok: false, reason: "Chưa lớn, chờ thêm chút nhé." };
-  const earned = SPECIES_BY_KIND[sl.kind].sell;
-  save(markStudy({ ...s, farm: { ...s.farm, earned: s.farm.earned + earned, slots: { ...s.farm.slots, [String(idx)]: { ...sl, done: new Date().toISOString() } } } }));
-  return { ok: true, earned, kind: sl.kind };
+  const earned = sellPrice(sl);
+  const done = new Date().toISOString();
+  const key = sl.rare ? `${sl.kind}-rare` : sl.kind;
+  save(markStudy({ ...s, farm: { ...s.farm, earned: s.farm.earned + earned, caught: { ...s.farm.caught, [key]: (s.farm.caught[key] || 0) + 1 }, slots: { ...s.farm.slots, [String(idx)]: { ...sl, done } } } }));
+  return { ok: true, earned, kind: sl.kind, rare: !!sl.rare, done };
+}
+
+/** Bán mẻ vừa vớt cho khách ở chợ: thưởng thêm theo tỉ lệ (mỗi mẻ một lần). Trả về số vỏ sò thưởng. */
+export function tipCustomer(idx: number, done: string, rate: number): number {
+  const s = load();
+  const sl = s.farm.slots[String(idx)];
+  if (!sl || sl.done !== done || sl.tipped || rate <= 0) return 0;
+  const tip = Math.round(sellPrice(sl) * Math.min(0.5, rate));
+  save({ ...s, farm: { ...s.farm, earned: s.farm.earned + tip, slots: { ...s.farm.slots, [String(idx)]: { ...sl, tipped: true } } } });
+  return tip;
 }
 
 export function expandPond(): FarmResult {
@@ -676,5 +879,68 @@ export function expandPond(): FarmResult {
   if (!cost) return { ok: false, reason: "Ao đã rộng tối đa." };
   if (shells(s) < cost) return { ok: false, reason: `Cần ${cost} vỏ sò để mở rộng ao.` };
   save({ ...s, farm: { ...s.farm, spent: s.farm.spent + cost, size: s.farm.size + 3 } });
+  return { ok: true };
+}
+
+// ───────────── Sổ sưu tập ─────────────
+
+export type DexGroup = "sea" | "plant" | "story" | "build";
+export const DEX_MILESTONES = [
+  { n: 5, reward: 40 },
+  { n: 10, reward: 60 },
+  { n: 20, reward: 100 },
+  { n: 30, reward: 150 },
+  { n: 40, reward: 200 },
+];
+
+/** Những gì đã sưu tập được: hải sản đã vớt, cây đã thu hoạch, truyện bạn bè đã mở, công trình đã xây. */
+export function collection(s: IslandState) {
+  const sea: Record<string, boolean> = {};
+  for (const k of ["shrimp", "crab", "lobster"] as FarmKind[]) {
+    sea[k] = (s.farm.caught[k] || 0) > 0;
+    sea[`${k}-rare`] = (s.farm.caught[`${k}-rare`] || 0) > 0;
+  }
+  const plant: Record<string, boolean> = {};
+  for (const c of CHAPTERS) plant[String(c.id)] = !!s.garden[String(c.id)];
+  const story: Record<string, boolean> = {};
+  for (const [npc, list] of Object.entries(NPC_STORIES)) {
+    const h = friendship(s, npc as NpcId).hearts;
+    (list || []).forEach((_, i) => (story[`${npc}:${i}`] = i < h));
+  }
+  const lv = islandLevel(s.xp).level;
+  const build: Record<string, boolean> = {};
+  for (const b of BUILDS) build[b.id] = lv >= b.lv;
+  const groups = { sea, plant, story, build };
+  let have = 0;
+  let total = 0;
+  for (const g of Object.values(groups))
+    for (const v of Object.values(g)) {
+      total++;
+      if (v) have++;
+    }
+  const next = DEX_MILESTONES[s.farm.dexClaimed] ?? null;
+  return { groups, have, total, next, claimable: !!next && have >= next.n };
+}
+
+/** Nhận thưởng mốc sưu tập kế tiếp. */
+export function claimDex(): { ok: true; reward: number } | { ok: false; reason: string } {
+  const s = load();
+  const c = collection(s);
+  if (!c.next) return { ok: false, reason: "Đã nhận hết các mốc thưởng." };
+  if (!c.claimable) return { ok: false, reason: `Cần ${c.next.n} món để nhận thưởng.` };
+  save({ ...s, farm: { ...s.farm, earned: s.farm.earned + c.next.reward, dexClaimed: s.farm.dexClaimed + 1 } });
+  return { ok: true, reward: c.next.reward };
+}
+
+// ───────────── Vườn Nhiệm Vụ: mỗi chương một luống, mỗi nhiệm vụ cây lớn thêm ─────────────
+
+export const GARDEN_BONUS = 30;
+
+/** Thu hoạch luống của chương (đủ 7/7 nhiệm vụ): +30 vỏ sò, mỗi luống một lần. */
+export function harvestPlot(chapterId: number): FarmResult {
+  const s = load();
+  if (s.garden[String(chapterId)]) return { ok: false, reason: "Luống này đã thu hoạch rồi." };
+  if (missionsDone(s, chapterId) < MISSIONS.length) return { ok: false, reason: `Cần xong đủ ${MISSIONS.length} nhiệm vụ của tuần.` };
+  save(markStudy({ ...s, garden: { ...s.garden, [String(chapterId)]: new Date().toISOString() }, farm: { ...s.farm, earned: s.farm.earned + GARDEN_BONUS } }));
   return { ok: true };
 }
