@@ -31,6 +31,7 @@ import {
   Play,
   ArrowUpRight,
   Target,
+  TreePalm,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DailyChallengeCard } from "@/components/daily-challenge";
@@ -145,6 +146,12 @@ export default function Home() {
                 <Button className="bg-gradient-to-r from-indigo-600 via-sky-600 to-indigo-700 hover:from-indigo-700 hover:to-sky-700 text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold gap-2 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all hover:scale-102">
                   <ShieldCheck className="w-4 h-4 text-sky-200" />
                   Lộ trình 30 Ngày Call
+                </Button>
+              </Link>
+              <Link href="/island">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold gap-2 shadow-lg shadow-emerald-500/25 transition-all hover:scale-102 border border-emerald-400/30">
+                  <TreePalm className="w-4 h-4 text-emerald-100" />
+                  Đảo Tám Chuyện · Giao tiếp 3 tháng
                 </Button>
               </Link>
               <Link href="/voice">

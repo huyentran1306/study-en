@@ -48,7 +48,7 @@ export function WOTDBadge() {
         title="Word of the Day"
       >
         <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-        <span className="hidden sm:inline font-bold tracking-wide">{isZh ? "今日精选" : "WOTD"}</span>
+        <span className="hidden min-[1760px]:inline font-bold tracking-wide">{isZh ? "今日精选" : "WOTD"}</span>
       </motion.button>
 
       <AnimatePresence>

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
   LogOut,
+  LogIn,
   RotateCcw,
   BookOpen,
   Mic,
@@ -23,12 +24,14 @@ import {
   Coins,
   MessageSquare,
   Search,
+  TreePalm,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { useGame } from "@/contexts/game-context";
 import { WOTDBadge } from "@/components/wotd-badge";
 import LogoutDialog from "@/components/logout-dialog";
+import { openLogin } from "@/lib/auth-events";
 import { BrandLogo } from "@/components/brand-logo";
 import { getTechRank } from "@/components/gamification";
 import { triggerCommandPalette } from "@/components/command-palette";
@@ -57,10 +60,12 @@ interface DropdownItem {
 
 function NavDropdown({
   label,
+  short,
   items,
   pathname,
 }: {
   label: string;
+  short?: string;
   items: DropdownItem[];
   pathname: string;
 }) {
@@ -76,13 +81,14 @@ function NavDropdown({
           setOpen(next);
         }}
         className={cn(
-          "flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
+          "flex items-center gap-1 px-2 min-[1760px]:px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
           isAnyActive
             ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/80 dark:border-indigo-800/80"
             : "text-slate-600 dark:text-slate-300 hover:text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
         )}
       >
-        <span>{label}</span>
+        <span className="min-[1760px]:hidden">{short ?? label}</span>
+        <span className="hidden min-[1760px]:inline">{label}</span>
         <ChevronDown
           className={cn(
             "h-3.5 w-3.5 text-slate-400 transition-transform duration-200",
@@ -171,6 +177,7 @@ export function Navbar() {
     xpProgress,
     resetProgress,
     logout,
+    isAuthenticated,
   } = useGame();
   const profileDropdown = useDropdown();
   const rank = getTechRank(level);
@@ -251,18 +258,18 @@ export function Navbar() {
   const isVocabActive = pathname === "/vocab";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/85 dark:bg-slate-950/85 backdrop-blur-2xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8 gap-2">
+    <header data-site-nav="" className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/85 dark:bg-slate-950/85 backdrop-blur-2xl">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-3 sm:px-6 lg:px-8 gap-2">
         {/* Left: Brand Logo */}
         <BrandLogo />
 
         {/* Center: Curated Streamlined Desktop Menu (Single Line, No Wrapping) */}
-        <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 flex-1 justify-center max-w-2xl px-2">
+        <nav className="hidden md:flex items-center gap-0.5 xl:gap-1 flex-1 min-w-0 justify-center px-1">
           {/* Lessons Flagship Button */}
           <Link href="/lessons" className="flex-shrink-0">
             <button
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
+                "flex items-center gap-1.5 px-2 min-[1760px]:px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
                 isLessonsActive
                   ? "bg-gradient-to-r from-indigo-600 to-sky-600 text-white font-bold shadow-sm shadow-indigo-500/20"
                   : "text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40"
@@ -271,7 +278,7 @@ export function Navbar() {
               <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>Bài học</span>
               <span className={cn(
-                "text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide",
+                "hidden min-[1760px]:inline text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide",
                 isLessonsActive ? "bg-white text-indigo-600" : "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
               )}>
                 30D
@@ -279,20 +286,42 @@ export function Navbar() {
             </button>
           </Link>
 
-          {/* Tech Lead 90D Flagship Button */}
-          <Link href="/tech-lead" className="flex-shrink-0">
+          {/* Chit Chat Island — game giao tiếp 3 tháng */}
+          <Link href="/island" className="flex-shrink-0">
             <button
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
+                "flex items-center gap-1.5 px-2 min-[1760px]:px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
+                pathname.startsWith("/island")
+                  ? "bg-emerald-600 text-white font-bold shadow-sm shadow-emerald-500/20"
+                  : "text-slate-700 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40"
+              )}
+            >
+              <TreePalm className={cn("w-3.5 h-3.5", pathname.startsWith("/island") ? "text-white" : "text-emerald-500 dark:text-emerald-400")} />
+              <span className="min-[1760px]:hidden">Đảo</span>
+              <span className="hidden min-[1760px]:inline">Đảo Tám Chuyện</span>
+              <span className={cn(
+                "hidden min-[1760px]:inline text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide",
+                pathname.startsWith("/island") ? "bg-white text-emerald-700" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+              )}>
+                3M
+              </span>
+            </button>
+          </Link>
+
+          {/* Tech Lead 90D Flagship Button */}
+          <Link href="/tech-lead" className="flex-shrink-0" title="Tech Lead">
+            <button
+              className={cn(
+                "flex items-center gap-1.5 px-2 min-[1760px]:px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
                 isTechLeadActive
                   ? "bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-500/20"
                   : "text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-850"
               )}
             >
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-              <span>Tech Lead</span>
+              <span className="hidden lg:inline">Tech Lead</span>
               <span className={cn(
-                "text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide",
+                "hidden min-[1760px]:inline text-[9px] px-1.5 py-0.5 rounded font-black tracking-wide",
                 isTechLeadActive ? "bg-white text-indigo-600" : "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
               )}>
                 PRO
@@ -301,38 +330,38 @@ export function Navbar() {
           </Link>
 
           {/* Call & Shadowing Studio Dropdown */}
-          <NavDropdown label="Call & Shadowing" items={callStudioLinks} pathname={pathname} />
+          <NavDropdown label="Call & Shadowing" short="Call" items={callStudioLinks} pathname={pathname} />
 
           {/* Tech Lead Tools Dropdown */}
           <NavDropdown label="Công cụ" items={toolsLinks} pathname={pathname} />
 
           {/* Arena Game Hub */}
-          <Link href="/games" className="flex-shrink-0">
+          <Link href="/games" className="flex-shrink-0" title="Arena">
             <button
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
+                "flex items-center gap-1.5 px-2 min-[1760px]:px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
                 isArenaActive
                   ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/80 dark:border-indigo-800/80"
                   : "text-slate-600 dark:text-slate-300 hover:text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
               )}
             >
               <Gamepad2 className="w-3.5 h-3.5" />
-              <span>Arena</span>
+              <span className="hidden xl:inline">Arena</span>
             </button>
           </Link>
 
           {/* Vocabulary */}
-          <Link href="/vocab" className="flex-shrink-0">
+          <Link href="/vocab" className="flex-shrink-0" title="Từ vựng">
             <button
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
+                "flex items-center gap-1.5 px-2 min-[1760px]:px-3 py-1.5 rounded-xl text-xs font-semibold tracking-normal transition-all whitespace-nowrap h-9 select-none",
                 isVocabActive
                   ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200/80 dark:border-indigo-800/80"
                   : "text-slate-600 dark:text-slate-300 hover:text-foreground hover:bg-slate-100/80 dark:hover:bg-slate-800/60"
               )}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Từ vựng</span>
+              <span className="hidden xl:inline">Từ vựng</span>
             </button>
           </Link>
         </nav>
@@ -340,7 +369,7 @@ export function Navbar() {
         {/* Right HUD & Profile */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* Unified Compact Streak & Coin Status Pill (Desktop only) */}
-          <div className="hidden lg:flex items-center gap-2.5 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 py-1 text-xs font-semibold select-none h-9">
+          <div className="hidden min-[1360px]:flex items-center gap-2.5 bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800 rounded-xl px-2.5 py-1 text-xs font-semibold select-none h-9">
             <span className="flex items-center gap-1 text-orange-500">
               <Flame className={cn(
                 "w-3.5 h-3.5 fill-orange-500 transition-all",
@@ -364,7 +393,7 @@ export function Navbar() {
           >
             <Search className="w-3.5 h-3.5 text-indigo-500" />
             <span className="hidden xl:inline text-xs text-muted-foreground">Tìm nhanh</span>
-            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-white/80 dark:bg-slate-800 rounded-md border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+            <kbd className="hidden min-[1760px]:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-white/80 dark:bg-slate-800 rounded-md border border-slate-200/80 dark:border-slate-700 shadow-2xs">
               ⌘K
             </kbd>
           </button>
@@ -385,8 +414,8 @@ export function Navbar() {
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400 flex items-center justify-center text-white text-[11px] font-black shadow-xs flex-shrink-0">
                 {username?.[0]?.toUpperCase() || "T"}
               </div>
-              <span className="max-w-[70px] truncate font-bold text-foreground">{username || "Trân"}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+              <span className="hidden xl:inline max-w-[70px] truncate font-bold text-foreground">{username || "Trân"}</span>
+              <span className="hidden xl:inline text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
                 Lv.{level}
               </span>
               <ChevronDown
@@ -494,7 +523,19 @@ export function Navbar() {
                       <RotateCcw className="h-3.5 w-3.5" />
                       <span>Đặt lại tiến độ học tập</span>
                     </button>
-                    <LogoutDialog
+                    {!isAuthenticated && (
+                      <button
+                        onClick={() => {
+                          profileDropdown.setOpen(false);
+                          openLogin();
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold rounded-lg hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 transition-colors text-left"
+                      >
+                        <LogIn className="h-3.5 w-3.5" />
+                        <span>Đăng nhập / Đăng ký (đang dùng chế độ khách)</span>
+                      </button>
+                    )}
+                    {isAuthenticated && <LogoutDialog
                       renderTrigger={
                         <button className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium rounded-lg hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors text-left">
                           <LogOut className="h-3.5 w-3.5" />
@@ -505,7 +546,7 @@ export function Navbar() {
                         logout();
                         profileDropdown.setOpen(false);
                       }}
-                    />
+                    />}
                   </div>
                 </motion.div>
               )}
