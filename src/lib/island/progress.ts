@@ -8,10 +8,12 @@ import { cleanField, lenientWords, mePhrases } from "./me";
 import { setLenientWords } from "./speech";
 import { BUILDS, FRIEND_LEVELS, NPC_STORIES, PHRASE_EXTRAS, SOUND_SETS } from "./drills";
 import { EXPAND_COST, FEED_CUT, MAX_FEED, RARE_SELL, SPECIES_BY_KIND, STARTER_SHELLS, rareChance } from "./farm-data";
-import { freshState, mergeStates, normalizeState, sameContent, todayStr, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
+import { isDuplicate } from "./memory";
+import type { ChatReport, ErrorTag } from "./feedback";
+import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
 
 export type { Profile, Sprint } from "./state";
-export type { ChapterProgress, IslandState, PhraseCard, ReflexMode, ReflexRun, WordCard } from "./state";
+export type { ChapterProgress, IslandState, Memory, MirrorTake, PhraseCard, ReflexMode, ReflexRun, WordCard } from "./state";
 
 const KEY = "cci-progress-v1";
 const UID_KEY = "studyen-uid";
@@ -75,7 +77,80 @@ function update(fn: (s: IslandState) => IslandState) {
 
 function markStudy(s: IslandState): IslandState {
   const t = today();
-  return s.studyDays.includes(t) ? s : { ...s, studyDays: [...s.studyDays, t].slice(-400) };
+  if (s.studyDays.includes(t)) return s;
+  return { ...applyFreeze(s, t), studyDays: [...s.studyDays, t].slice(-400) };
+}
+
+/** Thẻ giữ chuỗi: học lại sau 1–2 ngày nghỉ thì tự dùng thẻ đắp vào những ngày bị lỡ (nếu đủ thẻ). */
+function applyFreeze(s: IslandState, t: string): IslandState {
+  const covered = new Set([...s.studyDays, ...s.freeze.used]);
+  const last = [...covered].filter((d) => d < t).sort().pop();
+  if (!last) return s;
+  const gap: string[] = [];
+  for (let d = addDays(last, 1); d < t && gap.length <= 3; d = addDays(d, 1)) gap.push(d);
+  const left = s.freeze.bought - s.freeze.used.length;
+  if (!gap.length || gap.length > 2 || gap.length > left) return s;
+  return { ...s, freeze: { ...s.freeze, used: [...s.freeze.used, ...gap].slice(-60) } };
+}
+
+export const FREEZE_COST = 60;
+export const FREEZE_MAX = 3;
+
+export function freezesLeft(s: IslandState): number {
+  return Math.max(0, s.freeze.bought - s.freeze.used.length);
+}
+
+/** Mua thẻ giữ chuỗi bằng vỏ sò (giữ tối đa 3 thẻ). */
+export function buyFreeze(): boolean {
+  const s = load();
+  if (shells(s) < FREEZE_COST || freezesLeft(s) >= FREEZE_MAX) return false;
+  save({ ...s, farm: { ...s.farm, spent: s.farm.spent + FREEZE_COST }, freeze: { ...s.freeze, bought: s.freeze.bought + 1 } });
+  return true;
+}
+
+/** Xong nhiệm vụ hỏi thông tin / thử thách: giữ số sao cao nhất. Trả về true nếu là lần đầu. */
+export function finishMission(id: string, stars: number, xp: number, trophy?: string): boolean {
+  const s = load();
+  const prev = s.missions[id];
+  const at = new Date().toISOString();
+  const missions = { ...s.missions, [id]: { stars: Math.max(prev?.stars || 0, stars), at: prev?.at || at } };
+  const trophies = trophy && !s.trophies[trophy] ? { ...s.trophies, [trophy]: at } : s.trophies;
+  save(markStudy({ ...s, missions, trophies, xp: s.xp + (prev ? Math.round(xp / 3) : xp) }));
+  return !prev;
+}
+
+/** Thử ngoài đời: đánh dấu đã làm + câu đã nói. */
+export function doRealLife(id: string, note: string, xp: number) {
+  update((s) => (s.reallife[id] ? { ...s, reallife: { ...s.reallife, [id]: { ...s.reallife[id], note: cleanField(note, 300) } } } : markStudy({ ...s, reallife: { ...s.reallife, [id]: { at: new Date().toISOString(), note: cleanField(note, 300) } }, xp: s.xp + xp })));
+}
+
+/** Truyện cư dân: lưu câu trả lời của bạn cho một tập. */
+export function saveEpisode(id: string, answer: string, xp: number) {
+  update((s) => markStudy({ ...s, episodes: { ...s.episodes, [id]: { at: s.episodes[id]?.at || new Date().toISOString(), answer: cleanField(answer, 300) } }, xp: s.xp + (s.episodes[id] ? 0 : xp) }));
+}
+
+/** Bài học của tôi: thêm các câu về cuộc sống của bạn vào Sổ câu. Trả về số câu mới. */
+export function addLifePhrases(list: { en: string; vi: string }[]): number {
+  const s = load();
+  const phrases = { ...s.phrases };
+  let n = 0;
+  for (const p of list.slice(0, 12)) {
+    const en = cleanField(p.en, 300);
+    if (!en || phrases[en]) continue;
+    phrases[en] = { en, vi: cleanField(p.vi, 300), ch: 0, box: 1, due: today(), seen: 0, kind: "life" };
+    n++;
+  }
+  if (n) save({ ...s, phrases });
+  return n;
+}
+
+/** Gương thời gian: lưu số liệu một lần ghi âm. */
+export function addMirror(t: MirrorTake, xp: number) {
+  update((s) => markStudy({ ...s, mirror: [...s.mirror.filter((x) => x.at !== t.at), t].slice(-MAX_MIRROR), xp: s.xp + xp }));
+}
+
+export function setShareCode(code: string | undefined) {
+  update((s) => ({ ...s, shareCode: code }));
 }
 
 export type DailyStep = "mission" | "review" | "reflex" | "chat" | "unit";
@@ -249,6 +324,11 @@ export function useIsland(): IslandState {
     load,
     () => SERVER_SNAPSHOT,
   );
+}
+
+/** Đọc trạng thái hiện tại ngoài React (trong effect, sự kiện) — tránh bản rỗng lúc vừa hydrate. */
+export function getIsland(): IslandState {
+  return load();
 }
 
 export function useSyncStatus(): { status: SyncStatus; at?: string } {
@@ -425,7 +505,7 @@ export function saveProfile(p: Omit<Profile, "at">) {
 const MAX_FIXES = 150;
 
 /** Sổ lỗi sai: lưu câu AI vừa sửa thành một thẻ ôn "nói lại câu đúng". Trả về true nếu là thẻ mới. */
-export function addFix(said: string, fixed: string, note: string, ch: number): boolean {
+export function addFix(said: string, fixed: string, note: string, ch: number, tag?: ErrorTag): boolean {
   const en = fixed.replace(/\s+/g, " ").trim().slice(0, 300);
   const was = said.replace(/\s+/g, " ").trim().slice(0, 300);
   if (!en || !was || en.split(" ").length > 30) return false;
@@ -438,13 +518,56 @@ export function addFix(said: string, fixed: string, note: string, ch: number): b
     const drop = fixes.sort((a, b) => b.box - a.box || (a.due < b.due ? -1 : 1))[0];
     delete phrases[drop.en];
   }
-  phrases[en] = { en, vi: note.trim().slice(0, 300), ch, box: 1, due: today(), seen: 0, kind: "fix", said: was };
+  phrases[en] = { en, vi: note.trim().slice(0, 300), ch, box: 1, due: today(), seen: 0, kind: "fix", said: was, ...(tag ? { tag } : {}) };
   save({ ...s, phrases });
   return true;
 }
 
 export function fixCards(s: IslandState): PhraseCard[] {
   return Object.values(s.phrases).filter((p) => p.kind === "fix");
+}
+
+/** Người học vừa nói đúng một câu từng sai: đẩy thẻ Sổ lỗi sai lên một hộp (không tính là bước "ôn" trong ngày). */
+export function praiseFix(en: string) {
+  update((s) => {
+    const card = s.phrases[en];
+    if (!card || card.kind !== "fix") return s;
+    const box = Math.min(card.box + 1, INTERVALS.length - 1);
+    return { ...s, phrases: { ...s.phrases, [en]: { ...card, box, due: addDays(today(), INTERVALS[box]) } } };
+  });
+}
+
+/** Lưu phiếu nhận xét (cùng một cuộc trò chuyện thì ghi đè bản cũ theo khoá at). */
+export function saveReport(r: ChatReport) {
+  update((s) => ({ ...s, reports: [...s.reports.filter((x) => x.at !== r.at), r].sort((p, q) => (p.at < q.at ? -1 : 1)).slice(-MAX_REPORTS) }));
+}
+
+/** Cư dân ghi nhớ vài chuyện người học vừa kể. Trả về các chuyện mới thật sự được lưu. */
+export function addMemories(npc: NpcId, ch: number, items: { fact: string; vi: string; ask: string }[]): Memory[] {
+  const s = load();
+  const at = new Date().toISOString();
+  const added: Memory[] = [];
+  const all = [...s.memories];
+  items.slice(0, 3).forEach((it, i) => {
+    const fact = cleanField(it.fact, 160);
+    const ask = cleanField(it.ask, 160);
+    if (!fact || !ask || isDuplicate(all, fact)) return;
+    const m: Memory = { id: `${at}#${i}`, npc, ch, fact, vi: cleanField(it.vi, 160), ask, at };
+    all.push(m);
+    added.push(m);
+  });
+  if (added.length) save({ ...s, memories: all.slice(-MAX_MEMORIES) });
+  return added;
+}
+
+/** Cư dân đã hỏi lại chuyện này. */
+export function markMemoryUsed(id: string) {
+  update((s) => ({ ...s, memories: s.memories.map((m) => (m.id === id && !m.gone && !m.used ? { ...m, used: new Date().toISOString() } : m)) }));
+}
+
+/** Xoá một chuyện (hoặc tất cả khi id = null): xoá nội dung, giữ khoá để không sống lại khi đồng bộ. */
+export function forgetMemory(id: string | null) {
+  update((s) => ({ ...s, memories: s.memories.map((m) => (id === null || m.id === id ? { id: m.id, npc: m.npc, ch: m.ch, fact: "", vi: "", ask: "", at: m.at, gone: true } : m)) }));
 }
 
 /** Bật chế độ nước rút 30 ngày (tính ngày 1 từ hôm nay). */
@@ -564,7 +687,7 @@ export function islandLevel(xp: number): { level: number; pct: number } {
 }
 
 export function streak(s: IslandState): number {
-  const set = new Set(s.studyDays);
+  const set = new Set([...s.studyDays, ...s.freeze.used]);
   let n = 0;
   let d = today();
   if (!set.has(d)) d = addDays(d, -1);

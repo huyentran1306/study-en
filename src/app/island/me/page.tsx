@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Pencil, Sparkles, UserRound, Volume2 } from "lucide-react";
-import { Character } from "@/components/island/character";
+import { ArrowRight, Check, Pencil, Sparkles, Trash2, UserRound, Volume2 } from "lucide-react";
+import { Avatar, Character } from "@/components/island/character";
+import { NPCS, type NpcId } from "@/lib/island/curriculum";
+import { liveMemories } from "@/lib/island/memory";
 import { BackLink } from "@/components/island/ui";
 import { cleanField, hasProfile, mePhrases, type Profile } from "@/lib/island/me";
-import { saveProfile, useIsland } from "@/lib/island/progress";
+import { forgetMemory, saveProfile, useIsland } from "@/lib/island/progress";
 import { speak } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
 import { useGame } from "@/contexts/game-context";
@@ -186,6 +188,71 @@ export default function MePage() {
           )}
         </div>
       )}
+
+      {mounted && <Memories />}
     </div>
+  );
+}
+
+const fmtDay = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+};
+
+/** "Cư dân nhớ gì về bạn": các chuyện cư dân ghi nhớ khi tám chuyện, xoá được từng cái. */
+function Memories() {
+  const s = useIsland();
+  const list = liveMemories(s.memories).sort((a, b) => (a.at < b.at ? 1 : -1));
+  return (
+    <section id="memories" className="cci-card-wood p-4 sm:p-6 flex flex-col gap-3 scroll-mt-20">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold leading-tight">💭 Cư dân nhớ gì về bạn</h2>
+          <p className="text-sm font-semibold text-[#6B4A30] leading-snug mt-0.5">
+            Khi tám chuyện, cư dân ghi nhớ vài chuyện bạn kể (dự định, chuyến đi, sở thích mới…) để hôm sau hỏi lại như bạn bè thật. Chuyện nhạy cảm như sức khoẻ, tiền bạc sẽ không được ghi.
+          </p>
+        </div>
+        {list.length > 1 && (
+          <button
+            type="button"
+            className="cci-btn !min-h-[40px] shrink-0"
+            onClick={() => {
+              if (confirm(`Xoá cả ${list.length} chuyện cư dân đang nhớ?`)) forgetMemory(null);
+            }}
+          >
+            Xoá hết
+          </button>
+        )}
+      </div>
+      {list.length === 0 ? (
+        <p className="rounded-[16px] bg-white/70 border-2 border-dashed border-[#E6CF9A] px-3 py-3 text-sm font-semibold text-[#6B4A30]">
+          Chưa có chuyện nào. Vào{" "}
+          <Link href="/island/chat" className="font-extrabold underline underline-offset-2">
+            Tám chuyện
+          </Link>{" "}
+          và kể một chút về cuộc sống của bạn, như cuối tuần định làm gì, là cư dân sẽ bắt đầu nhớ.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {list.map((m) => {
+            const who = (m.npc in NPCS ? m.npc : "kero") as NpcId;
+            return (
+              <li key={m.id} className="flex items-center gap-3 rounded-[16px] bg-white border-2 border-[#E6CF9A] px-3 py-2">
+                <Avatar who={who} size={38} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-extrabold leading-snug">{m.vi || m.fact}</div>
+                  <div className="text-xs font-semibold text-[#6B4A30] leading-snug">
+                    {NPCS[who].name} nghe ngày {fmtDay(m.at)} · {m.used ? `đã hỏi lại ngày ${fmtDay(m.used)}` : `lần sau sẽ hỏi: “${m.ask}”`}
+                  </div>
+                </div>
+                <button type="button" onClick={() => forgetMemory(m.id)} className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[#A4521D] hover:bg-[#FDEEDD]" aria-label={`Xoá: ${m.vi || m.fact}`} title="Xoá chuyện này">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }

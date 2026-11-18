@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Moon, RotateCcw, Sun, ArrowRight, BookHeart, BookOpen, Briefcase, Fish, Shell, Sprout, Coffee, Flame, Gift, Hammer, Heart, Lock, Map as MapIcon, MessageCircle, Plane, Route, ShoppingBasket, Signpost, Star, Volume2, X, Zap, Flower2 } from "lucide-react";
+import { ArrowRight, BookHeart, BookOpen, Briefcase, Coffee, Dumbbell, Fish, Flame, Flower2, Gift, Hammer, Heart, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
 import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
@@ -12,6 +12,8 @@ import { SyncBadge } from "@/components/island/sync-badge";
 import { ANIMALS, GardenAnimals, IslandBuilds, BuildPanel } from "@/components/island/garden";
 import type { Label3D } from "@/components/island/island3d";
 import type { WorldController, WorldState } from "@/components/island/world3d";
+import { pickRecall } from "@/lib/island/memory";
+import { bossOpen, weeklyBoss } from "@/lib/island/missions";
 import { canWebGL } from "@/components/island/webgl";
 import { JourneyPanel } from "@/components/island/journey";
 import { Swimmers, type SwimItem } from "@/components/island/pond-scene";
@@ -201,6 +203,29 @@ export default function IslandMapPage() {
         </button>
       ),
     });
+    // Cư dân nhớ bạn: ai đang muốn hỏi lại chuyện bạn kể thì hiện bong bóng suy nghĩ.
+    for (const who of ["miso", "mallow", "pip", "kero"] as NpcId[]) {
+      if (who === cur.npc) continue;
+      const m = pickRecall(s.memories, who, Date.now(), true);
+      if (!m) continue;
+      labels3d.push({
+        id: `npc:${who}`,
+        top: true,
+        node: (
+          <button
+            type="button"
+            data-sfx="whoosh"
+            aria-label={`${NPCS[who].name} muốn hỏi lại chuyện bạn kể: ${m.vi}`}
+            title={`${NPCS[who].name} muốn hỏi: ${m.ask}`}
+            onClick={() => router.push(`/island/chat?ch=${m.ch}`)}
+            className="cci-hit relative flex items-center justify-center rounded-full bg-white border-[2.5px] border-[#4A3222] text-[#2F8FB0] w-[34px] h-[30px] anim-floaty"
+            style={{ boxShadow: "0 3px 0 #4A3222", animationDelay: "0.4s" }}
+          >
+            <MessageCircleHeart className="w-[18px] h-[18px]" strokeWidth={2.5} />
+          </button>
+        ),
+      });
+    }
     if (talk) {
       const a = ANIMALS.find((x) => x.id === talk.id);
       if (a)
@@ -370,13 +395,14 @@ export default function IslandMapPage() {
           </div>
 
           {/* Thanh công cụ: dọc bên trái trên máy tính, hàng ngang trên điện thoại */}
-          <nav className="order-3 hud:absolute hud:left-4 hud:top-[100px] hud:z-10 grid grid-cols-6 hud:grid-cols-1 gap-2 hud:gap-2.5" aria-label="Công cụ học">
+          <nav className="order-3 hud:absolute hud:left-4 hud:top-[100px] hud:z-10 cci-rail grid grid-cols-4 hud:grid-cols-1 gap-1.5 sm:gap-2 hud:gap-2.5" aria-label="Công cụ học">
             <RailBtn href="/island/words" icon={BookOpen} label="Sổ từ" tone="#3F7A34" badge={mounted && due > 0 ? due : null} />
             <RailBtn href={`/island/reflex?ch=${curId}`} icon={Zap} label="Phản xạ" tone="#D9A92F" />
             <RailBtn href="/island/path" icon={Route} label="Lộ trình" tone="#4E7FB8" />
             <RailBtn href="/island/collection" icon={BookHeart} label="Sưu tập" tone="#C8553D" badge={mounted && dex.claimable ? "!" : null} />
             <RailBtn onClick={() => setPanel("build")} icon={Hammer} label="Xây đảo" tone="#8B5E3C" />
             <RailBtn href="/island/chat" icon={MessageCircle} label="Tám AI" tone="#7A5BC7" />
+            <RailBtn href="/island/practice" icon={Dumbbell} label="Luyện" tone="#2F5D50" badge={mounted && bossOpen() && !s.trophies[weeklyBoss().boss!.trophy] ? "!" : null} />
           </nav>
 
           {/* Góc phải: chỉ số + cài đặt */}
