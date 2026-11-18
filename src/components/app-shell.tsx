@@ -80,6 +80,23 @@ function AppContent({ children }: { children: ReactNode }) {
     );
   }
 
+  // Khi ở trong khu Đảo Tám Chuyện: chế độ game độc lập toàn màn hình
+  // Ẩn sạch navbar, floating decorations, tech background, bottom nav, command palette của web chính
+  if (immersive) {
+    return (
+      <main className="relative z-10 min-h-screen">
+        {children}
+        {loginOpen && !isAuthenticated && (
+          <AuthLoginModal
+            onLogin={authLoginUser}
+            onRegister={authRegisterUser}
+            onContinueAsGuest={() => setLoginOpen(false)}
+          />
+        )}
+      </main>
+    );
+  }
+
   if (!isAuthenticated && !guestMode) {
     return (
       <AuthLoginModal
@@ -103,16 +120,9 @@ function AppContent({ children }: { children: ReactNode }) {
     <>
       <ProBackground />
       <FloatingDecorations />
-      {/* Đảo Tám Chuyện trên điện thoại: chế độ game toàn màn hình (ẩn menu web, game tự có thanh "Trang chủ"). */}
-      {immersive ? (
-        <div className="hidden md:contents">
-          <Navbar />
-        </div>
-      ) : (
-        <Navbar />
-      )}
+      <Navbar />
       <main className="min-h-[calc(100vh-4rem)] relative z-10 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] md:pb-8">{children}</main>
-      {!immersive && <MobileBottomNav />}
+      <MobileBottomNav />
       <CommandPalette />
       <XPParticleLayer />
       <AchievementToast achievement={currentAchievement} onDismiss={dismiss} />
