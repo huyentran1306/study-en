@@ -63,12 +63,15 @@ export function FullscreenButton({ small = false, flat = false }: { small?: bool
  * và khi đang toàn màn hình trên máy tính.
  */
 export function IslandTopBar() {
+  const pathname = usePathname();
   // Rời hẳn khu đảo thì trả lại menu web.
   useEffect(() => () => document.documentElement.classList.remove("cci-fs"), []);
+  // Trang chủ đảo đã có HUD đầy đủ trên cả máy tính lẫn điện thoại
+  if (pathname === "/island") return null;
   return (
     <div className="cci-topbar sticky top-0 z-50 md:hidden flex items-center gap-2 px-3 h-14 bg-[#FBF3E2]/95 backdrop-blur border-b-[3px] border-[#EAD9B8]" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-      <Link href="/" className="cci-btn !min-h-[38px] !px-3 !text-sm" aria-label="Về trang chủ">
-        <Home className="w-4 h-4" /> Trang chủ
+      <Link href="/island" className="cci-btn !min-h-[38px] !px-3 !text-sm" aria-label="Về đảo">
+        <Home className="w-4 h-4" /> Về đảo
       </Link>
       <Link href="/island" className="flex-1 min-w-0 flex items-center justify-center gap-1.5 font-baloo font-extrabold text-[17px] truncate">
         <TreePalm className="w-5 h-5 text-[#3F7A34] shrink-0" /> Đảo Tám Chuyện

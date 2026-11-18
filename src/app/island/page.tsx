@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, BookHeart, BookOpen, Briefcase, Coffee, Dumbbell, Fish, Flame, Flower2, Gift, Hammer, Heart, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
+import { ArrowRight, BookHeart, BookOpen, Briefcase, Coffee, Dumbbell, Fish, Flame, Flower2, Gift, Hammer, Heart, Home, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
 import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
@@ -269,8 +269,8 @@ export default function IslandMapPage() {
       <div aria-hidden className="cci-ocean" />
       {/* Hoàng hôn: phủ ánh cam tím lên biển */}
       <div aria-hidden className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000" style={{ opacity: is3d && dusk ? 1 : 0, background: "linear-gradient(180deg, rgba(255,150,100,.38) 0%, rgba(240,130,150,.22) 45%, rgba(80,60,150,.28) 100%)" }} />
-      {/* Bản đồ 16:10 co theo chiều cao màn hình (trừ navbar, lề và bề dày khối đảo) để luôn thấy trọn khu vườn. */}
-      <div className="cci-mapfit relative z-[1] mx-auto w-full mb-8 lg:mb-12 lg:w-[min(100%,calc((100dvh-9rem)*1.6))]">
+      {/* Bản đồ 16:10 co theo chiều cao màn hình (trừ lề và bề dày khối đảo) để luôn thấy trọn khu vườn. */}
+      <div className="cci-mapfit relative z-[1] mx-auto w-full mb-8 lg:mb-12 lg:w-[min(100%,calc((100dvh-5.5rem)*1.6))]">
         {/* ── Bản đồ ── */}
         {mode === "3d" || !mounted ? (
           <div className="cci-map3d relative w-full aspect-[5/4] sm:aspect-[16/10] max-h-[calc(100dvh-4.5rem)] min-h-[240px]" style={{ containerType: "inline-size" }}>
@@ -423,6 +423,15 @@ export default function IslandMapPage() {
               <span className="hidden md:contents">
                 <FullscreenButton flat />
               </span>
+              <Link
+                href="/"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-[#4A3222] hover:bg-[#F3E6CC] transition-colors"
+                title="Về TranTech Talk"
+                aria-label="Về TranTech Talk"
+                data-sfx="close"
+              >
+                <Home className="w-5 h-5" />
+              </Link>
             </div>
           </div>
 
