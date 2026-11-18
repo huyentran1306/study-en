@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { ArrowRight, BookHeart, BookOpen, Briefcase, Fish, Shell, Sprout, Coffee, Flame, Gift, Hammer, Heart, Lock, Map as MapIcon, MessageCircle, Plane, Route, ShoppingBasket, Signpost, Star, Volume2, X, Zap, Flower2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Moon, RotateCcw, Sun, ArrowRight, BookHeart, BookOpen, Briefcase, Fish, Shell, Sprout, Coffee, Flame, Gift, Hammer, Heart, Lock, Map as MapIcon, MessageCircle, Plane, Route, ShoppingBasket, Signpost, Star, Volume2, X, Zap, Flower2 } from "lucide-react";
 import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
 import { SyncBadge } from "@/components/island/sync-badge";
-import { GardenAnimals, IslandBuilds, BuildPanel } from "@/components/island/garden";
+import { ANIMALS, GardenAnimals, IslandBuilds, BuildPanel } from "@/components/island/garden";
+import type { Label3D } from "@/components/island/island3d";
+import type { WorldController, WorldState } from "@/components/island/world3d";
+import { canWebGL } from "@/components/island/webgl";
 import { JourneyPanel } from "@/components/island/journey";
 import { Swimmers, type SwimItem } from "@/components/island/pond-scene";
 import { AudioToggles } from "@/components/island/audio-controls";
@@ -39,6 +44,23 @@ const RESIDENTS: { who: NpcId; x: number; y: number; w: number; delay: number; s
 
 
 const SCENE_NPC: Record<SceneId, NpcId> = { cafe: "miso", market: "mallow", airport: "pip", pond: "kero", tree: "pip" };
+const NPC_SCENE: Partial<Record<NpcId, SceneId>> = { miso: "cafe", mallow: "market", pip: "airport", kero: "pond" };
+
+const Island3D = dynamic(() => import("@/components/island/island3d"), {
+  ssr: false,
+  loading: () => <MapLoading />,
+});
+
+function MapLoading() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <span className="rounded-full px-4 py-2 bg-white/85 border-2 border-[#8B5E3C] font-baloo font-extrabold text-[#6B4A30] anim-floaty">Đang dựng đảo…</span>
+    </div>
+  );
+}
+
+type MapMode = "3d" | "2d";
+const MODE_KEY = "cci-map-mode";
 
 /** Lời Kero gợi ý theo bước tiếp theo của hành trình hôm nay. */
 function keroLine(step: PlanStep | null, npc: NpcId, quest: { en: string; vi: string }, mission: string | null) {
@@ -73,7 +95,28 @@ export default function IslandMapPage() {
   const [panel, setPanel] = useState<"journey" | "build" | "office" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [mode, setMode] = useState<MapMode | null>(null);
+  const [dusk, setDusk] = useState(false);
+  const [talk, setTalk] = useState<{ id: string; i: number } | null>(null);
+  const talkCount = useRef<Record<string, number>>({});
+  const world = useRef<WorldController | null>(null);
+  const router = useRouter();
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem(MODE_KEY);
+    setMode(saved === "2d" || !canWebGL() ? "2d" : "3d");
+    const h = new Date().getHours();
+    setDusk(h >= 17 || h < 6);
+  }, []);
+  useEffect(() => {
+    if (!talk) return;
+    const t = setTimeout(() => setTalk(null), 5200);
+    return () => clearTimeout(t);
+  }, [talk]);
+  const switchMode = (m: MapMode) => {
+    setMode(m);
+    localStorage.setItem(MODE_KEY, m);
+  };
 
   const curId = currentChapterId(s);
   const cur = CHAPTERS.find((c) => c.id === curId)!;
@@ -95,6 +138,85 @@ export default function IslandMapPage() {
   for (let i = 0; i < s.farm.size; i++) {
     const sl = activeSlot(s, i);
     if (sl) pondKids.push({ id: i, kind: sl.kind, size: sl.kind === "shrimp" ? 15 : sl.kind === "crab" ? 17 : 19, ready: growth(sl).pct >= 1, rare: sl.rare });
+  }
+
+  const is3d = mounted && mode === "3d";
+  const worldState: WorldState = {
+    quest: mounted ? cur.npc : null,
+    level: mounted ? lv.level : 1,
+    garden: mounted ? Object.keys(s.garden).length : 0,
+    pond: pondKids.map((k) => ({ kind: k.kind, ready: k.ready })),
+    office: mounted && officeOpen,
+    dusk,
+  };
+  const onPick3d = (id: string | null) => {
+    if (!id) return setTalk(null);
+    const [kind, key] = id.split(":");
+    world.current?.hop(id);
+    if (kind === "npc") {
+      const who = key as NpcId;
+      sfx.chirp(who);
+      if (who === "bo") return setPanel("journey");
+      const sc = NPC_SCENE[who];
+      if (sc) setOpen(sc);
+    } else if (kind === "animal") {
+      const a = ANIMALS.find((x) => x.id === key);
+      if (!a) return;
+      const n = talkCount.current[a.id] || 0;
+      talkCount.current[a.id] = n + 1;
+      const i = n % a.lines.length;
+      setTalk({ id: a.id, i });
+      sfx.animal(a.id);
+      setTimeout(() => speak(a.lines[i].en, { who: a.voice }), a.id === "buffalo" ? 900 : 650);
+    } else if (kind === "place") {
+      sfx.open();
+      if (key === "garden") router.push("/island/garden");
+      else if (key === "farm") router.push("/island/farm");
+      else if (key === "office") setPanel("office");
+      else setOpen(key as SceneId);
+    }
+  };
+  const labels3d: Label3D[] = [];
+  if (is3d) {
+    labels3d.push({ id: "place:garden", node: <PinBody icon={Sprout} tone="#5E9E3E" label="Vườn Nhiệm Vụ" href="/island/garden" badge={plotsReady > 0 ? plotsReady : null} /> });
+    labels3d.push({ id: "place:farm", node: <PinBody icon={Fish} tone="#2F8FB0" label="Ao Tôm Cua" href="/island/farm" badge={ready > 0 ? ready : null} /> });
+    for (const sp of SPOTS) labels3d.push({ id: `place:${sp.scene}`, node: <PinBody icon={sp.icon} tone={sp.color} label={sp.label} locked={!sceneUnlocked(sp.scene)} onClick={() => setOpen(sp.scene)} /> });
+    labels3d.push({
+      id: "place:office",
+      node: <PinBody icon={Briefcase} tone="#C96A2B" label={officeOpen ? "Văn phòng Mây" : "???"} locked={!officeOpen} onClick={() => setPanel("office")} title="Văn phòng Mây — luyện Call khách 30 ngày (mở ở cấp B1)" />,
+    });
+    labels3d.push({
+      id: `npc:${cur.npc}`,
+      top: true,
+      node: (
+        <button
+          type="button"
+          data-sfx="none"
+          aria-label={`${NPCS[cur.npc].name} đang có nhiệm vụ cho bạn`}
+          onClick={() => onPick3d(`npc:${cur.npc}`)}
+          className="cci-hit relative block rounded-[10px] bg-[#F2C14E] border-[2.5px] border-[#4A3222] font-baloo font-extrabold text-[18px] leading-none w-[26px] h-[32px] anim-floaty"
+          style={{ boxShadow: "0 3px 0 #4A3222" }}
+        >
+          !
+        </button>
+      ),
+    });
+    if (talk) {
+      const a = ANIMALS.find((x) => x.id === talk.id);
+      if (a)
+        labels3d.push({
+          id: `animal:${a.id}`,
+          top: true,
+          node: (
+            <div className="mb-1 w-max max-w-[min(260px,70vw)] rounded-[14px] px-3 py-2 bg-white border-[3px] border-[#8B5E3C] shadow-[0_3px_0_#8B5E3C] anim-pop text-left text-[13px]">
+              <div className="font-baloo font-extrabold leading-tight text-[#4A3222]">
+                {a.name}: {a.lines[talk.i].en}
+              </div>
+              <div className="font-semibold text-[#6B4A30] leading-snug text-xs">{a.lines[talk.i].vi}</div>
+            </div>
+          ),
+        });
+    }
   }
 
   // Báo khi đảo vừa mở thêm món mới (so với lần trước thấy).
@@ -120,10 +242,27 @@ export default function IslandMapPage() {
     <div className="max-w-[1320px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
       {/* Biển bao quanh đảo */}
       <div aria-hidden className="cci-ocean" />
+      {/* Hoàng hôn: phủ ánh cam tím lên biển */}
+      <div aria-hidden className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000" style={{ opacity: is3d && dusk ? 1 : 0, background: "linear-gradient(180deg, rgba(255,150,100,.38) 0%, rgba(240,130,150,.22) 45%, rgba(80,60,150,.28) 100%)" }} />
       {/* Bản đồ 16:10 co theo chiều cao màn hình (trừ navbar, lề và bề dày khối đảo) để luôn thấy trọn khu vườn. */}
       <div className="cci-mapfit relative z-[1] mx-auto w-full mb-8 lg:mb-12 lg:w-[min(100%,calc((100dvh-9rem)*1.6))]">
         {/* ── Bản đồ ── */}
+        {mode === "3d" || !mounted ? (
+          <div className="cci-map3d relative w-full aspect-[5/4] sm:aspect-[16/10] max-h-[calc(100dvh-4.5rem)] min-h-[240px]" style={{ containerType: "inline-size" }}>
+            {is3d ? <Island3D state={worldState} labels={labels3d} onPick={onPick3d} onFail={() => setMode("2d")} apiRef={world} /> : <MapLoading />}
+            {is3d && (
+              <div className="absolute right-2 bottom-2 hud:right-4 hud:bottom-4 z-[5] flex flex-col gap-1.5">
+                <MapCtl label={dusk ? "Chuyển sang ban ngày" : "Ngắm hoàng hôn"} onClick={() => setDusk((d) => !d)} icon={dusk ? Sun : Moon} />
+                <MapCtl label="Về góc nhìn ban đầu" onClick={() => world.current?.resetView()} icon={RotateCcw} />
+                <MapCtl label="Chuyển sang bản đồ 2D" onClick={() => switchMode("2d")} text="2D" />
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="cci-diorama relative w-full overflow-hidden rounded-[22px] sm:rounded-[28px] border-[3px] border-[#8B5E3C]" style={{ aspectRatio: "1280 / 800", containerType: "inline-size", background: "#9CCB6A" }}>
+          <div className="absolute right-2 bottom-2 hud:right-4 hud:bottom-4 z-[7]">
+            <MapCtl label="Chuyển sang đảo 3D" onClick={() => switchMode("3d")} text="3D" />
+          </div>
           <svg viewBox="0 0 1280 800" className="absolute inset-0 w-full h-full" aria-hidden="true" dangerouslySetInnerHTML={{ __html: MAP_BG_3D }} />
           <div aria-hidden className="cci-light" />
           <div aria-hidden className="cci-cloudshade" style={{ top: "18%", width: "26cqw", height: "12cqw", animationDuration: "70s" }} />
@@ -206,6 +345,7 @@ export default function IslandMapPage() {
             title="Văn phòng Mây — luyện Call khách 30 ngày (mở ở cấp B1)"
           />
         </div>
+        )}
 
         {/* ── HUD: máy tính đè lên bản đồ (gọn 4 góc), điện thoại xếp dưới bản đồ ── */}
         <div className="flex flex-col gap-3 mt-10 hud:contents">
@@ -332,7 +472,18 @@ export default function IslandMapPage() {
 }
 
 /** Ghim địa điểm trên bản đồ. Chỗ chưa mở: nền mờ, viền đứt, chữ nhỏ hơn. */
-function Pin({ x, y, icon: Icon, tone, label, locked = false, badge, href, onClick, title }: { x: number; y: number; icon: React.ElementType; tone: string; label: string; locked?: boolean; badge?: number | string | null; href?: string; onClick?: () => void; title?: string }) {
+type PinProps = { icon: React.ElementType; tone: string; label: string; locked?: boolean; badge?: number | string | null; href?: string; onClick?: () => void; title?: string };
+
+function Pin({ x, y, ...rest }: PinProps & { x: number; y: number }) {
+  return (
+    <div className="absolute -translate-x-1/2" style={{ left: P(x, 1280), top: P(y, 800), zIndex: 6 }}>
+      <PinBody {...rest} />
+    </div>
+  );
+}
+
+/** Thân ghim (dùng cho cả bản đồ 2D lẫn nhãn nổi trên đảo 3D). */
+function PinBody({ icon: Icon, tone, label, locked = false, badge, href, onClick, title }: PinProps) {
   const style: React.CSSProperties = {
     fontSize: locked ? "max(9px, 1.08cqw)" : "max(10px, 1.22cqw)",
     gap: "0.5cqw",
@@ -351,7 +502,7 @@ function Pin({ x, y, icon: Icon, tone, label, locked = false, badge, href, onCli
       </span>
       <span className="cci-pin-label">{label}</span>
       {badge != null && (
-        <span className="absolute -top-[1cqw] -right-[0.9cqw] min-w-[2cqw] h-[2cqw] px-[0.45cqw] rounded-full bg-[#F2C14E] border-2 border-[#4A3222] flex items-center justify-center anim-bounce" style={{ fontSize: "max(9px, 1cqw)" }}>
+        <span className="absolute -top-[max(1cqw,6px)] -right-[max(0.9cqw,6px)] min-w-[max(2cqw,17px)] h-[max(2cqw,17px)] px-[max(0.45cqw,3px)] rounded-full bg-[#F2C14E] border-2 border-[#4A3222] flex items-center justify-center anim-bounce leading-none" style={{ fontSize: "max(10px, 1cqw)" }}>
           {badge}
         </span>
       )}
@@ -359,18 +510,31 @@ function Pin({ x, y, icon: Icon, tone, label, locked = false, badge, href, onCli
     </>
   );
   const cls = "cci-pin relative inline-flex items-center whitespace-nowrap font-baloo font-extrabold transition-transform hover:-translate-y-0.5";
+  return href ? (
+    <Link href={href} data-sfx="open" className={cls} style={style} title={title || label} aria-label={label}>
+      {inner}
+    </Link>
+  ) : (
+    <button type="button" data-sfx="open" onClick={onClick} className={cls} style={style} title={title || label} aria-label={label}>
+      {inner}
+    </button>
+  );
+}
+
+/** Nút tròn nhỏ ở góc bản đồ (hoàng hôn, góc nhìn, 2D/3D). */
+function MapCtl({ label, onClick, icon: Icon, text }: { label: string; onClick: () => void; icon?: React.ElementType; text?: string }) {
   return (
-    <div className="absolute -translate-x-1/2" style={{ left: P(x, 1280), top: P(y, 800), zIndex: 6 }}>
-      {href ? (
-        <Link href={href} data-sfx="open" className={cls} style={style} title={title || label} aria-label={label}>
-          {inner}
-        </Link>
-      ) : (
-        <button type="button" data-sfx="open" onClick={onClick} className={cls} style={style} title={title || label} aria-label={label}>
-          {inner}
-        </button>
-      )}
-    </div>
+    <button
+      type="button"
+      data-sfx="tap"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className="clay cci-hit relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center gap-0.5 font-baloo font-extrabold text-[12px] text-[#4A3222] hover:-translate-y-0.5 active:translate-y-0.5 transition-transform"
+    >
+      {Icon && <Icon className="w-4 h-4" strokeWidth={2.6} />}
+      {text && !Icon && text}
+    </button>
   );
 }
 
