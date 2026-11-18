@@ -9,7 +9,7 @@ import { BackLink, cx } from "@/components/island/ui";
 import { ReportCard, type ReportView } from "@/components/island/report-card";
 import { CHAPTERS, NPCS, type NpcId } from "@/lib/island/curriculum";
 import { aboutLearner, personalizeDeep } from "@/lib/island/me";
-import { addChatTurn, addFix, currentChapterId, fixCards, getIsland, markChatDone, markMemoryUsed, saveReport, today, useIsland, type Memory } from "@/lib/island/progress";
+import { addChatTurn, addFix, currentChapterId, fixCards, getIsland, markBuilt, markChatDone, markMemoryUsed, saveReport, today, useIsland, type Memory } from "@/lib/island/progress";
 import { pickRecall, practiceFixes, recallOpener, recentFacts } from "@/lib/island/memory";
 import { chatMetrics, topTags, trend } from "@/lib/island/feedback";
 import { askNpc, fetchReport, rememberChat, type Correction, type Turn } from "@/lib/island/chat-client";
@@ -186,6 +186,7 @@ function Inner() {
     sfx.pop?.();
     const mine = lines.filter((l) => l.role === "user");
     if (mine.length < 2) return;
+    markBuilt("call");
     const metrics = chatMetrics(mine.map((l) => ({ content: l.content, checked: l.correction !== undefined, corrected: !!l.correction })));
     const at = new Date().toISOString();
     setReport({ ai: null, metrics, loading: true, offline: false, turnsAt: mine.length });
@@ -208,7 +209,7 @@ function Inner() {
   if (!supported.current && phase === "ready") {
     return (
       <div className="max-w-xl mx-auto px-4 py-8 flex flex-col gap-4">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="cci-card-wood p-5 font-semibold">
           Trình duyệt này chưa cho ghi âm nên chưa gọi điện được. Bạn thử bằng Chrome hoặc Safari mới, hoặc{" "}
           <Link href={`/island/chat?ch=${ch.id}`} className="font-extrabold underline">
@@ -223,7 +224,7 @@ function Inner() {
   return (
     <div className="max-w-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <h1 className="text-lg sm:text-2xl font-extrabold leading-tight flex-1 min-w-0">Gọi điện với {npc.name}</h1>
       </div>
 

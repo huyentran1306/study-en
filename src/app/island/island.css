@@ -267,3 +267,30 @@ html.cci-fs .cci .cci-topbar { display: flex !important }
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
+
+/* ── Đảo 3D toàn màn hình: bản đồ phủ kín, các nút nổi bên trên ── */
+html:has(.cci-full) { overscroll-behavior: none; }
+html .cci .cci-full .cci-mapfit { width: auto !important; }
+/* Điện thoại, máy tính bảng, màn thấp: HUD xếp quanh mép màn hình (máy tính lớn đã có bố cục riêng qua hud:) */
+@media (max-width: 1023px), (max-height: 739px) {
+  .cci .cci-full .cci-hud { position: fixed; inset: 0; z-index: 10; margin: 0; display: block; pointer-events: none; }
+  .cci .cci-full .cci-hud > * { position: absolute; pointer-events: auto; }
+  .cci .cci-full .cci-h-stats { top: calc(env(safe-area-inset-top, 0px) + 8px); left: 8px; right: 8px; }
+  .cci .cci-full .cci-h-player { top: calc(env(safe-area-inset-top, 0px) + 66px); left: 8px; }
+  .cci .cci-full .cci-rail { left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  .cci .cci-full .cci-rail > * { height: 54px; }
+  .cci .cci-full .cci-h-bar { left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
+  .cci .cci-full .cci-mapctl { top: 50%; bottom: auto; right: 8px; transform: translateY(-50%); }
+}
+/* Màn rất hẹp: thanh công cụ 2 hàng → thanh nhiệm vụ đẩy lên */
+@media (max-width: 379px) {
+  .cci .cci-full .cci-h-bar { bottom: calc(env(safe-area-inset-bottom, 0px) + 130px); }
+}
+/* Điện thoại xoay ngang: thanh công cụ dọc 2 cột bên trái, thanh nhiệm vụ ở đáy */
+@media (max-height: 560px) and (orientation: landscape) {
+  .cci .cci-full .cci-h-stats { left: auto; right: 8px; }
+  .cci .cci-full .cci-h-player { top: 8px; }
+  .cci .cci-full .cci-rail { top: 78px; bottom: auto; right: auto; grid-template-columns: repeat(2, 58px); gap: 6px; }
+  .cci .cci-full .cci-rail > * { height: 50px; }
+  .cci .cci-full .cci-h-bar { left: 140px; right: 60px; bottom: 8px; }
+}

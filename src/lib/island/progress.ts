@@ -9,6 +9,7 @@ import { setLenientWords } from "./speech";
 import { BUILDS, FRIEND_LEVELS, NPC_STORIES, PHRASE_EXTRAS, SOUND_SETS } from "./drills";
 import { EXPAND_COST, FEED_CUT, MAX_FEED, RARE_SELL, SPECIES_BY_KIND, STARTER_SHELLS, rareChance } from "./farm-data";
 import { isDuplicate } from "./memory";
+import { BUILD_BONUS, isleSpot } from "./isle";
 import type { ChatReport, ErrorTag } from "./feedback";
 import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
 
@@ -75,6 +76,20 @@ function update(fn: (s: IslandState) => IslandState) {
   save(fn(load()));
 }
 
+/** Đảo Luyện: lần đầu thử một tính năng thì dựng công trình tương ứng. */
+function withBuilt(s: IslandState, id: string): IslandState {
+  if (s.built[id] || !isleSpot(id)) return s;
+  return { ...s, built: { ...s.built, [id]: new Date().toISOString() } };
+}
+
+/** Đánh dấu đã thử tính năng (Gọi điện, Phòng nghe, Nói đuổi...). Trả về true nếu vừa dựng xong công trình. */
+export function markBuilt(id: string): boolean {
+  const s = load();
+  if (s.built[id] || !isleSpot(id)) return false;
+  save(withBuilt(s, id));
+  return true;
+}
+
 function markStudy(s: IslandState): IslandState {
   const t = today();
   if (s.studyDays.includes(t)) return s;
@@ -115,7 +130,7 @@ export function finishMission(id: string, stars: number, xp: number, trophy?: st
   const at = new Date().toISOString();
   const missions = { ...s.missions, [id]: { stars: Math.max(prev?.stars || 0, stars), at: prev?.at || at } };
   const trophies = trophy && !s.trophies[trophy] ? { ...s.trophies, [trophy]: at } : s.trophies;
-  save(markStudy({ ...s, missions, trophies, xp: s.xp + (prev ? Math.round(xp / 3) : xp) }));
+  save(withBuilt(markStudy({ ...s, missions, trophies, xp: s.xp + (prev ? Math.round(xp / 3) : xp) }), trophy ? "boss" : "mission"));
   return !prev;
 }
 
@@ -126,7 +141,7 @@ export function doRealLife(id: string, note: string, xp: number) {
 
 /** Truyện cư dân: lưu câu trả lời của bạn cho một tập. */
 export function saveEpisode(id: string, answer: string, xp: number) {
-  update((s) => markStudy({ ...s, episodes: { ...s.episodes, [id]: { at: s.episodes[id]?.at || new Date().toISOString(), answer: cleanField(answer, 300) } }, xp: s.xp + (s.episodes[id] ? 0 : xp) }));
+  update((s) => withBuilt(markStudy({ ...s, episodes: { ...s.episodes, [id]: { at: s.episodes[id]?.at || new Date().toISOString(), answer: cleanField(answer, 300) } }, xp: s.xp + (s.episodes[id] ? 0 : xp) }), "stories"));
 }
 
 /** Bài học của tôi: thêm các câu về cuộc sống của bạn vào Sổ câu. Trả về số câu mới. */
@@ -146,11 +161,11 @@ export function addLifePhrases(list: { en: string; vi: string }[]): number {
 
 /** Gương thời gian: lưu số liệu một lần ghi âm. */
 export function addMirror(t: MirrorTake, xp: number) {
-  update((s) => markStudy({ ...s, mirror: [...s.mirror.filter((x) => x.at !== t.at), t].slice(-MAX_MIRROR), xp: s.xp + xp }));
+  update((s) => withBuilt(markStudy({ ...s, mirror: [...s.mirror.filter((x) => x.at !== t.at), t].slice(-MAX_MIRROR), xp: s.xp + xp }), "mirror"));
 }
 
 export function setShareCode(code: string | undefined) {
-  update((s) => ({ ...s, shareCode: code }));
+  update((s) => (code ? withBuilt({ ...s, shareCode: code }, "visit") : { ...s, shareCode: code }));
 }
 
 export type DailyStep = "mission" | "review" | "reflex" | "chat" | "unit";
@@ -904,7 +919,7 @@ export function openChest(): boolean {
 
 /** Vỏ sò hiện có: 1 vỏ sò cho mỗi 2 XP học tập + tiền bán hải sản − tiền đã tiêu. */
 export function shells(s: IslandState): number {
-  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned - s.farm.spent);
+  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned + Object.keys(s.built).length * BUILD_BONUS - s.farm.spent);
 }
 
 /** Thức ăn kiếm được từ việc học (nhiệm vụ, phản xạ, nhiệm vụ chat, ôn thẻ). */

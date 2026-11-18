@@ -8,7 +8,7 @@ import { BackLink, cx } from "@/components/island/ui";
 import type { WorldState } from "@/components/island/world3d";
 import { canWebGL } from "@/components/island/webgl";
 import { BOSSES } from "@/lib/island/missions";
-import { activeSlot, growth, islandLevel, setShareCode, streak, totalStars, useIsland, type IslandState } from "@/lib/island/progress";
+import { activeSlot, growth, islandLevel, markBuilt, setShareCode, streak, totalStars, useIsland, type IslandState } from "@/lib/island/progress";
 import { sfx } from "@/lib/island/sfx";
 
 const Island3D = dynamic(() => import("@/components/island/island3d"), { ssr: false, loading: () => <div className="absolute inset-0 flex items-center justify-center font-bold text-[#24566B]">Đang dựng đảo…</div> });
@@ -86,7 +86,10 @@ function Inner() {
     if (!code) return setFriend(null);
     setErr(null);
     load(code)
-      .then(setFriend)
+      .then((f) => {
+        setFriend(f);
+        if (f) markBuilt("visit");
+      })
       .catch((e: Error) => setErr(e.message));
   }, [code, load]);
   // Hộp thư của đảo mình
@@ -197,7 +200,7 @@ function Inner() {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">Ghé đảo bạn bè</h1>
           <p className="text-sm font-semibold text-[#6B4A30]">Chia sẻ mã đảo với bạn học cùng, ghé thăm đảo nhau và để lại lời nhắn bằng tiếng Anh.</p>

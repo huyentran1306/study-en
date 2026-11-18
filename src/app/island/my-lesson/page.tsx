@@ -8,7 +8,7 @@ import { BackLink, cx } from "@/components/island/ui";
 import { aboutLearner, hasProfile } from "@/lib/island/me";
 import { recentFacts } from "@/lib/island/memory";
 import { TAG_VI, topTags } from "@/lib/island/feedback";
-import { addLifePhrases, currentChapterId, fixCards, useIsland } from "@/lib/island/progress";
+import { addLifePhrases, currentChapterId, fixCards, markBuilt, useIsland } from "@/lib/island/progress";
 import { CHAPTERS } from "@/lib/island/curriculum";
 import { speak } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
@@ -48,6 +48,7 @@ export default function MyLessonPage() {
       const j = (await r.json()) as { lesson?: Lesson | null };
       if (!j.lesson) throw new Error("offline");
       setLesson(j.lesson);
+      markBuilt("lesson");
       localStorage.setItem(KEY, JSON.stringify(j.lesson));
       sfx.win();
     } catch {
@@ -60,7 +61,7 @@ export default function MyLessonPage() {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">Bài học của tôi</h1>
           <p className="text-sm font-semibold text-[#6B4A30]">Bài học soạn riêng từ cuộc sống của bạn: hồ sơ và những chuyện bạn đã kể với cư dân. Luyện đúng những câu bạn sẽ nói ngoài đời.</p>

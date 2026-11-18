@@ -173,6 +173,8 @@ export interface IslandState {
   episodes: Record<string, { at: string; answer: string }>;
   /** Gương thời gian. */
   mirror: MirrorTake[];
+  /** Đảo Luyện: công trình đã dựng (lần đầu thử tính năng) → lúc dựng. */
+  built: Record<string, string>;
   /** Mã chia sẻ đảo cho bạn bè ghé thăm (rỗng = chưa chia sẻ). */
   shareCode?: string;
   sprint?: Sprint;
@@ -199,7 +201,7 @@ export function todayStr(): string {
 }
 
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [] };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {} };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -238,6 +240,7 @@ export function normalizeState(input: unknown): IslandState {
     reallife: {},
     episodes: {},
     mirror: [],
+    built: {},
   };
   {
     const iso = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
@@ -261,6 +264,9 @@ export function normalizeState(input: unknown): IslandState {
         const m = v as Record<string, unknown>;
         if (key(k) && m && iso(m.at)) out.reallife[k] = { at: (m.at as string).slice(0, 40), note: plain(m.note, 300) };
       }
+    }
+    if (x.built && typeof x.built === "object") {
+      for (const [k, v] of Object.entries(x.built as Record<string, unknown>)) if (key(k) && iso(v)) out.built[k] = (v as string).slice(0, 40);
     }
     if (x.episodes && typeof x.episodes === "object") {
       for (const [k, v] of Object.entries(x.episodes as Record<string, unknown>)) {
@@ -286,6 +292,16 @@ export function normalizeState(input: unknown): IslandState {
       }
     }
     if (typeof x.shareCode === "string" && /^[A-Z0-9]{6,10}$/.test(x.shareCode)) out.shareCode = x.shareCode;
+    // Đảo Luyện ra đời sau: ai đã chơi các tính năng này từ trước thì coi như đã dựng công trình.
+    const first = (list: string[]) => list.filter(iso).sort()[0];
+    const backfill: Record<string, string | undefined> = {
+      mission: first(Object.entries(out.missions).filter(([k]) => k.startsWith("m-")).map(([, v]) => v.at)),
+      boss: first([...Object.entries(out.missions).filter(([k]) => k.startsWith("b-")).map(([, v]) => v.at), ...Object.values(out.trophies)]),
+      stories: first(Object.values(out.episodes).map((e) => e.at)),
+      mirror: first(out.mirror.map((m) => m.at)),
+      visit: out.shareCode ? (iso(x.updatedAt) ? (x.updatedAt as string).slice(0, 40) : `${out.startDate}T00:00:00.000Z`) : undefined,
+    };
+    for (const [k, v] of Object.entries(backfill)) if (v && !out.built[k]) out.built[k] = v;
   }
   if (Array.isArray(x.reports)) {
     for (const v of x.reports.slice(-MAX_REPORTS)) {
@@ -545,6 +561,11 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
     freeze: { bought: Math.max(a.freeze.bought, b.freeze.bought), used: Array.from(new Set([...a.freeze.used, ...b.freeze.used])).sort().slice(-60) },
     reallife: { ...b.reallife, ...a.reallife },
     episodes: { ...b.episodes, ...a.episodes },
+    built: (() => {
+      const o = { ...a.built };
+      for (const [k, v] of Object.entries(b.built)) if (!o[k] || v < o[k]) o[k] = v;
+      return o;
+    })(),
     mirror: (() => {
       const by = new Map<string, MirrorTake>();
       for (const t of [...a.mirror, ...b.mirror]) by.set(t.at, t);

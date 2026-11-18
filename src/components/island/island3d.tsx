@@ -124,7 +124,7 @@ export default function Island3D({
 
   return (
     <div ref={boxRef} className="absolute inset-0">
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" style={{ touchAction: "pan-y" }} aria-label="Bản đồ đảo 3D. Kéo ngang để xoay, chụm hai ngón hoặc cuộn chuột để phóng to." role="img" />
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" style={{ touchAction: "none" }} aria-label="Bản đồ đảo 3D. Kéo ngang để xoay, chụm hai ngón hoặc cuộn chuột để phóng to." role="img" />
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {labels.map((l) => (
           <div

@@ -38,7 +38,7 @@ export default function BossPage() {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">Thử thách cuối tuần</h1>
           <p className="text-sm font-semibold text-[#6B4A30]">Mỗi Thứ 7 và Chủ nhật có một tình huống khó: 4 phút, cư dân đang vội hoặc bực. Qua được thì nhận cúp hiếm cho đảo.</p>

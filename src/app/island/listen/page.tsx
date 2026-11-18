@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Ear, Headphones, Play, RotateCcw, Volume2 } from "lucide-react";
 import { BackLink, WordMarks, cx, shuffle } from "@/components/island/ui";
 import { CHAPTERS, type Turn } from "@/lib/island/curriculum";
-import { isUnlocked, useIsland } from "@/lib/island/progress";
+import { isUnlocked, markBuilt, useIsland } from "@/lib/island/progress";
 import { ACCENTS, playVoice, stopVoice, type AccentId } from "@/lib/island/voice";
 import { playNoise, stopNoise, type NoiseKind } from "@/lib/island/noise";
 import { scoreSpeech } from "@/lib/island/speech";
@@ -84,6 +84,7 @@ export default function ListenPage() {
       setI(items.length);
       const xp = 5 + score * 2;
       addXP(xp);
+      markBuilt("listen");
       sfx.win();
       return;
     }
@@ -118,7 +119,7 @@ export default function ListenPage() {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">Phòng nghe</h1>
           <p className="text-sm font-semibold text-[#6B4A30]">Ngoài đời không ai nói chậm và rõ như sách. Tập nghe nhiều giọng, nhiều tốc độ, có cả tiếng ồn.</p>
