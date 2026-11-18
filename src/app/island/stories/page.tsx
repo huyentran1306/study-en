@@ -28,7 +28,7 @@ export default function StoriesPage() {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">Chuyện trên đảo</h1>
           <p className="text-sm font-semibold text-[#6B4A30]">Mỗi tuần một tập mới. Cư dân hỏi ý bạn, câu trả lời của bạn quyết định tập sau, và cư dân sẽ nhớ.</p>

@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookHeart, BookOpen, Check, ClipboardList, Ear, Flame, Hourglass, Mic2, Phone, Shield, Swords, Users, type LucideIcon } from "lucide-react";
+import { BookHeart, BookOpen, Check, ClipboardList, Construction, Ear, Flame, Hourglass, Mic2, Phone, Shield, Sparkles, Swords, Users, type LucideIcon } from "lucide-react";
 import { BackLink, cx } from "@/components/island/ui";
 import { CHAPTERS } from "@/lib/island/curriculum";
 import { EPISODES, REAL_LIFE } from "@/lib/island/life";
 import { MISSIONS, bossOpen, weeklyBoss } from "@/lib/island/missions";
 import { FREEZE_COST, FREEZE_MAX, buyFreeze, calendarWeek, currentChapterId, doRealLife, freezesLeft, shells, streak, useIsland } from "@/lib/island/progress";
 import { sfx } from "@/lib/island/sfx";
+import { BUILD_BONUS, builtCount, ISLE, suggestPractice, type IsleId } from "@/lib/island/isle";
 import { useGame } from "@/contexts/game-context";
 
-type Card = { href: string; icon: LucideIcon; tone: string; title: string; desc: string; badge?: string | null };
+type Card = { id: IsleId; href: string; icon: LucideIcon; tone: string; title: string; desc: string; badge?: string | null };
 
 /** Phòng luyện: tất cả cách luyện nói nâng cao ở một chỗ + thẻ giữ chuỗi + Thử ngoài đời. */
 export default function PracticeHub() {
@@ -20,7 +21,10 @@ export default function PracticeHub() {
   const [mounted, setMounted] = useState(false);
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    localStorage.setItem("cci-isle-visited", "1");
+  }, []);
 
   const cur = CHAPTERS.find((c) => c.id === currentChapterId(s))!;
   const week = mounted ? Math.max(calendarWeek(s), cur.week) : 1;
@@ -31,34 +35,39 @@ export default function PracticeHub() {
   const rlDone = mounted ? s.reallife[rl.id] : undefined;
 
   const cards: Card[] = [
-    { href: "/island/call", icon: Phone, tone: "#2F5D50", title: "Gọi điện", desc: "Chỉ giọng nói, không chữ, được ngắt lời. Đo phản xạ và tốc độ nói.", badge: null },
-    { href: "/island/mission", icon: ClipboardList, tone: "#C96A2B", title: "Nhiệm vụ hỏi thông tin", desc: "Cư dân giữ bí mật, bạn phải hỏi đúng để lấy được.", badge: missionsLeft ? `${missionsLeft} mới` : null },
-    { href: "/island/boss", icon: Swords, tone: "#7A3E2C", title: "Thử thách cuối tuần", desc: `Tuần này: ${boss.title}. 4 phút, nhận cúp hiếm.`, badge: mounted && bossOpen() ? "Đang mở" : null },
-    { href: "/island/stories", icon: BookOpen, tone: "#8E5BB5", title: "Chuyện trên đảo", desc: "Mỗi tuần một tập. Câu trả lời của bạn làm câu chuyện đi tiếp.", badge: newEp ? `${newEp} tập mới` : null },
-    { href: "/island/listen", icon: Ear, tone: "#2F8FB0", title: "Phòng nghe", desc: "Giọng Mỹ, Anh, Úc; nhanh, chậm; có tiếng ồn quán cà phê." },
-    { href: "/island/shadow", icon: Mic2, tone: "#3F7A34", title: "Nói đuổi", desc: "Bắt chước nhịp câu: trọng âm, nối âm. Máy chấm từng từ." },
-    { href: "/island/mirror", icon: Hourglass, tone: "#B5893A", title: "Gương thời gian", desc: "Ghi âm ngày 1, 30, 90 rồi nghe lại xem mình khác thế nào.", badge: mounted && !s.mirror.length ? "Ghi ngày 1" : null },
-    { href: "/island/my-lesson", icon: BookHeart, tone: "#C9506B", title: "Bài học của tôi", desc: "AI soạn bài từ chính cuộc sống của bạn." },
-    { href: "/island/visit", icon: Users, tone: "#5A6FC9", title: "Ghé đảo bạn bè", desc: "Chia sẻ mã đảo, ghé thăm và để lại lời nhắn bằng tiếng Anh." },
+    { id: "call", href: "/island/call", icon: Phone, tone: "#2F5D50", title: "Gọi điện", desc: "Chỉ giọng nói, không chữ, được ngắt lời. Đo phản xạ và tốc độ nói.", badge: null },
+    { id: "mission", href: "/island/mission", icon: ClipboardList, tone: "#C96A2B", title: "Nhiệm vụ hỏi thông tin", desc: "Cư dân giữ bí mật, bạn phải hỏi đúng để lấy được.", badge: missionsLeft ? `${missionsLeft} mới` : null },
+    { id: "boss", href: "/island/boss", icon: Swords, tone: "#7A3E2C", title: "Thử thách cuối tuần", desc: `Tuần này: ${boss.title}. 4 phút, nhận cúp hiếm.`, badge: mounted && bossOpen() ? "Đang mở" : null },
+    { id: "stories", href: "/island/stories", icon: BookOpen, tone: "#8E5BB5", title: "Chuyện trên đảo", desc: "Mỗi tuần một tập. Câu trả lời của bạn làm câu chuyện đi tiếp.", badge: newEp ? `${newEp} tập mới` : null },
+    { id: "listen", href: "/island/listen", icon: Ear, tone: "#2F8FB0", title: "Phòng nghe", desc: "Giọng Mỹ, Anh, Úc; nhanh, chậm; có tiếng ồn quán cà phê." },
+    { id: "shadow", href: "/island/shadow", icon: Mic2, tone: "#3F7A34", title: "Nói đuổi", desc: "Bắt chước nhịp câu: trọng âm, nối âm. Máy chấm từng từ." },
+    { id: "mirror", href: "/island/mirror", icon: Hourglass, tone: "#B5893A", title: "Gương thời gian", desc: "Ghi âm ngày 1, 30, 90 rồi nghe lại xem mình khác thế nào.", badge: mounted && !s.mirror.length ? "Ghi ngày 1" : null },
+    { id: "lesson", href: "/island/my-lesson", icon: BookHeart, tone: "#C9506B", title: "Bài học của tôi", desc: "AI soạn bài từ chính cuộc sống của bạn." },
+    { id: "visit", href: "/island/visit", icon: Users, tone: "#5A6FC9", title: "Ghé đảo bạn bè", desc: "Chia sẻ mã đảo, ghé thăm và để lại lời nhắn bằng tiếng Anh." },
   ];
 
+  const pick = mounted ? suggestPractice(s, week) : null;
+  // Gợi ý hôm nay lên đầu danh sách.
+  if (pick) cards.sort((a, b) => Number(b.id === pick.id) - Number(a.id === pick.id));
   const left = mounted ? freezesLeft(s) : 0;
   const money = mounted ? shells(s) : 0;
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-5">
       <div className="flex items-center gap-3">
-        <BackLink />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">Phòng luyện</h1>
-          <p className="text-sm font-semibold text-[#6B4A30]">Luyện thêm ngoài lộ trình mỗi ngày: nói, nghe, phản xạ, và dùng tiếng Anh ngoài đời.</p>
+          <p className="text-sm font-semibold text-[#6B4A30]">
+            Luyện thêm ngoài lộ trình mỗi ngày. Đã dựng {mounted ? builtCount(s) : 0}/{ISLE.length} công trình trên Đảo Luyện: thử món mới lần đầu được thêm {BUILD_BONUS} vỏ sò.
+          </p>
         </div>
       </div>
 
       <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {cards.map((c) => (
           <li key={c.href}>
-            <Link href={c.href} data-sfx="whoosh" className="clay rounded-[22px] p-3.5 flex items-start gap-3 bg-white hover:-translate-y-0.5 transition-transform h-full">
+            <Link href={c.href} data-sfx="whoosh" className={cx("clay rounded-[22px] p-3.5 flex items-start gap-3 bg-white hover:-translate-y-0.5 transition-transform h-full", pick?.id === c.id && "ring-[3px] ring-[#6FAE4F] ring-offset-2 ring-offset-[#FBF3E2]")}>
               <span className="gem w-12 h-12 shrink-0 rounded-[16px] flex items-center justify-center text-white" style={{ ["--tone" as string]: c.tone }}>
                 <c.icon className="w-6 h-6" />
               </span>
@@ -66,7 +75,17 @@ export default function PracticeHub() {
                 <span className="flex items-center gap-2 flex-wrap">
                   <span className="font-baloo font-extrabold text-lg leading-tight">{c.title}</span>
                   {c.badge && <span className="text-[11px] font-extrabold rounded-full px-2 py-0.5 bg-[#F2C14E] text-[#4A3222]">{c.badge}</span>}
+                  {mounted && !s.built[c.id] && (
+                    <span className="text-[11px] font-extrabold rounded-full px-2 py-0.5 bg-[#F3E6CC] text-[#8B5E3C] inline-flex items-center gap-1">
+                      <Construction className="w-3 h-3" /> Chưa thử · +{BUILD_BONUS} vỏ sò
+                    </span>
+                  )}
                 </span>
+                {pick?.id === c.id && (
+                  <span className="mt-0.5 mb-1 text-[12px] font-extrabold text-[#2C5A25] flex items-start gap-1 leading-snug">
+                    <Sparkles className="w-3.5 h-3.5 shrink-0 mt-px" /> Gợi ý hôm nay: {pick.why}
+                  </span>
+                )}
                 <span className="block text-sm font-semibold text-[#6B4A30] leading-snug">{c.desc}</span>
               </span>
             </Link>

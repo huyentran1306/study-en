@@ -16,7 +16,13 @@ export type WorldState = {
   /** Văn phòng Mây đã mở chưa. */
   office: boolean;
   dusk: boolean;
+  /** Đảo Luyện: các công trình đã dựng (đã thử tính năng). */
+  isle?: string[];
+  /** Thứ 7, Chủ nhật: đuốc ở đấu trường cháy. */
+  bossLit?: boolean;
 };
+
+export type WorldView = "home" | "isle";
 
 export type Projected = { id: string; x: number; y: number; depth: number; behind: boolean };
 
@@ -35,6 +41,8 @@ export type WorldController = {
   resetView: () => void;
   focus: (id: string) => void;
   hop: (id: string) => void;
+  /** Lướt máy quay sang đảo nhà hoặc Đảo Luyện. */
+  setView: (v: WorldView) => void;
   dispose: () => void;
 };
 
@@ -695,7 +703,7 @@ export function createWorld(opts: WorldOptions): WorldController {
       [-2.7, 6.2, 0.85],
       [3.1, 6.0, 0.9],
       [3.9, 4.6, 0.8],
-      [6.5, 0.6, 0.95],
+      [6.4, -0.75, 0.9],
       [4.9, -4.4, 0.95],
       [0.8, -6.4, 1.05],
       [-2.4, -6.1, 0.9],
@@ -733,6 +741,458 @@ export function createWorld(opts: WorldOptions): WorldController {
     f.castShadow = false;
     world.add(f);
   }
+
+  // ───────── Đảo Luyện: đảo nhỏ bên phải, nối bằng cầu gỗ ─────────
+  // Mỗi công trình = một cách luyện. Chưa thử thì còn giàn giáo; thử lần đầu thì dựng xong.
+  const ISLE_C = new THREE.Vector3(12.0, 0, 0.8);
+  const IR = 4.2;
+  const isleG = new THREE.Group();
+  isleG.position.copy(ISLE_C);
+  world.add(isleG);
+  const isleGround = new THREE.Group();
+  isleG.add(isleGround);
+  {
+    const g2 = cyl(IR, IR + 0.12, 0.5, "#A8D27A", 56, 0.95);
+    g2.position.y = -0.25;
+    isleGround.add(g2);
+    const c2 = cyl(IR + 0.1, IR * 0.7, 1.75, "#C9925C", 56, 0.95);
+    c2.position.y = -1.37;
+    c2.castShadow = false;
+    isleGround.add(c2);
+    const b2 = cyl(IR * 0.86, IR * 0.66, 0.4, "#A86A4A", 56, 0.95);
+    b2.position.y = -1.85;
+    isleGround.add(b2);
+    const sand2 = mesh(own(new THREE.TorusGeometry(IR + 0.06, 0.15, 10, 72)), mat("#F4DFAA", 0.95), false);
+    sand2.rotation.x = PI / 2;
+    sand2.position.y = -0.04;
+    isleGround.add(sand2);
+    const plaza2 = cyl(1.1, 1.1, 0.06, "#EBD5A2", 40, 0.95);
+    plaza2.position.y = 0.03;
+    plaza2.castShadow = false;
+    isleGround.add(plaza2);
+    // Lối từ cầu vào quảng trường nhỏ
+    const lane = box(0.9, 0.05, 3.2, "#EBD5A2", 0.95);
+    lane.castShadow = false;
+    lane.position.set(-2.6, 0.025, -0.15);
+    lane.rotation.y = PI / 2 + 0.04;
+    isleGround.add(lane);
+    // Cột cờ giữa đảo
+    const pole = cyl(0.04, 0.05, 2.0, "#8B5E3C", 8);
+    pole.position.y = 1.0;
+    isleGround.add(pole);
+    const knob = sph(0.08, "#F2C14E", 1, 1, 1, 0.4);
+    knob.position.y = 2.04;
+    isleGround.add(knob);
+  }
+  const isleFlag = box(0.62, 0.36, 0.03, "#6FAE4F");
+  isleFlag.position.set(0.33, 1.75, 0);
+  isleG.add(isleFlag);
+  const isleHalo = new THREE.Mesh(own(new THREE.RingGeometry(IR - 0.2, IR + 1.9, 64)), own(new THREE.MeshBasicMaterial({ color: 0xd4f3f8, transparent: true, opacity: 0.5, depthWrite: false })));
+  isleHalo.rotation.x = -PI / 2;
+  isleHalo.position.set(ISLE_C.x, -1.69, ISLE_C.z);
+  scene.add(isleHalo);
+  for (let i = 0; i < 2; i++) {
+    const ring = new THREE.Mesh(own(new THREE.TorusGeometry(IR + 0.25, 0.06, 8, 72)), own(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })));
+    ring.rotation.x = PI / 2;
+    ring.position.set(ISLE_C.x, -1.66, ISLE_C.z);
+    scene.add(ring);
+    foam.push(ring);
+  }
+  tag(isleGround, "isle:go");
+
+  // Cầu gỗ cong nối hai đảo
+  const bridgeG = new THREE.Group();
+  world.add(bridgeG);
+  {
+    const x1 = 6.5,
+      z1 = 0.43,
+      x2 = ISLE_C.x - IR + 0.55,
+      z2 = 0.53;
+    const len = Math.hypot(x2 - x1, z2 - z1);
+    bridgeG.position.set((x1 + x2) / 2, 0, (z1 + z2) / 2);
+    bridgeG.rotation.y = Math.atan2(x2 - x1, z2 - z1) - PI / 2;
+    const N = 9;
+    for (let i = 0; i < N; i++) {
+      const u = i / (N - 1);
+      const plank = box(len / N + 0.03, 0.08, 1.0, i % 2 ? "#C9925C" : "#B98250");
+      plank.position.set(-len / 2 + (u * (N - 1) + 0.5) * (len / N), 0.07 + Math.sin(u * PI) * 0.28, 0);
+      plank.rotation.z = -Math.cos(u * PI) * 0.28;
+      bridgeG.add(plank);
+    }
+    for (const side of [-0.5, 0.5]) {
+      for (let i = 0; i <= 4; i++) {
+        const u = i / 4;
+        const post = cyl(0.045, 0.05, 0.55, "#8B5E3C", 8);
+        post.position.set(-len / 2 + u * len, 0.32 + Math.sin(u * PI) * 0.28, side);
+        bridgeG.add(post);
+      }
+      const rail = mesh(
+        geo(`rail${len.toFixed(2)}`, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3([0, 0.25, 0.5, 0.75, 1].map((u) => new THREE.Vector3(-len / 2 + u * len, 0.58 + Math.sin(u * PI) * 0.28, 0))), 20, 0.035, 6)),
+        mat("#A86A4A"),
+      );
+      rail.position.z = side;
+      bridgeG.add(rail);
+    }
+  }
+  tag(bridgeG, "isle:go");
+  // Lối nhỏ sau sạp chợ dẫn ra cầu
+  pathTo(5.15, 0.45, 6.75, 0.43);
+
+  // Giàn giáo dùng chung (chưa dựng)
+  function scaffold(h: number, w = 0.9) {
+    const g = new THREE.Group();
+    const hw = w / 2;
+    for (const [x, z] of [
+      [-hw, -hw],
+      [hw, -hw],
+      [-hw, hw],
+      [hw, hw],
+    ] as const) {
+      const p = cyl(0.035, 0.035, h, "#C9925C", 6);
+      p.position.set(x, h / 2, z);
+      g.add(p);
+    }
+    for (let y = 0.45; y < h; y += 0.6)
+      for (const z of [-hw, hw]) {
+        const beam = box(w + 0.1, 0.05, 0.05, "#B98250");
+        beam.position.set(0, y, z);
+        g.add(beam);
+      }
+    const brace = box(0.04, Math.hypot(w, h * 0.7), 0.04, "#B98250");
+    brace.position.set(0, h * 0.4, hw + 0.03);
+    brace.rotation.z = Math.atan2(w, h * 0.7);
+    g.add(brace);
+    const deck = box(w + 0.1, 0.05, w + 0.1, "#D9B27C");
+    deck.position.y = Math.min(h - 0.1, 0.9);
+    g.add(deck);
+    const plankPile = box(0.5, 0.12, 0.22, "#C9925C");
+    plankPile.position.set(hw + 0.35, 0.06, hw);
+    plankPile.rotation.y = 0.4;
+    g.add(plankPile);
+    const cn = cone(0.09, 0.26, "#F29A4E", 12);
+    cn.position.set(-hw - 0.25, 0.13, hw + 0.15);
+    g.add(cn);
+    // Bảng "?" vàng phía trước
+    const sign = box(0.34, 0.34, 0.04, "#F2C14E");
+    sign.position.set(0, 0.55, hw + 0.08);
+    g.add(sign);
+    const q = sph(0.06, "#4A3222", 1, 1, 0.4);
+    q.position.set(0, 0.5, hw + 0.11);
+    g.add(q);
+    return g;
+  }
+
+  const isleSpots = new Map<string, { built: THREE.Group; scaffold: THREE.Group }>();
+  function isleSpot(id: string, a: number, r: number, labelY: number, scaffH: number, make: (g: THREE.Group) => void) {
+    const g = new THREE.Group();
+    const rad = (a * PI) / 180;
+    g.position.set(Math.sin(rad) * r, 0, Math.cos(rad) * r);
+    g.rotation.y = Math.atan2(-g.position.x, -g.position.z);
+    isleG.add(g);
+    const built = new THREE.Group();
+    make(built);
+    g.add(built);
+    const sc = scaffold(scaffH);
+    g.add(sc);
+    built.visible = false;
+    tag(g, `isle:${id}`);
+    anchors.set(`isle:${id}`, { obj: g, y: labelY });
+    isleSpots.set(id, { built, scaffold: sc });
+    return g;
+  }
+
+  // Bốt điện thoại
+  isleSpot("call", 318, 2.8, 1.85, 1.3, (g) => {
+    const body = box(0.62, 1.3, 0.62, "#D9483B");
+    body.position.y = 0.65;
+    g.add(body);
+    const cap = box(0.72, 0.1, 0.72, "#B53A2F");
+    cap.position.y = 1.35;
+    g.add(cap);
+    const crown2 = box(0.5, 0.12, 0.5, "#D9483B");
+    crown2.position.y = 1.46;
+    g.add(crown2);
+    const glass = box(0.44, 0.7, 0.04, "#CFEAF4", 0.2);
+    glass.position.set(0, 0.78, 0.31);
+    g.add(glass);
+    for (const x of [-0.31, 0.31]) {
+      const side = box(0.04, 0.6, 0.4, "#CFEAF4", 0.2);
+      side.position.set(x, 0.8, 0);
+      g.add(side);
+    }
+    const plate = box(0.4, 0.1, 0.03, "#FFF9EE");
+    plate.position.set(0, 1.24, 0.32);
+    g.add(plate);
+    const phone = box(0.12, 0.16, 0.05, "#2B2B2B");
+    phone.position.set(0, 0.85, -0.2);
+    g.add(phone);
+  });
+  // Bảng tin nhiệm vụ
+  isleSpot("mission", 292, 2.0, 1.75, 1.2, (g) => {
+    for (const x of [-0.48, 0.48]) {
+      const p = cyl(0.05, 0.06, 1.35, "#8B5E3C", 8);
+      p.position.set(x, 0.67, 0);
+      g.add(p);
+    }
+    const board = box(1.05, 0.7, 0.07, "#C9925C");
+    board.position.y = 0.95;
+    g.add(board);
+    const roof2 = box(1.25, 0.08, 0.32, "#A86A4A");
+    roof2.position.set(0, 1.36, 0.02);
+    roof2.rotation.x = -0.25;
+    g.add(roof2);
+    (
+      [
+        [-0.3, 1.05, "#FFFFFF", 0.1],
+        [0.05, 0.98, "#FFF1A8", -0.08],
+        [0.33, 1.08, "#F4B6C2", 0.06],
+        [-0.15, 0.78, "#CFEAF4", -0.05],
+        [0.25, 0.78, "#FFFFFF", 0.12],
+      ] as const
+    ).forEach(([x, y, c, r]) => {
+      const n = box(0.24, 0.2, 0.02, c);
+      n.position.set(x, y, 0.05);
+      n.rotation.z = r;
+      g.add(n);
+    });
+  });
+  // Sân khấu nói đuổi
+  let micGlow: THREE.MeshStandardMaterial | null = null;
+  isleSpot("shadow", 32, 2.7, 1.9, 1.2, (g) => {
+    const floor = box(1.4, 0.24, 1.0, "#B98250");
+    floor.position.y = 0.12;
+    g.add(floor);
+    const edge = box(1.44, 0.06, 1.04, "#F2C14E");
+    edge.position.y = 0.26;
+    g.add(edge);
+    for (const x of [-0.65, 0.65]) {
+      const p = cyl(0.06, 0.06, 1.3, "#8B5E3C", 8);
+      p.position.set(x, 0.9, -0.42);
+      g.add(p);
+      const cur = box(0.32, 1.0, 0.06, "#C8553D");
+      cur.position.set(x * 0.78, 0.82, -0.36);
+      g.add(cur);
+    }
+    const beam = box(1.5, 0.16, 0.12, "#C8553D");
+    beam.position.set(0, 1.55, -0.42);
+    g.add(beam);
+    const stand = cyl(0.02, 0.02, 0.62, "#4A4A4A", 6);
+    stand.position.set(0, 0.58, 0.1);
+    g.add(stand);
+    micGlow = glow("#F2C14E", 0.2);
+    const mic = new THREE.Mesh(SPH, micGlow);
+    mic.scale.setScalar(0.07);
+    mic.position.set(0, 0.92, 0.1);
+    g.add(mic);
+    for (const x of [-0.45, 0.45]) {
+      const note = sph(0.06, "#4A3222", 1, 0.8, 0.6);
+      note.position.set(x, 1.25 + Math.abs(x) * 0.2, -0.1);
+      g.add(note);
+    }
+  });
+  // Hải đăng: Phòng nghe
+  let lampMat: THREE.MeshStandardMaterial | null = null;
+  let lampBeam: THREE.Mesh | null = null;
+  isleSpot("listen", 205, 2.9, 3.25, 2.3, (g) => {
+    for (let i = 0; i < 4; i++) {
+      const seg = cyl(0.36 - i * 0.045, 0.4 - i * 0.045, 0.55, i % 2 ? "#D9483B" : "#FFFFFF", 20);
+      seg.position.y = 0.275 + i * 0.55;
+      g.add(seg);
+    }
+    const gal = cyl(0.36, 0.36, 0.07, "#4A3222", 20);
+    gal.position.y = 2.24;
+    g.add(gal);
+    lampMat = glow("#FFE7A8", 0.4);
+    const lamp = mesh(geo("lamp", () => new THREE.CylinderGeometry(0.2, 0.2, 0.34, 16)), lampMat);
+    lamp.position.y = 2.45;
+    g.add(lamp);
+    const top = cone(0.3, 0.32, "#D9483B", 16);
+    top.position.y = 2.78;
+    g.add(top);
+    const door2 = box(0.22, 0.36, 0.05, "#8B5E3C");
+    door2.position.set(0, 0.18, 0.39);
+    g.add(door2);
+    lampBeam = new THREE.Mesh(
+      own(new THREE.ConeGeometry(0.5, 2.6, 16, 1, true)),
+      own(new THREE.MeshBasicMaterial({ color: 0xfff1b8, transparent: true, opacity: 0.0, depthWrite: false, side: THREE.DoubleSide })),
+    );
+    lampBeam.rotation.z = PI / 2;
+    lampBeam.position.set(1.35, 2.45, 0);
+    const beamPivot = new THREE.Group();
+    beamPivot.add(lampBeam);
+    g.add(beamPivot);
+  });
+  // Lều kể chuyện + lửa trại
+  let fireMat: THREE.MeshStandardMaterial | null = null;
+  let flame: THREE.Mesh | null = null;
+  isleSpot("stories", 78, 2.75, 1.75, 1.1, (g) => {
+    const tent = cone(0.7, 1.25, "#8E5BB5", 6);
+    tent.position.set(0, 0.62, -0.25);
+    g.add(tent);
+    const flap = cone(0.3, 0.7, "#F4E3FF", 3);
+    flap.position.set(0, 0.35, 0.3);
+    flap.rotation.y = PI;
+    g.add(flap);
+    const tip = sph(0.07, "#F2C14E", 1, 1, 1, 0.4);
+    tip.position.set(0, 1.28, -0.25);
+    g.add(tip);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * PI * 2;
+      const st = sph(0.08, "#B9B4A8", 1, 0.7, 1);
+      st.position.set(Math.cos(a) * 0.24, 0.05, 0.75 + Math.sin(a) * 0.24);
+      g.add(st);
+    }
+    for (const r of [0.5, -0.5]) {
+      const log = cyl(0.04, 0.04, 0.34, "#8B5E3C", 6);
+      log.rotation.set(PI / 2, 0, r);
+      log.position.set(0, 0.06, 0.75);
+      g.add(log);
+    }
+    fireMat = glow("#F29A4E", 1.0);
+    flame = mesh(geo("flame", () => new THREE.ConeGeometry(0.12, 0.3, 8)), fireMat, false);
+    flame.position.set(0, 0.22, 0.75);
+    g.add(flame);
+    for (const x of [-0.55, 0.55]) {
+      const stump = cyl(0.13, 0.15, 0.2, "#A86A4A", 10);
+      stump.position.set(x, 0.1, 0.85);
+      g.add(stump);
+    }
+  });
+  // Giếng gương
+  isleSpot("mirror", 352, 2.7, 1.6, 1.1, (g) => {
+    const ring = mesh(geo("well", () => new THREE.TorusGeometry(0.38, 0.13, 10, 24)), mat("#B9B4A8"));
+    ring.rotation.x = PI / 2;
+    ring.position.y = 0.32;
+    g.add(ring);
+    const wall = cyl(0.42, 0.45, 0.32, "#CFC8B8", 20);
+    wall.position.y = 0.16;
+    g.add(wall);
+    const water = cyl(0.3, 0.3, 0.02, "#BFE9F5", 20, 0.05);
+    water.position.y = 0.34;
+    g.add(water);
+    for (const x of [-0.42, 0.42]) {
+      const p = cyl(0.04, 0.04, 0.95, "#8B5E3C", 8);
+      p.position.set(x, 0.75, 0);
+      g.add(p);
+    }
+    const rf = cone(0.62, 0.38, "#B5893A", 4);
+    rf.rotation.y = PI / 4;
+    rf.position.y = 1.36;
+    g.add(rf);
+    const bucket = cyl(0.08, 0.06, 0.12, "#A86A4A", 10);
+    bucket.position.set(0, 0.85, 0);
+    g.add(bucket);
+    const sparkle = sph(0.05, "#FFFFFF", 1, 1, 1, 0.1);
+    sparkle.position.set(0.1, 0.37, 0.05);
+    g.add(sparkle);
+  });
+  // Lớp học nhỏ: Bài học của tôi
+  isleSpot("lesson", 240, 2.55, 1.95, 1.3, (g) => {
+    const body = box(1.0, 0.85, 0.85, "#FFF4E2");
+    body.position.y = 0.425;
+    g.add(body);
+    const rf = cone(0.82, 0.55, "#C9506B", 4);
+    rf.rotation.y = PI / 4;
+    rf.scale.set(1, 1, 0.82);
+    rf.position.y = 1.12;
+    g.add(rf);
+    const bellT = box(0.16, 0.22, 0.16, "#FFF4E2");
+    bellT.position.y = 1.45;
+    g.add(bellT);
+    const bell = sph(0.06, "#F2C14E", 1, 1, 1, 0.3);
+    bell.position.y = 1.44;
+    g.add(bell);
+    const board = box(0.56, 0.34, 0.03, "#3F6B4A");
+    board.position.set(0, 0.55, 0.44);
+    g.add(board);
+    const chalk = box(0.36, 0.03, 0.01, "#FFFFFF");
+    chalk.position.set(-0.02, 0.6, 0.46);
+    g.add(chalk);
+    const chalk2 = box(0.24, 0.03, 0.01, "#FFFFFF");
+    chalk2.position.set(-0.08, 0.52, 0.46);
+    g.add(chalk2);
+    const door3 = box(0.24, 0.42, 0.04, "#C9506B");
+    door3.position.set(0.32, 0.21, 0.44);
+    g.add(door3);
+  });
+  // Bến thuyền: Ghé đảo bạn bè (cầu tàu chìa ra biển)
+  let skiff: THREE.Group | null = null;
+  isleSpot("visit", 120, 3.55, 1.5, 1.0, (g) => {
+    for (let i = 0; i < 6; i++) {
+      const pl = box(0.62, 0.06, 0.22, i % 2 ? "#C9925C" : "#B98250");
+      pl.position.set(0, 0.04, -0.15 - i * 0.24);
+      g.add(pl);
+    }
+    for (const x of [-0.3, 0.3])
+      for (const z of [-0.3, -1.3]) {
+        const p = cyl(0.04, 0.05, 1.1, "#8B5E3C", 8);
+        p.position.set(x, -0.35, z);
+        g.add(p);
+      }
+    skiff = new THREE.Group();
+    const hull = sph(0.4, "#5A6FC9", 1.6, 0.45, 0.7, 0.5);
+    skiff.add(hull);
+    const seat = box(0.36, 0.05, 0.4, "#FFF4E2");
+    seat.position.y = 0.12;
+    skiff.add(seat);
+    const mast = cyl(0.02, 0.02, 0.7, "#8B5E3C", 6);
+    mast.position.set(0.1, 0.45, 0);
+    skiff.add(mast);
+    const sail = box(0.02, 0.4, 0.32, "#FFFFFF");
+    sail.position.set(0.1, 0.55, 0.15);
+    skiff.add(sail);
+    skiff.position.set(0.75, -0.08, -1.0);
+    g.add(skiff);
+  });
+  // Đấu trường: Thử thách cuối tuần (đuốc chỉ cháy Thứ 7, Chủ nhật)
+  const torchMats: THREE.MeshStandardMaterial[] = [];
+  isleSpot("boss", 160, 2.55, 1.6, 1.0, (g) => {
+    const floor = cyl(0.78, 0.82, 0.16, "#CFC8B8", 28);
+    floor.position.y = 0.08;
+    g.add(floor);
+    const inner = cyl(0.6, 0.6, 0.02, "#E8CF9B", 28);
+    inner.position.y = 0.17;
+    g.add(inner);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * PI * 2 + PI / 6;
+      const col = cyl(0.08, 0.09, 0.62, "#B9B4A8", 10);
+      col.position.set(Math.sin(a) * 0.72, 0.47, Math.cos(a) * 0.72);
+      g.add(col);
+    }
+    for (const x of [-0.85, 0.85]) {
+      const stick = cyl(0.03, 0.03, 0.7, "#8B5E3C", 6);
+      stick.position.set(x, 0.35, 0.55);
+      g.add(stick);
+      const m = glow("#F29A4E", 0);
+      torchMats.push(m);
+      const f = mesh(geo("torch", () => new THREE.ConeGeometry(0.07, 0.2, 8)), m, false);
+      f.position.set(x, 0.8, 0.55);
+      g.add(f);
+    }
+    const banner = box(0.03, 0.36, 0.26, "#7A3E2C");
+    banner.position.set(0, 0.95, -0.72);
+    banner.rotation.y = PI / 2;
+    g.add(banner);
+    const bp = cyl(0.025, 0.025, 1.2, "#8B5E3C", 6);
+    bp.position.set(0, 0.6, -0.78);
+    g.add(bp);
+    const cup = cyl(0.08, 0.04, 0.12, "#F2C14E", 12, 0.3);
+    cup.position.set(0, 0.24, 0);
+    g.add(cup);
+  });
+  // Vài cây nhỏ cho đảo đỡ trống
+  (
+    [
+      [55, 3.5, 0.62],
+      [140, 3.45, 0.58],
+      [222, 3.55, 0.6],
+      [5, 3.75, 0.5],
+    ] as const
+  ).forEach(([a, r, s], i) => {
+    const rad = (a * PI) / 180;
+    trees.push({ g: tree(ISLE_C.x + Math.sin(rad) * r, ISLE_C.z + Math.cos(rad) * r, s, i % 2 === 1), ph: 2 + i });
+  });
+  anchors.set("isle:go", { obj: isleG, y: 2.6 });
 
   // Mây
   const clouds: { g: THREE.Group; r: number; a: number; y: number; s: number; m: THREE.MeshStandardMaterial }[] = [];
@@ -1359,6 +1819,11 @@ export function createWorld(opts: WorldOptions): WorldController {
       if (o.userData.sprout !== undefined) o.visible = o.userData.sprout >= gn;
     });
     officeTape.forEach((o) => (o.visible = !s.office));
+    const built = new Set(s.isle || []);
+    isleSpots.forEach((v, id) => {
+      v.built.visible = built.has(id);
+      v.scaffold.visible = !built.has(id);
+    });
     const sig = s.pond.map((k) => `${k.kind}${k.ready ? 1 : 0}`).join(",");
     if (sig !== kidSig) {
       kidSig = sig;
@@ -1369,7 +1834,20 @@ export function createWorld(opts: WorldOptions): WorldController {
 
   // ───────── camera & điều khiển ─────────
   const HOME = { theta: 0.3, phi: 0.96, radius: 25.5 };
+  const ISLE_RADIUS = 19;
   const orbit = { theta: HOME.theta, phi: HOME.phi, radius: HOME.radius, tTheta: HOME.theta, tPhi: HOME.phi, tRadius: HOME.radius };
+  // Tâm xoay của máy quay: đảo nhà (0,0,0) hoặc Đảo Luyện.
+  let view: WorldView = "home";
+  const center = new THREE.Vector3(),
+    tCenter = new THREE.Vector3();
+  scene.add(sun.target);
+  function goView(v: WorldView) {
+    view = v;
+    tCenter.copy(v === "isle" ? ISLE_C : new THREE.Vector3());
+    orbit.tRadius = v === "isle" ? ISLE_RADIUS : HOME.radius;
+    orbit.tPhi = HOME.phi;
+    lastInteract = performance.now();
+  }
   let lastInteract = -1e9;
   let w = 1,
     h = 1;
@@ -1420,7 +1898,7 @@ export function createWorld(opts: WorldOptions): WorldController {
     } else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinch0) orbit.tRadius = Math.min(32, Math.max(13, (orbit.tRadius * pinch0) / dist));
+      if (pinch0) orbit.tRadius = Math.min(32, Math.max(10, (orbit.tRadius * pinch0) / dist));
       pinch0 = dist;
       moved = 99;
     }
@@ -1440,7 +1918,7 @@ export function createWorld(opts: WorldOptions): WorldController {
   };
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
-    orbit.tRadius = Math.min(32, Math.max(13, orbit.tRadius * (1 + Math.sign(e.deltaY) * 0.08)));
+    orbit.tRadius = Math.min(32, Math.max(10, orbit.tRadius * (1 + Math.sign(e.deltaY) * 0.08)));
     lastInteract = performance.now();
   };
   canvas.addEventListener("pointerdown", onDown);
@@ -1477,15 +1955,41 @@ export function createWorld(opts: WorldOptions): WorldController {
     orbit.theta += (orbit.tTheta + sway - orbit.theta) * Math.min(1, dt * 5);
     orbit.phi += (orbit.tPhi - orbit.phi) * Math.min(1, dt * 5);
     orbit.radius += (orbit.tRadius - orbit.radius) * Math.min(1, dt * 4);
-    const tall = w / h < 1.4;
-    const R = orbit.radius * (tall ? 0.84 : 1);
-    camera.position.set(Math.sin(orbit.theta) * Math.sin(orbit.phi) * R, Math.cos(orbit.phi) * R + 0.5, Math.cos(orbit.theta) * Math.sin(orbit.phi) * R);
-    camera.lookAt(0, tall ? -0.1 : -0.75, 0.4);
+    center.lerp(tCenter, Math.min(1, dt * 3));
+    const aspect = w / h;
+    const tall = aspect < 1.4;
+    // Màn dọc (điện thoại): lùi máy quay cho đảo vừa khít bề ngang, nhìn từ trên cao hơn một chút.
+    const portrait = aspect < 1;
+    let k = tall ? 0.84 : 1;
+    if (portrait) k = 7.4 / (1.06 * Math.tan((camera.fov * PI) / 360) * aspect) / HOME.radius;
+    const R = orbit.radius * k;
+    const ph = orbit.phi - (portrait ? 0.14 : 0);
+    camera.position.set(center.x + Math.sin(orbit.theta) * Math.sin(ph) * R, Math.cos(ph) * R + 0.5, center.z + Math.cos(orbit.theta) * Math.sin(ph) * R);
+    camera.lookAt(center.x, portrait ? -0.9 : tall ? -0.1 : view === "isle" ? -0.4 : -0.75, center.z + 0.4);
+    sun.target.position.copy(center);
 
     duskT += ((state.dusk ? 1 : 0) - duskT) * Math.min(1, dt * 2);
     sun.color.copy(SUN_DAY).lerp(SUN_DUSK, duskT);
     sun.intensity = (1.15 - duskT * 0.45) * PI;
-    sun.position.set(8 - duskT * 14, 14 - duskT * 8, 7);
+    sun.position.set(center.x + 8 - duskT * 14, 14 - duskT * 8, center.z + 7);
+    // Đảo Luyện
+    isleFlag.rotation.y = Math.sin(t * 2.2) * 0.25 * motion;
+    isleFlag.position.x = 0.33 * Math.cos(isleFlag.rotation.y);
+    if (lampMat) lampMat.emissiveIntensity = 0.35 + duskT * 1.3;
+    if (lampBeam) {
+      (lampBeam.parent as THREE.Object3D).rotation.y = t * 0.8 * motion;
+      (lampBeam.material as THREE.MeshBasicMaterial).opacity = isleSpots.get("listen")!.built.visible ? 0.05 + duskT * 0.22 : 0;
+    }
+    if (fireMat && flame) {
+      fireMat.emissiveIntensity = 0.9 + Math.sin(t * 13) * 0.25 + duskT * 0.6;
+      flame.scale.set(1, 0.85 + Math.abs(Math.sin(t * 7)) * 0.3 * motion, 1);
+    }
+    if (micGlow) micGlow.emissiveIntensity = 0.15 + duskT * 0.8;
+    torchMats.forEach((m, i) => (m.emissiveIntensity = state.bossLit ? 1.0 + Math.sin(t * 11 + i * 2) * 0.3 + duskT * 0.6 : 0));
+    if (skiff) {
+      skiff.position.y = -0.08 + Math.sin(t * 1.6) * 0.04 * motion;
+      skiff.rotation.z = Math.sin(t * 1.2) * 0.06 * motion;
+    }
     hemi.color.copy(SKY_DAY).lerp(SKY_DUSK, duskT);
     hemi.intensity = (0.55 - duskT * 0.2) * PI;
     (beacon.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.4 + (Math.sin(t * 4) > 0 ? 0.8 : 0) + duskT;
@@ -1629,13 +2133,19 @@ export function createWorld(opts: WorldOptions): WorldController {
     resetView() {
       orbit.tTheta = HOME.theta + Math.round((orbit.theta - HOME.theta) / (PI * 2)) * PI * 2;
       orbit.tPhi = HOME.phi;
-      orbit.tRadius = HOME.radius;
+      orbit.tRadius = view === "isle" ? ISLE_RADIUS : HOME.radius;
       lastInteract = performance.now();
+    },
+    setView(v) {
+      if (v !== view) goView(v);
     },
     focus(id) {
       const a = anchors.get(id);
       if (!a) return;
+      const v: WorldView = id.startsWith("isle:") ? "isle" : "home";
+      if (v !== view) goView(v);
       a.obj.getWorldPosition(tmp);
+      tmp.sub(tCenter);
       let tt = Math.atan2(tmp.x, tmp.z);
       let d = tt - orbit.theta;
       while (d > PI) {
@@ -1647,7 +2157,7 @@ export function createWorld(opts: WorldOptions): WorldController {
         d += PI * 2;
       }
       orbit.tTheta = tt;
-      orbit.tRadius = Math.min(orbit.tRadius, 20);
+      orbit.tRadius = Math.min(orbit.tRadius, view === "isle" ? 13 : 20);
       lastInteract = performance.now();
     },
     hop(id) {

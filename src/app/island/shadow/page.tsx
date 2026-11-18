@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Mic, Square, Volume2 } from "lucide-react";
 import { BackLink, WordMarks, cx, shuffle } from "@/components/island/ui";
 import { CHAPTERS } from "@/lib/island/curriculum";
-import { isUnlocked, phrasesOf, useIsland } from "@/lib/island/progress";
+import { isUnlocked, markBuilt, phrasesOf, useIsland } from "@/lib/island/progress";
 import { personalize } from "@/lib/island/me";
 import { prosody } from "@/lib/island/prosody";
 import { NPC_VOICE, canRecord, playVoice, speechStats, startRecording, stopVoice, transcribe } from "@/lib/island/voice";
@@ -49,6 +49,7 @@ export default function ShadowPage() {
     if (!cur) return;
     const r = scoreSpeech(said, cur.en);
     setRes({ acc: r.score, wpm, marks: r.marks, said });
+    markBuilt("shadow");
     const total = Math.round(r.score * 100);
     setBest((b) => {
       const n = [...b];
@@ -94,7 +95,7 @@ export default function ShadowPage() {
   return (
     <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <BackLink href="/island/practice" label="Phòng luyện" />
+        <BackLink href="/island?view=isle" label="Đảo Luyện" />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">Nói đuổi</h1>
           <p className="text-sm font-semibold text-[#6B4A30]">Nghe câu mẫu rồi nói theo ngay, bắt chước cả nhịp: từ in đậm nhấn mạnh, từ nhỏ đọc lướt, dấu ‿ là nối âm.</p>
