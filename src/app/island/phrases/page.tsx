@@ -7,6 +7,7 @@ import { ArrowRight, Check, Eye, MessageSquareQuote, NotebookPen, RotateCcw, Use
 import { Character } from "@/components/island/character";
 import { BackLink, Feedback, MicButton, WordMarks, cx, shuffle } from "@/components/island/ui";
 import { CHAPTERS } from "@/lib/island/curriculum";
+import { TAG_VI } from "@/lib/island/feedback";
 import { backfillPhrases, completeMission, currentChapterId, duePhrases, gradePhrase, today, useIsland, type PhraseCard } from "@/lib/island/progress";
 import { scoreSpeech, speak, stopSpeaking, useListen } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
@@ -31,7 +32,7 @@ function Inner() {
   const shown = (c: PhraseCard) => (c.kind ? { en: c.en, vi: c.vi } : { en: personalize(c.en, profile), vi: personalize(c.vi, profile) });
   const all = Object.values(s.phrases);
   const fixes = all.filter((p) => p.kind === "fix");
-  const mine = all.filter((p) => p.kind === "me");
+  const mine = all.filter((p) => p.kind === "me" || p.kind === "life");
   const due = duePhrases(s);
   const chParam = Number(sp.get("ch"));
   const missionCh = chParam && s.chapters[chParam]?.lesson ? chParam : currentChapterId(s);
@@ -103,7 +104,7 @@ function Inner() {
   useEffect(() => () => stopSpeaking(), []);
 
   const listed = useMemo(
-    () => all.filter((p) => (filter === "all" ? true : filter === "fix" || filter === "me" ? p.kind === filter : !p.kind && p.ch === filter)).sort((a, b) => (a.kind || "").localeCompare(b.kind || "") || a.ch - b.ch || a.box - b.box),
+    () => all.filter((p) => (filter === "all" ? true : filter === "fix" ? p.kind === "fix" : filter === "me" ? p.kind === "me" || p.kind === "life" : !p.kind && p.ch === filter)).sort((a, b) => (a.kind || "").localeCompare(b.kind || "") || a.ch - b.ch || a.box - b.box),
     [all, filter],
   );
   const chapters = CHAPTERS.filter((c) => all.some((p) => !p.kind && p.ch === c.id));
@@ -151,7 +152,7 @@ function Inner() {
 
         <div className="cci-card-wood !rounded-[28px] min-h-[220px] p-6 flex flex-col items-center justify-center gap-3 text-center">
           <span className="cci-chip !text-xs">
-            {card.kind === "fix" ? "Lỗi sai" : card.kind === "me" ? "Về tôi" : `Chương ${card.ch}`} · {BOX_LABEL[card.box]}
+            {card.kind === "fix" ? (card.tag && card.tag !== "other" ? `Lỗi sai · ${TAG_VI[card.tag]}` : "Lỗi sai") : card.kind === "me" ? "Về tôi" : card.kind === "life" ? "Đời bạn" : `Chương ${card.ch}`} · {BOX_LABEL[card.box]}
           </span>
           {card.kind === "fix" ? (
             <>

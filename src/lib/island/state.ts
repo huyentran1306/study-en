@@ -1,6 +1,7 @@
 // Kiểu dữ liệu + chuẩn hoá + gộp tiến độ Chit Chat Island.
 // File thuần (không "use client") để dùng chung cho trình duyệt và API máy chủ.
 import type { Word } from "./curriculum";
+import { CEFR, asTag, type ChatReport, type Cefr, type ErrorTag } from "./feedback";
 
 export interface ChapterProgress {
   lesson?: boolean;
@@ -32,10 +33,12 @@ export interface PhraseCard {
   box: number;
   due: string;
   seen: number;
-  /** "fix" = câu AI đã sửa cho bạn (Sổ lỗi sai) · "me" = câu nói về chính bạn (từ Hồ sơ). */
-  kind?: "fix" | "me";
+  /** "fix" = câu AI đã sửa cho bạn (Sổ lỗi sai) · "me" = câu nói về chính bạn (từ Hồ sơ) · "life" = từ Bài học của tôi. */
+  kind?: "fix" | "me" | "life";
   /** Với thẻ "fix": câu bạn đã nói sai. */
   said?: string;
+  /** Với thẻ "fix": loại lỗi (thì, mạo từ...). */
+  tag?: ErrorTag;
 }
 
 /** Hồ sơ của người học: dùng để thay tên/quê/nghề/sở thích mẫu bằng thông tin thật. Tất cả là tiếng Anh, trừ *Vi. */
@@ -97,6 +100,40 @@ export interface FarmState {
   dexClaimed: number; // số mốc thưởng Sổ sưu tập đã nhận
 }
 
+/** "Cư dân nhớ bạn": một chuyện người học kể khi tám chuyện, để lần sau cư dân hỏi lại. */
+export interface Memory {
+  /** Khoá gộp: ISO lúc lưu + "#" + thứ tự. */
+  id: string;
+  /** Cư dân đã nghe chuyện này. */
+  npc: string;
+  /** Chương của cuộc trò chuyện (để mở lại đúng cư dân). */
+  ch: number;
+  /** Tiếng Anh, ngôi thứ hai, dùng được sau "Last time you told me ...": "you were planning a trip to Da Lat". */
+  fact: string;
+  /** Tiếng Việt: "bạn định đi Đà Lạt cuối tuần". */
+  vi: string;
+  /** Câu hỏi lại lần sau: "Did you go? How was it?" */
+  ask: string;
+  at: string;
+  /** Lúc cư dân đã hỏi lại (mỗi chuyện chỉ hỏi một lần). */
+  used?: string;
+  /** Người học đã xoá: giữ khoá, xoá nội dung, để bản ở máy khác không làm nó sống lại. */
+  gone?: boolean;
+}
+
+/** Một lần ghi âm "Gương thời gian" (âm thanh để trong máy, chỉ số liệu + lời được đồng bộ). */
+export interface MirrorTake {
+  at: string;
+  text: string;
+  words: number;
+  wpm: number;
+  pauses: number;
+  fillers: number;
+  sentenceLen: number;
+  tenses: string[];
+  secs: number;
+}
+
 export interface IslandState {
   startDate: string;
   unlockedUpTo: number;
@@ -120,6 +157,24 @@ export interface IslandState {
   garden: Record<string, string>;
   placement?: { level: string; score: number; at: string };
   profile?: Profile;
+  /** Những chuyện cư dân nhớ về bạn. */
+  memories: Memory[];
+  /** Phiếu nhận xét sau các cuộc trò chuyện (gọn, để xem tiến bộ). */
+  reports: ChatReport[];
+  /** Nhiệm vụ hỏi thông tin + thử thách cuối tuần đã qua: id → sao, lúc. */
+  missions: Record<string, { stars: number; at: string }>;
+  /** Cúp từ thử thách cuối tuần: id → lúc nhận. */
+  trophies: Record<string, string>;
+  /** Thẻ giữ chuỗi: đã mua (bought), các ngày đã dùng thẻ để giữ chuỗi (used). Còn lại = bought - used.length. */
+  freeze: { bought: number; used: string[] };
+  /** Thử ngoài đời: id → lúc làm + câu đã nói. */
+  reallife: Record<string, { at: string; note: string }>;
+  /** Truyện cư dân nhiều tuần: tập → lúc xem + câu trả lời của bạn. */
+  episodes: Record<string, { at: string; answer: string }>;
+  /** Gương thời gian. */
+  mirror: MirrorTake[];
+  /** Mã chia sẻ đảo cho bạn bè ghé thăm (rỗng = chưa chia sẻ). */
+  shareCode?: string;
   sprint?: Sprint;
   /** Thời điểm người dùng bấm "bắt đầu lại kế hoạch" (ISO) — để ngày bắt đầu mới thắng khi gộp. */
   planResetAt?: string;
@@ -134,6 +189,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_WORDS = 3000;
 const MAX_RUNS = 400;
 const REFLEX_MODES: ReflexMode[] = ["quick", "swap", "filler"];
+export const MAX_MEMORIES = 80;
+export const MAX_REPORTS = 60;
+export const MAX_MIRROR = 24;
 
 export function todayStr(): string {
   const d = new Date();
@@ -141,7 +199,7 @@ export function todayStr(): string {
 }
 
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {} };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [] };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -172,7 +230,102 @@ export function normalizeState(input: unknown): IslandState {
     daily: {},
     farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 },
     garden: {},
+    memories: [],
+    reports: [],
+    missions: {},
+    trophies: {},
+    freeze: { bought: 0, used: [] },
+    reallife: {},
+    episodes: {},
+    mirror: [],
   };
+  {
+    const iso = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
+    const key = (k: string) => /^[a-z0-9-]{1,40}$/.test(k);
+    const plain = (v: unknown, max: number) => str(v, max).replace(/[\u0000-\u001f<>{}]/g, "").trim();
+    if (x.missions && typeof x.missions === "object") {
+      for (const [k, v] of Object.entries(x.missions as Record<string, unknown>)) {
+        const m = v as Record<string, unknown>;
+        if (key(k) && m && iso(m.at)) out.missions[k] = { stars: num(m.stars, 0, 3), at: (m.at as string).slice(0, 40) };
+      }
+    }
+    if (x.trophies && typeof x.trophies === "object") {
+      for (const [k, v] of Object.entries(x.trophies as Record<string, unknown>)) if (key(k) && iso(v)) out.trophies[k] = (v as string).slice(0, 40);
+    }
+    if (x.freeze && typeof x.freeze === "object") {
+      const f = x.freeze as Record<string, unknown>;
+      out.freeze = { bought: num(f.bought, 0, 999), used: Array.isArray(f.used) ? (f.used.map(date).filter(Boolean) as string[]).slice(-60) : [] };
+    }
+    if (x.reallife && typeof x.reallife === "object") {
+      for (const [k, v] of Object.entries(x.reallife as Record<string, unknown>)) {
+        const m = v as Record<string, unknown>;
+        if (key(k) && m && iso(m.at)) out.reallife[k] = { at: (m.at as string).slice(0, 40), note: plain(m.note, 300) };
+      }
+    }
+    if (x.episodes && typeof x.episodes === "object") {
+      for (const [k, v] of Object.entries(x.episodes as Record<string, unknown>)) {
+        const m = v as Record<string, unknown>;
+        if (key(k) && m && iso(m.at)) out.episodes[k] = { at: (m.at as string).slice(0, 40), answer: plain(m.answer, 300) };
+      }
+    }
+    if (Array.isArray(x.mirror)) {
+      for (const v of x.mirror.slice(-MAX_MIRROR)) {
+        const m = v as Record<string, unknown>;
+        if (!m || !iso(m.at)) continue;
+        out.mirror.push({
+          at: (m.at as string).slice(0, 40),
+          text: plain(m.text, 1200),
+          words: num(m.words, 0, 5000),
+          wpm: num(m.wpm, 0, 400),
+          pauses: num(m.pauses, 0, 500),
+          fillers: num(m.fillers, 0, 500),
+          sentenceLen: Math.max(0, Math.min(200, Number(m.sentenceLen) || 0)),
+          tenses: Array.isArray(m.tenses) ? m.tenses.filter((t): t is string => typeof t === "string").map((t) => t.slice(0, 40)).slice(0, 8) : [],
+          secs: num(m.secs, 0, 600),
+        });
+      }
+    }
+    if (typeof x.shareCode === "string" && /^[A-Z0-9]{6,10}$/.test(x.shareCode)) out.shareCode = x.shareCode;
+  }
+  if (Array.isArray(x.reports)) {
+    for (const v of x.reports.slice(-MAX_REPORTS)) {
+      if (!v || typeof v !== "object") continue;
+      const r = v as Record<string, unknown>;
+      if (typeof r.at !== "string" || Number.isNaN(Date.parse(r.at))) continue;
+      out.reports.push({
+        at: r.at.slice(0, 40),
+        ch: num(r.ch, 0, 999),
+        npc: str(r.npc, 12).toLowerCase().replace(/[^a-z]/g, ""),
+        mode: r.mode === "fix" ? "fix" : "flow",
+        f: num(r.f, 1, 5, 3),
+        a: num(r.a, 1, 5, 3),
+        r: num(r.r, 1, 5, 3),
+        i: num(r.i, 1, 5, 3),
+        cefr: CEFR.includes(r.cefr as Cefr) ? (r.cefr as Cefr) : "A1",
+        turns: num(r.turns, 0, 999),
+        words: num(r.words, 0, 9999),
+      });
+    }
+  }
+  if (Array.isArray(x.memories)) {
+    const iso = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
+    const txt = (v: unknown, max: number) => str(v, max).replace(/["\\\u0000-\u001f<>{}]/g, "").trim();
+    for (const v of x.memories.slice(-MAX_MEMORIES)) {
+      if (!v || typeof v !== "object") continue;
+      const m = v as Record<string, unknown>;
+      if (typeof m.id !== "string" || !m.id || !iso(m.at)) continue;
+      const mem: Memory = { id: m.id.slice(0, 60), npc: txt(m.npc, 12), ch: num(m.ch, 0, 999), fact: "", vi: "", ask: "", at: (m.at as string).slice(0, 40) };
+      if (m.gone === true) mem.gone = true;
+      else {
+        mem.fact = txt(m.fact, 160);
+        mem.vi = txt(m.vi, 160);
+        mem.ask = txt(m.ask, 160);
+        if (!mem.fact || !mem.ask) continue;
+        if (iso(m.used)) mem.used = (m.used as string).slice(0, 40);
+      }
+      out.memories.push(mem);
+    }
+  }
   if (x.garden && typeof x.garden === "object") {
     for (const [k, v] of Object.entries(x.garden as Record<string, unknown>)) {
       if (/^\d{1,3}$/.test(k) && typeof v === "string" && !Number.isNaN(Date.parse(v))) out.garden[k] = v.slice(0, 40);
@@ -210,8 +363,9 @@ export function normalizeState(input: unknown): IslandState {
       const w = v as Record<string, unknown>;
       const en = str(w.en, 300) || k.slice(0, 300);
       out.phrases[en] = { en, vi: str(w.vi, 300), ch: num(w.ch, 0, 999), box: num(w.box, 0, 6, 1), due: date(w.due) || base.startDate, seen: num(w.seen, 0, 1_000_000) };
-      if (w.kind === "fix" || w.kind === "me") out.phrases[en].kind = w.kind;
+      if (w.kind === "fix" || w.kind === "me" || w.kind === "life") out.phrases[en].kind = w.kind;
       if (w.kind === "fix" && str(w.said, 300)) out.phrases[en].said = str(w.said, 300);
+      if (w.kind === "fix" && asTag(w.tag)) out.phrases[en].tag = asTag(w.tag);
     }
   }
   if (Array.isArray(x.reflex)) {
@@ -374,6 +528,37 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
       for (const [k, v] of Object.entries(a.garden)) if (!g[k] || v < g[k]) g[k] = v;
       return g;
     })(),
+    memories: mergeMemories(a.memories, b.memories),
+    missions: (() => {
+      const o: IslandState["missions"] = { ...a.missions };
+      for (const [k, v] of Object.entries(b.missions)) {
+        const x = o[k];
+        o[k] = !x ? v : { stars: Math.max(x.stars, v.stars), at: x.at < v.at ? x.at : v.at };
+      }
+      return o;
+    })(),
+    trophies: (() => {
+      const o = { ...a.trophies };
+      for (const [k, v] of Object.entries(b.trophies)) if (!o[k] || v < o[k]) o[k] = v;
+      return o;
+    })(),
+    freeze: { bought: Math.max(a.freeze.bought, b.freeze.bought), used: Array.from(new Set([...a.freeze.used, ...b.freeze.used])).sort().slice(-60) },
+    reallife: { ...b.reallife, ...a.reallife },
+    episodes: { ...b.episodes, ...a.episodes },
+    mirror: (() => {
+      const by = new Map<string, MirrorTake>();
+      for (const t of [...a.mirror, ...b.mirror]) by.set(t.at, t);
+      return Array.from(by.values())
+        .sort((p, q) => (p.at < q.at ? -1 : 1))
+        .slice(-MAX_MIRROR);
+    })(),
+    reports: (() => {
+      const by = new Map<string, ChatReport>();
+      for (const r of [...a.reports, ...b.reports]) by.set(r.at, r);
+      return Array.from(by.values())
+        .sort((p, q) => (p.at < q.at ? -1 : 1))
+        .slice(-MAX_REPORTS);
+    })(),
   };
   if (placement) out.placement = placement;
   const profile = [a.profile, b.profile].filter(Boolean).sort((p, q) => (p!.at < q!.at ? 1 : -1))[0];
@@ -384,9 +569,26 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
     out.sprint = doneAt && sprint.start <= doneAt ? { ...sprint, doneAt } : sprint;
   }
   if (ra || rb) out.planResetAt = ra >= rb ? ra : rb;
+  if (a.shareCode || b.shareCode) out.shareCode = a.shareCode || b.shareCode;
   if (a.owner || b.owner) out.owner = a.owner || b.owner;
   if (updatedAt) out.updatedAt = updatedAt;
   return out;
+}
+
+function mergeMemories(a: Memory[], b: Memory[]): Memory[] {
+  const by = new Map<string, Memory>();
+  for (const m of [...a, ...b]) {
+    const o = by.get(m.id);
+    if (!o) by.set(m.id, m);
+    else if (o.gone || m.gone) by.set(m.id, o.gone ? o : m);
+    else {
+      const used = [o.used, m.used].filter(Boolean).sort()[0];
+      by.set(m.id, used ? { ...o, used } : o);
+    }
+  }
+  return Array.from(by.values())
+    .sort((p, q) => (p.at < q.at ? -1 : p.at > q.at ? 1 : p.id < q.id ? -1 : 1))
+    .slice(-MAX_MEMORIES);
 }
 
 /** So sánh nội dung (bỏ qua updatedAt) để biết có cần ghi lại không. */
