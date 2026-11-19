@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, BookOpen, Calendar, Check, ChevronDown, Coffee, Crown, Ear, Flame, Hand, Lock, MessageCircle, Mic, Plane, Repeat, ShoppingBasket, Signpost, Star, Stethoscope, Phone, Utensils, PartyPopper, Frown, Briefcase, Feather, Zap, AudioLines, MessageSquareQuote, Fish, Sprout, BookHeart } from "lucide-react";
+import { ArrowRight, BookOpen, Calendar, KeyRound, TrendingUp, Check, ChevronDown, Coffee, Crown, Ear, Flame, Hand, Lock, MessageCircle, Mic, Plane, Repeat, ShoppingBasket, Signpost, Star, Stethoscope, Phone, Utensils, PartyPopper, Frown, Briefcase, Feather, Zap, AudioLines, MessageSquareQuote, Fish, Sprout, BookHeart } from "lucide-react";
 import { Avatar } from "@/components/island/character";
 import { BackLink, cx } from "@/components/island/ui";
 import { SyncBadge } from "@/components/island/sync-badge";
@@ -18,6 +18,8 @@ import {
   shells,
   isChallengeUnlocked,
   isUnlocked,
+  KEY_MISSIONS,
+  KEY_NAMES,
   missionsDone,
   restartPlan,
   skills,
@@ -123,7 +125,7 @@ export default function IslandPathPage() {
         </div>
         <div className="cci-card p-4 flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
-            <span className="font-baloo font-extrabold text-lg">Kỹ năng</span>
+            <span className="font-baloo font-extrabold text-lg">Đã luyện</span>
             <span className="text-sm font-bold text-[#6B4A30] flex items-center gap-1">
               <Star className="w-4 h-4" fill="#F2C14E" stroke="#4A3222" /> {mounted ? totalStars(s) : 0} sao · {mounted ? lessonsDone : 0}/13 bài
             </span>
@@ -137,6 +139,9 @@ export default function IslandPathPage() {
               <span className="w-9 text-right text-xs font-extrabold text-[#6B4A30]">{mounted ? k.pct : 0}%</span>
             </div>
           ))}
+          <Link href="/island/progress" data-sfx="whoosh" className="cci-btn cci-btn-primary !min-h-[40px] self-start mt-1">
+            <TrendingUp className="w-4 h-4" /> Tiến bộ của tôi: phút nói, điểm nói, CEFR
+          </Link>
         </div>
       </div>
 
@@ -206,6 +211,16 @@ export default function IslandPathPage() {
                   <span className="block text-sm font-semibold text-[#6B4A30] truncate">
                     {c.subtitle} · cùng {NPCS[c.npc].name}
                   </span>
+                  {mounted && unlocked && (
+                    <span className="mt-1 flex items-center gap-1 flex-wrap" aria-label="Chìa khoá mở chương sau">
+                      {KEY_MISSIONS.map((k) => (
+                        <span key={k} className={cx("inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[11px] font-extrabold border", p[k] ? "bg-[#E9F6E1] border-[#9CC77F] text-[#2C5A25]" : "bg-white border-[#E6CF9A] text-[#8B6B48]")}>
+                          <KeyRound className="w-3 h-3" /> {KEY_NAMES[k]}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  {mounted && !unlocked && <span className="mt-1 block text-xs font-bold text-[#8B6B48]">Mở khi Chương {c.id - 1} đủ 3 chìa khoá</span>}
                   <span className="mt-1.5 flex items-center gap-2">
                     <span className="flex-1 max-w-[240px] h-2.5 rounded-full bg-[#EAD9B8] overflow-hidden">
                       <span className="block h-full bg-[#6FAE4F]" style={{ width: `${(nDone / MISSIONS.length) * 100}%` }} />

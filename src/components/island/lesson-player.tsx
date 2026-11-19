@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BookOpen, Crown, Ear, Gamepad2, LifeBuoy, Lock, MessageCircle, Mic, Repeat, Sparkles } from "lucide-react";
 import { personalizeDeep } from "@/lib/island/me";
-import { CHAPTERS, NPCS, getChallenge, getChapter, type Chapter } from "@/lib/island/curriculum";
-import { completeChallenge, completeMission, isChallengeUnlocked, isUnlocked, useIsland } from "@/lib/island/progress";
+import { NPCS, getChallenge, getChapter, type Chapter } from "@/lib/island/curriculum";
+import { completeChallenge, completeMission, getIsland, isChallengeUnlocked, isUnlocked, unlockNote, useIsland } from "@/lib/island/progress";
 import { useGame } from "@/contexts/game-context";
 import { Character } from "./character";
 import { BuilderGame, DialogueStep, ListenOnly, MatchGame, QuickReview, WordsStep } from "./lesson-steps";
@@ -107,7 +107,7 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
         <p className="font-semibold text-[#6B4A30] max-w-md">
           {challenge
             ? "Hoàn thành bài học của tất cả các chương trong cấp này để mở thử thách cuối cấp."
-            : "Hoàn thành bài học của chương trước để mở chương này, hoặc làm bài kiểm tra xếp lớp để nhảy cấp."}
+            : "Chương trước cần đủ 3 chìa khoá: Bài học, Nhập vai bằng giọng và Tám chuyện AI. Hoặc làm bài kiểm tra xếp lớp để nhảy cấp."}
         </p>
         <div className="flex gap-2 flex-wrap justify-center">
           <Link href="/island/path" className="cci-btn cci-btn-primary">
@@ -131,7 +131,7 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
     completeMission(ch.id, "lesson", xp, { stars, rescueOk: score.rescueOk });
     addXP(xp);
     fire();
-    const nextCh = CHAPTERS.find((c) => c.id === ch.id + 1);
+    const note = unlockNote(getIsland(), ch.id);
     setReward({
       stars,
       xp,
@@ -140,7 +140,7 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
       lines: [
         `Trả lời đúng ngay lần đầu: ${got}/${total}`,
         `${ch.words.length} từ mới đã vào Sổ từ — ngày mai ôn lần đầu`,
-        nextCh ? `Đã mở khoá Chương ${nextCh.id}: ${nextCh.title}` : "Bạn đã mở hết các chương!",
+        ...(note ? [note] : []),
       ],
     });
   };
@@ -160,6 +160,7 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
       lines: [
         `Đúng ngay lần đầu: ${got}/${total}`,
         key === "speak" ? "Mẹo: nhại lại câu đúng 2–3 lần, nhấn vào từ khoá để nói tự nhiên hơn." : "Mẹo: nghe lại cả hội thoại khi đi bộ hoặc nấu ăn để quen tai.",
+        ...(key === "speak" && unlockNote(getIsland(), ch.id) ? [unlockNote(getIsland(), ch.id)!] : []),
       ],
     });
   };

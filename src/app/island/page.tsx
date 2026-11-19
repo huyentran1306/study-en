@@ -708,7 +708,7 @@ export default function IslandMapPage() {
             <button type="button" data-sfx="open" onClick={() => setPanel("journey")} className="flex-1 min-w-0 text-left group" title="Xem hành trình hôm nay">
               <span className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#3F7A34]">
                 <MapIcon className="w-3.5 h-3.5 shrink-0" />
-                <span className="shrink-0">{mounted && sprint.on ? `Ngày ${sprint.day}/${SPRINT_DAYS} · ` : "Hôm nay "}{mounted ? planDone : 0}/{mounted ? plan.length : 3}</span>
+                <span className="shrink-0">{mounted && sprint.on ? `Ngày ${sprint.day}/${SPRINT_DAYS} · ` : "Hôm nay "}{mounted ? planDone : 0}/{mounted ? plan.length : 4}</span>
                 <span className="flex items-center gap-1 shrink-0">
                   {plan.map((p) => {
                     const ok = mounted && p.done;

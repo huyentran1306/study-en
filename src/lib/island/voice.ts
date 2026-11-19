@@ -3,7 +3,7 @@
 // Giọng nói "thật" cho đảo: ghi âm (MediaRecorder) → Whisper phía máy chủ, và giọng đọc AI riêng cho từng cư dân.
 // Dùng cho Gọi điện, Gương thời gian, Phòng nghe, Nói đuổi. Không có mic / mạng thì các trang tự lùi về cách cũ.
 import type { NpcId } from "./curriculum";
-import { speak, stopSpeaking } from "./speech";
+import { reportSpoken, speak, stopSpeaking } from "./speech";
 
 /** Giọng Aura-2 của từng cư dân. */
 export const NPC_VOICE: Record<NpcId | "you", string> = { bo: "asteria", miso: "arcas", mallow: "luna", pip: "orion", kero: "atlas", you: "athena" };
@@ -160,7 +160,10 @@ export async function transcribe(blob: Blob): Promise<Transcript> {
   try {
     const res = await fetch("/api/island-transcribe", { method: "POST", headers: { "Content-Type": (blob.type || "audio/webm").split(";")[0] }, body: blob });
     if (!res.ok) throw new Error(String(res.status));
-    return (await res.json()) as Transcript;
+    const t = (await res.json()) as Transcript;
+    const span = t.words.length >= 2 ? t.words[t.words.length - 1].e - t.words[0].s : t.duration;
+    reportSpoken(t.text || "", span);
+    return t;
   } catch {
     return { text: "", words: [], duration: 0, offline: true };
   }

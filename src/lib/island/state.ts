@@ -196,6 +196,10 @@ export interface IslandState {
   /** Đảo Cát Vui: ô đất → công trình. */
   plots: Record<string, PlotState>;
   arcade: ArcadeState;
+  /** Số giây đã nói tiếng Anh thật (ước theo số từ nói ra) mỗi ngày. */
+  talk: Record<string, number>;
+  /** Phiên bản luật mở chương (2 = cần đủ 3 chìa khoá). Dữ liệu cũ được giữ các chương đã mở. */
+  rulesV?: number;
   /** Câu đố của Thuyền trưởng Rái: ngày → số câu đúng (cao nhất), số rương kho báu đã mở. */
   quiz: { days: Record<string, number>; chests: number };
   /** Mã chia sẻ đảo cho bạn bè ghé thăm (rỗng = chưa chia sẻ). */
@@ -224,7 +228,7 @@ export function todayStr(): string {
 }
 
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 } };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 }, talk: {}, rulesV: 2 };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -267,6 +271,7 @@ export function normalizeState(input: unknown): IslandState {
     plots: {},
     arcade: { earned: 0, day: "", today: 0, best: {} },
     quiz: { days: {}, chests: 0 },
+    talk: {},
   };
   {
     const iso = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
@@ -303,6 +308,10 @@ export function normalizeState(input: unknown): IslandState {
         out.plots[k] = { lv: num(m.lv, 0, 3), at: iso(m.at) ? (m.at as string).slice(0, 40) : "", bank: num(m.bank, 0, 1_000_000), ...(t ? { t } : {}), ...(m.food ? { food: num(m.food, 0, 1_000_000) } : {}), ...(m.cleared ? { cleared: true } : {}) };
         if (t && out.plots[k].lv < 1) out.plots[k].lv = 1;
       }
+    }
+    if (x.talk && typeof x.talk === "object") {
+      const keys = Object.keys(x.talk as object).filter((k) => date(k)).sort().slice(-120);
+      for (const k of keys) out.talk[k] = num((x.talk as Record<string, unknown>)[k], 0, 86_400);
     }
     if (x.quiz && typeof x.quiz === "object") {
       const q = x.quiz as Record<string, unknown>;
@@ -494,6 +503,14 @@ export function normalizeState(input: unknown): IslandState {
   if (typeof x.planResetAt === "string" && !Number.isNaN(Date.parse(x.planResetAt))) out.planResetAt = x.planResetAt;
   if (typeof x.owner === "string" && x.owner) out.owner = x.owner.slice(0, 128);
   if (typeof x.updatedAt === "string" && !Number.isNaN(Date.parse(x.updatedAt))) out.updatedAt = x.updatedAt;
+  // Luật mở chương mới (cần đủ 3 chìa khoá): dữ liệu cũ giữ nguyên các chương đã mở theo luật cũ (xong bài là mở chương sau).
+  if (typeof x.rulesV === "number" && x.rulesV >= 2) out.rulesV = 2;
+  else {
+    let reach = out.unlockedUpTo;
+    for (let id = 2; id <= 99; id++) if (out.chapters[id - 1]?.lesson) reach = Math.max(reach, id);
+    out.unlockedUpTo = Math.max(out.unlockedUpTo, reach);
+    out.rulesV = 2;
+  }
   return out;
 }
 
@@ -616,6 +633,12 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
       }
       return o;
     })(),
+    talk: (() => {
+      const o = { ...a.talk };
+      for (const [k, v] of Object.entries(b.talk)) o[k] = Math.max(o[k] || 0, v);
+      return Object.fromEntries(Object.entries(o).sort(([p], [q]) => (p < q ? -1 : 1)).slice(-120));
+    })(),
+    ...(a.rulesV || b.rulesV ? { rulesV: Math.max(a.rulesV || 0, b.rulesV || 0) } : {}),
     quiz: (() => {
       const days = { ...a.quiz.days };
       for (const [k, v] of Object.entries(b.quiz.days)) days[k] = Math.max(days[k] || 0, v);
