@@ -197,6 +197,12 @@ export interface IslandState {
   /** Đảo Cát Vui: ô đất → công trình. */
   plots: Record<string, PlotState>;
   arcade: ArcadeState;
+  /** Đảo bạn bè đã ghé (hiện trên bản đồ biển), mới nhất sau cùng. */
+  friends: { code: string; name: string; at: string }[];
+  /** Lễ hội theo mùa: "christmas-2026" → phần đã xong (từ vựng, lời chúc). */
+  fest: Record<string, { words?: string; speak?: string }>;
+  /** Trang trí đảo nhà: ô → món đồ. */
+  decor: Record<string, string>;
   /** Kiểm tra nói định kỳ (2 tuần một lần). */
   checks: CheckRecord[];
   /** Số giây đã nói tiếng Anh thật (ước theo số từ nói ra) mỗi ngày. */
@@ -232,7 +238,7 @@ export function todayStr(): string {
 }
 
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 }, talk: {}, checks: [], rulesV: 2 };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 }, talk: {}, checks: [], friends: [], fest: {}, decor: {}, rulesV: 2 };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -277,6 +283,9 @@ export function normalizeState(input: unknown): IslandState {
     quiz: { days: {}, chests: 0 },
     talk: {},
     checks: [],
+    friends: [],
+    fest: {},
+    decor: {},
   };
   {
     const iso = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
@@ -313,6 +322,22 @@ export function normalizeState(input: unknown): IslandState {
         out.plots[k] = { lv: num(m.lv, 0, 3), at: iso(m.at) ? (m.at as string).slice(0, 40) : "", bank: num(m.bank, 0, 1_000_000), ...(t ? { t } : {}), ...(m.food ? { food: num(m.food, 0, 1_000_000) } : {}), ...(m.cleared ? { cleared: true } : {}) };
         if (t && out.plots[k].lv < 1) out.plots[k].lv = 1;
       }
+    }
+    if (Array.isArray(x.friends)) {
+      for (const v of x.friends.slice(-12)) {
+        const m = v as Record<string, unknown>;
+        if (m && typeof m.code === "string" && /^[A-Z0-9]{6,10}$/.test(m.code) && iso(m.at)) out.friends.push({ code: m.code, name: plain(m.name, 30) || "Bạn", at: (m.at as string).slice(0, 40) });
+      }
+    }
+    if (x.fest && typeof x.fest === "object") {
+      for (const [k, v] of Object.entries(x.fest as Record<string, unknown>)) {
+        const m = v as Record<string, unknown>;
+        if (!/^[a-z]{3,12}-\d{4}$/.test(k) || !m || typeof m !== "object") continue;
+        out.fest[k] = { ...(iso(m.words) ? { words: (m.words as string).slice(0, 40) } : {}), ...(iso(m.speak) ? { speak: (m.speak as string).slice(0, 40) } : {}) };
+      }
+    }
+    if (x.decor && typeof x.decor === "object") {
+      for (const [k, v] of Object.entries(x.decor as Record<string, unknown>)) if (/^d\d{1,2}$/.test(k) && typeof v === "string" && /^[a-z]{2,20}$/.test(v)) out.decor[k] = v;
     }
     if (Array.isArray(x.checks)) {
       const CE = ["A1", "A2", "B1", "B2"];
@@ -646,6 +671,22 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
       }
       return o;
     })(),
+    friends: (() => {
+      const by = new Map<string, { code: string; name: string; at: string }>();
+      for (const f of [...a.friends, ...b.friends]) {
+        const x = by.get(f.code);
+        if (!x || f.at > x.at) by.set(f.code, f);
+      }
+      return Array.from(by.values())
+        .sort((p, q) => (p.at < q.at ? -1 : 1))
+        .slice(-12);
+    })(),
+    fest: (() => {
+      const o: IslandState["fest"] = { ...b.fest };
+      for (const [k, v] of Object.entries(a.fest)) o[k] = { ...o[k], ...v };
+      return o;
+    })(),
+    decor: { ...b.decor, ...a.decor },
     checks: (() => {
       const by = new Map<string, CheckRecord>();
       for (const c of [...a.checks, ...b.checks]) by.set(c.at, c);

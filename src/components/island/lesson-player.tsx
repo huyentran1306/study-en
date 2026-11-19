@@ -239,6 +239,7 @@ export function LessonPlayer({ id, mode: rawMode }: { id: string; mode: LessonMo
                 `Đúng ngay lần đầu: ${r.firstTry}/${r.total}`,
                 r.spoke > 0 ? `Bạn đã tự nói ${r.spoke} câu — tuyệt vời!` : "Lần sau thử bấm mic để tự nói nhé!",
                 ...(challenge.id === "c1" ? ["⛴ Đảo Phố Cảng đã mở! Ra bản đồ, phà đang chờ bạn sang học A2."] : []),
+                ...(challenge.id === "c2" ? ["🏙 Thành Phố Mây đã mở! Ra bản đồ để bay sang học B1."] : []),
               ],
             });
           }}

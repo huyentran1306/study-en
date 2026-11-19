@@ -8,7 +8,7 @@ import { BackLink, cx } from "@/components/island/ui";
 import type { WorldState } from "@/components/island/world3d";
 import { canWebGL } from "@/components/island/webgl";
 import { BOSSES } from "@/lib/island/missions";
-import { activeSlot, growth, islandLevel, markBuilt, setShareCode, streak, totalStars, useIsland, type IslandState } from "@/lib/island/progress";
+import { activeSlot, addFriend, growth, islandLevel, markBuilt, setShareCode, streak, totalStars, useIsland, type IslandState } from "@/lib/island/progress";
 import { sfx } from "@/lib/island/sfx";
 
 const Island3D = dynamic(() => import("@/components/island/island3d"), { ssr: false, loading: () => <div className="absolute inset-0 flex items-center justify-center font-bold text-[#24566B]">Đang dựng đảo…</div> });
@@ -88,7 +88,10 @@ function Inner() {
     load(code)
       .then((f) => {
         setFriend(f);
-        if (f) markBuilt("visit");
+        if (f) {
+          markBuilt("visit");
+          addFriend(f.code, f.name);
+        }
       })
       .catch((e: Error) => setErr(e.message));
   }, [code, load]);

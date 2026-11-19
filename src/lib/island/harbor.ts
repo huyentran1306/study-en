@@ -49,7 +49,7 @@ export const OTTO = {
   ],
 };
 
-export type IslandId = "home" | "isle" | "beach" | "harbor" | "city";
+export type IslandId = "home" | "isle" | "beach" | "harbor" | "city" | "fest" | "mine";
 
 /** Các đảo trên bản đồ biển. */
 export const ISLANDS: { id: IslandId; name: string; tag: string }[] = [
@@ -57,7 +57,9 @@ export const ISLANDS: { id: IslandId; name: string; tag: string }[] = [
   { id: "isle", name: "Đảo Luyện", tag: "Luyện nói" },
   { id: "beach", name: "Đảo Cát Vui", tag: "Mini game" },
   { id: "harbor", name: "Đảo Phố Cảng", tag: "A2" },
-  { id: "city", name: "Thành Phố Mây", tag: "B1 · sắp có" },
+  { id: "city", name: "Thành Phố Mây", tag: "B1" },
+  { id: "fest", name: "Đảo Lễ Hội", tag: "Theo mùa" },
+  { id: "mine", name: "Đảo Nhỏ Của Tôi", tag: "Trang trí" },
 ];
 
 /** Thử thách cuối cấp A1 mở Đảo Phố Cảng; thử thách A2 sẽ mở Thành Phố Mây. */

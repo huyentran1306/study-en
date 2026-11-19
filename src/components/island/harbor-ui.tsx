@@ -117,3 +117,39 @@ export function ChartBar({ unlocked, onGo, onHome }: { unlocked: Record<IslandId
     </div>
   );
 }
+
+/** Thanh dưới dùng chung cho các đảo phụ (Thành Phố Mây, Đảo Lễ Hội, Đảo Nhỏ Của Tôi). */
+export function SimpleBar({ tag, tone, title, sub, cta, onHome }: { tag: string; tone: string; title: string; sub: React.ReactNode; cta?: { label: string; href?: string; onClick?: () => void; icon: React.ElementType }; onHome: () => void }) {
+  const btnCls = "gloss shrink-0 flex flex-col items-center justify-center rounded-[18px] h-[62px] px-4 min-w-[104px] text-white hover:-translate-y-0.5 active:translate-y-0.5 transition-transform";
+  const style = { background: tone, border: "3px solid rgba(0,0,0,.25)", boxShadow: "0 4px 0 rgba(0,0,0,.25)" };
+  const inner = cta ? (
+    <>
+      <cta.icon className="w-4 h-4" />
+      <span className="font-baloo font-extrabold text-[17px] leading-tight flex items-center gap-1 mt-0.5">
+        {cta.label} <ArrowRight className="w-4 h-4" />
+      </span>
+    </>
+  ) : null;
+  return (
+    <div className={BAR}>
+      <HomeBtn onHome={onHome} />
+      <div className="flex-1 min-w-0">
+        <span className="block text-[11px] font-extrabold uppercase tracking-[0.08em]" style={{ color: tone }}>
+          {tag}
+        </span>
+        <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 truncate">{title}</span>
+        <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug line-clamp-2">{sub}</span>
+      </div>
+      {cta &&
+        (cta.href ? (
+          <Link href={cta.href} data-sfx="whoosh" className={btnCls} style={style}>
+            {inner}
+          </Link>
+        ) : (
+          <button type="button" data-sfx="whoosh" onClick={cta.onClick} className={btnCls} style={style}>
+            {inner}
+          </button>
+        ))}
+    </div>
+  );
+}

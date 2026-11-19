@@ -26,9 +26,17 @@ export type WorldState = {
   harbor?: boolean;
   /** Số rương kho báu đã mở (hiện rương ở bến phà). */
   chests?: number;
+  /** Thành Phố Mây (B1) đã mở chưa. */
+  city?: boolean;
+  /** Mùa lễ đang diễn ra (id) hoặc null. */
+  fest?: string | null;
+  /** Đảo Nhỏ Của Tôi: ô → món trang trí. */
+  decor?: Record<string, string>;
+  /** Số đảo bạn bè hiện trên bản đồ biển. */
+  friends?: number;
 };
 
-export type WorldView = "home" | "isle" | "beach" | "harbor" | "chart";
+export type WorldView = "home" | "isle" | "beach" | "harbor" | "city" | "fest" | "mine" | "chart";
 
 export type Projected = { id: string; x: number; y: number; depth: number; behind: boolean };
 
@@ -250,6 +258,12 @@ export function createWorld(opts: WorldOptions): WorldController {
         o.userData.pid = id;
         pickables.push(o);
       }
+    });
+  }
+  function untag(obj: THREE.Object3D) {
+    obj.traverse((o) => {
+      const i = pickables.indexOf(o);
+      if (i >= 0) pickables.splice(i, 1);
     });
   }
   const anchors = new Map<string, { obj: THREE.Object3D; y: number }>();
@@ -1992,39 +2006,566 @@ export function createWorld(opts: WorldOptions): WorldController {
   const FERRY_B = new THREE.Vector3(HARBOR_C.x, -1.62, HARBOR_C.z + HR + 2.6);
   anchors.set("harbor:go", { obj: harborG, y: 3.2 });
 
-  // Thành Phố Mây (B1) ở xa, còn mây phủ
+  // ───────── Thành Phố Mây (B1): 5 công trình cho chương 9–13 ─────────
   const CITY_C = new THREE.Vector3(19, 0, -17);
+  const CR = 4.4;
   const cityG = new THREE.Group();
   cityG.position.copy(CITY_C);
   world.add(cityG);
+  const cityGround = new THREE.Group();
+  cityG.add(cityGround);
   {
-    const top = cyl(3.2, 3.3, 0.5, "#C9D6E3", 48, 0.95);
+    const top = cyl(CR, CR + 0.12, 0.5, "#B8D98C", 60, 0.95);
     top.position.y = -0.25;
-    cityG.add(top);
-    const c5 = cyl(3.3, 2.3, 1.7, "#A9B6C6", 48, 0.95);
-    c5.position.y = -1.35;
+    cityGround.add(top);
+    const c5 = cyl(CR + 0.1, CR * 0.7, 1.8, "#A9B6C6", 60, 0.95);
+    c5.position.y = -1.4;
     c5.castShadow = false;
-    cityG.add(c5);
-    [
-      [-0.8, 0, 2.2],
-      [0.4, -0.6, 3.0],
-      [1.2, 0.5, 1.7],
-      [-0.2, 1.0, 1.4],
-    ].forEach(([x, z, h]) => {
-      const t = box(0.7, h, 0.7, "#DCE6F0");
-      t.position.set(x, h / 2, z);
-      cityG.add(t);
-    });
-    const cmat = own(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.95 }));
-    for (let i = 0; i < 7; i++) {
-      const a = (i / 7) * PI * 2;
-      const p = new THREE.Mesh(SPH, cmat);
-      p.scale.set(1.6, 0.9, 1.4);
-      p.position.set(Math.sin(a) * 1.6, 2.3 + (i % 2) * 0.5, Math.cos(a) * 1.6);
-      cityG.add(p);
-    }
+    cityGround.add(c5);
+    const sq = cyl(2.0, 2.0, 0.05, "#E4E1DA", 48, 0.95);
+    sq.position.y = 0.025;
+    sq.castShadow = false;
+    cityGround.add(sq);
+    const fBase = cyl(0.55, 0.62, 0.28, "#C9D6E3", 24);
+    fBase.position.y = 0.14;
+    cityGround.add(fBase);
+    const fWater = cyl(0.46, 0.46, 0.03, "#9BD6E6", 24, 0.2);
+    fWater.position.y = 0.29;
+    cityGround.add(fWater);
+    const fTop = cyl(0.12, 0.16, 0.5, "#C9D6E3", 12);
+    fTop.position.y = 0.5;
+    cityGround.add(fTop);
+    const sand5 = mesh(own(new THREE.TorusGeometry(CR + 0.06, 0.15, 10, 80)), mat("#F4DFAA", 0.95), false);
+    sand5.rotation.x = PI / 2;
+    sand5.position.y = -0.04;
+    cityGround.add(sand5);
   }
-  tag(cityG, "chart:city");
+  tag(cityGround, "city:go");
+  const cityHalo = new THREE.Mesh(own(new THREE.RingGeometry(CR - 0.2, CR + 2, 72)), own(new THREE.MeshBasicMaterial({ color: 0xd4f3f8, transparent: true, opacity: 0.5, depthWrite: false })));
+  cityHalo.rotation.x = -PI / 2;
+  cityHalo.position.set(CITY_C.x, -1.69, CITY_C.z);
+  scene.add(cityHalo);
+  const cityWin = glow("#BFE3F0", 0);
+  const cityLights: THREE.MeshStandardMaterial[] = [];
+  function citySpot(id: string, a: number, r: number, labelY: number, make: (g: THREE.Group) => void) {
+    const g = new THREE.Group();
+    const rad = (a * PI) / 180;
+    g.position.set(Math.sin(rad) * r, 0, Math.cos(rad) * r);
+    g.rotation.y = Math.atan2(-g.position.x, -g.position.z);
+    cityG.add(g);
+    make(g);
+    tag(g, `city:${id}`);
+    anchors.set(`city:${id}`, { obj: g, y: labelY });
+  }
+  const cWin = (g: THREE.Object3D, rows: number, cols: number, w: number, y0: number, z: number) => {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const win = mesh(geo("cwin", () => new THREE.BoxGeometry(0.2, 0.22, 0.04)), cityWin);
+        win.position.set(-w / 2 + (c + 0.5) * (w / cols), y0 + r * 0.42, z);
+        g.add(win);
+      }
+  };
+  // Quán trà chiều (ch9 small talk)
+  citySpot("teahouse", 30, 2.95, 2.0, (g) => {
+    const b = box(1.3, 0.9, 0.9, "#FFF4E2");
+    b.position.y = 0.45;
+    g.add(b);
+    const rf = cone(1.0, 0.5, "#3F7A34", 4);
+    rf.rotation.y = PI / 4;
+    rf.scale.set(1, 1, 0.75);
+    rf.position.y = 1.15;
+    g.add(rf);
+    cWin(g, 1, 2, 0.9, 0.5, 0.46);
+    for (const x of [-0.4, 0.4]) {
+      const t = cyl(0.17, 0.17, 0.03, "#FFFFFF", 14);
+      t.position.set(x, 0.38, 0.95);
+      g.add(t);
+      const l = cyl(0.025, 0.025, 0.38, "#8B5E3C", 6);
+      l.position.set(x, 0.19, 0.95);
+      g.add(l);
+      const cup = cyl(0.04, 0.03, 0.06, "#F4B6C2", 10);
+      cup.position.set(x, 0.43, 0.95);
+      g.add(cup);
+    }
+  });
+  // Rạp chiếu phim (ch10 rủ rê)
+  citySpot("cinema", 100, 3.0, 2.3, (g) => {
+    const b = box(1.5, 1.3, 1.0, "#C8553D");
+    b.position.y = 0.65;
+    g.add(b);
+    const marquee = box(1.3, 0.32, 0.12, "#FFF4E2");
+    marquee.position.set(0, 1.05, 0.56);
+    g.add(marquee);
+    for (let i = 0; i < 6; i++) {
+      const m = glow(i % 2 ? "#F2C14E" : "#FFF6C9", 0.6);
+      cityLights.push(m);
+      const bulb = new THREE.Mesh(SPH, m);
+      bulb.scale.setScalar(0.045);
+      bulb.position.set(-0.55 + i * 0.22, 1.25, 0.62);
+      g.add(bulb);
+    }
+    const door = box(0.5, 0.55, 0.04, "#4A3222");
+    door.position.set(0, 0.28, 0.51);
+    g.add(door);
+    const top = box(1.6, 0.12, 1.1, "#8E3A2C");
+    top.position.y = 1.36;
+    g.add(top);
+  });
+  // Toà nhà Mây (ch13 phỏng vấn) — cao nhất, phía sau
+  citySpot("tower", 180, 2.9, 4.0, (g) => {
+    const b = box(1.2, 3.2, 1.0, "#DCE8F4");
+    b.position.y = 1.6;
+    g.add(b);
+    cWin(g, 6, 3, 1.0, 0.55, 0.51);
+    const top = box(1.3, 0.14, 1.1, "#4E7FB8");
+    top.position.y = 3.27;
+    g.add(top);
+    const ant = cyl(0.02, 0.02, 0.6, "#8B5E3C", 6);
+    ant.position.set(0.3, 3.64, 0);
+    g.add(ant);
+    const m = glow("#E86F5A", 0.8);
+    cityLights.push(m);
+    const tip = new THREE.Mesh(SPH, m);
+    tip.scale.setScalar(0.06);
+    tip.position.set(0.3, 3.96, 0);
+    g.add(tip);
+  });
+  // Nhà sách kể chuyện (ch11)
+  citySpot("bookshop", 250, 3.0, 2.2, (g) => {
+    const b = box(1.3, 1.1, 0.9, "#E3DAF5");
+    b.position.y = 0.55;
+    g.add(b);
+    const rf = cone(1.0, 0.5, "#8E5BB5", 4);
+    rf.rotation.y = PI / 4;
+    rf.scale.set(1, 1, 0.72);
+    rf.position.y = 1.35;
+    g.add(rf);
+    cWin(g, 1, 2, 0.9, 0.62, 0.46);
+    ["#E86F5A", "#6FAE4F", "#4E7FB8"].forEach((c, i) => {
+      const bk = box(0.12, 0.3, 0.2, c);
+      bk.position.set(-0.75 - i * 0.14, 0.15, 0.4);
+      bk.rotation.z = i === 2 ? 0.25 : 0;
+      g.add(bk);
+    });
+  });
+  // Quầy chăm sóc khách hàng (ch12 phàn nàn)
+  citySpot("mall", 320, 2.95, 2.1, (g) => {
+    const b = box(1.6, 1.0, 1.0, "#FFF4E2");
+    b.position.y = 0.5;
+    g.add(b);
+    const glass = box(1.3, 0.55, 0.04, "#CFEAF4", 0.2);
+    glass.position.set(0, 0.45, 0.51);
+    g.add(glass);
+    const top = box(1.7, 0.14, 1.1, "#C96A2B");
+    top.position.y = 1.07;
+    g.add(top);
+    const sign = cyl(0.2, 0.2, 0.05, "#F2C14E", 18);
+    sign.rotation.x = PI / 2;
+    sign.position.set(0, 1.35, 0.3);
+    g.add(sign);
+    const q = sph(0.07, "#4A3222", 1, 1, 0.5);
+    q.position.set(0, 1.35, 0.34);
+    g.add(q);
+  });
+  (
+    [
+      [65, 3.9, 0.6],
+      [140, 3.9, 0.6, true],
+      [215, 4.0, 0.62],
+      [285, 3.9, 0.58, true],
+      [355, 3.8, 0.55],
+    ] as [number, number, number, boolean?][]
+  ).forEach(([a, r, sc, pink], i) => {
+    const rad = (a * PI) / 180;
+    trees.push({ g: tree(CITY_C.x + Math.sin(rad) * r, CITY_C.z + Math.cos(rad) * r, sc, pink), ph: 7 + i });
+  });
+  // Khinh khí cầu bay trên thành phố (khi đã mở)
+  const blimp = new THREE.Group();
+  {
+    const body = sph(0.7, "#F3E6CC", 1.9, 0.75, 0.75, 0.6);
+    blimp.add(body);
+    const band = sph(0.71, "#4E7FB8", 1.9, 0.2, 0.76, 0.6);
+    blimp.add(band);
+    const fin = box(0.04, 0.4, 0.3, "#4E7FB8");
+    fin.position.set(-1.25, 0.15, 0);
+    blimp.add(fin);
+    const gond = box(0.5, 0.18, 0.25, "#8B5E3C");
+    gond.position.y = -0.62;
+    blimp.add(gond);
+    cityG.add(blimp);
+  }
+  // Mây phủ khi chưa mở
+  const cityFog = new THREE.Group();
+  {
+    const cmat = own(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.95 }));
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * PI * 2;
+      const p = new THREE.Mesh(SPH, cmat);
+      p.scale.set(1.9, 1.1, 1.6);
+      p.position.set(Math.sin(a) * (i % 2 ? 3 : 1.7), 1.8 + (i % 3) * 0.5, Math.cos(a) * (i % 2 ? 3 : 1.7));
+      cityFog.add(p);
+    }
+    const mid = new THREE.Mesh(SPH, cmat);
+    mid.scale.set(2.6, 1.8, 2.6);
+    mid.position.y = 2.6;
+    cityFog.add(mid);
+    cityG.add(cityFog);
+  }
+  anchors.set("city:go", { obj: cityG, y: 4.4 });
+
+  // ───────── Đảo Lễ Hội: trang trí đổi theo mùa ─────────
+  const FEST_C = new THREE.Vector3(-15, 0, -12);
+  const FR = 3.4;
+  const festG = new THREE.Group();
+  festG.position.copy(FEST_C);
+  world.add(festG);
+  const festTopMat = own(new THREE.MeshStandardMaterial({ color: new THREE.Color("#B8D98C"), roughness: 0.95 }));
+  {
+    const top = mesh(geo("festtop", () => new THREE.CylinderGeometry(FR, FR + 0.12, 0.5, 56)), festTopMat);
+    top.position.y = -0.25;
+    festG.add(top);
+    const c6 = cyl(FR + 0.1, FR * 0.7, 1.7, "#C9925C", 56, 0.95);
+    c6.position.y = -1.35;
+    c6.castShadow = false;
+    festG.add(c6);
+    const stage = cyl(1.0, 1.05, 0.18, "#E8CF9B", 32);
+    stage.position.y = 0.09;
+    festG.add(stage);
+  }
+  tag(festG, "fest:go");
+  const festHalo = new THREE.Mesh(own(new THREE.RingGeometry(FR - 0.2, FR + 1.6, 64)), own(new THREE.MeshBasicMaterial({ color: 0xd4f3f8, transparent: true, opacity: 0.5, depthWrite: false })));
+  festHalo.rotation.x = -PI / 2;
+  festHalo.position.set(FEST_C.x, -1.69, FEST_C.z);
+  scene.add(festHalo);
+  const festSets: Record<string, THREE.Group> = {};
+  const festGlow: THREE.MeshStandardMaterial[] = [];
+  const ring = (n: number, r: number, fn: (x: number, z: number, i: number) => void) => {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * PI * 2 + 0.3;
+      fn(Math.sin(a) * r, Math.cos(a) * r, i);
+    }
+  };
+  // Giáng sinh
+  {
+    const g = new THREE.Group();
+    const tr = new THREE.Group();
+    for (let i = 0; i < 3; i++) {
+      const c = cone(0.75 - i * 0.18, 0.75, "#3F7A34", 14);
+      c.position.y = 0.6 + i * 0.45;
+      tr.add(c);
+    }
+    const trunk = cyl(0.1, 0.12, 0.3, "#8B5E3C", 8);
+    trunk.position.y = 0.2;
+    tr.add(trunk);
+    const star = glow("#FFD25A", 1);
+    festGlow.push(star);
+    const st = new THREE.Mesh(SPH, star);
+    st.scale.setScalar(0.12);
+    st.position.y = 1.95;
+    tr.add(st);
+    ["#E86F5A", "#F2C14E", "#6FC1DA", "#F29BB5", "#FFFFFF"].forEach((c, i) => {
+      const m = glow(c, 0.5);
+      festGlow.push(m);
+      const o = new THREE.Mesh(SPH, m);
+      o.scale.setScalar(0.06);
+      const a = i * 1.3;
+      o.position.set(Math.sin(a) * 0.45, 0.75 + (i % 3) * 0.35, Math.cos(a) * 0.45);
+      tr.add(o);
+    });
+    tr.position.y = 0.18;
+    g.add(tr);
+    ring(5, 1.7, (x, z, i) => {
+      const gift = box(0.32, 0.26, 0.32, ["#E86F5A", "#6FAE4F", "#4E7FB8", "#F2C14E", "#8E5BB5"][i]);
+      gift.position.set(x, 0.13, z);
+      g.add(gift);
+      const rib = box(0.34, 0.06, 0.08, "#FFFFFF");
+      rib.position.set(x, 0.27, z);
+      g.add(rib);
+    });
+    const sm = new THREE.Group();
+    const s1 = sph(0.32, "#FFFFFF", 1, 1, 1, 0.8);
+    s1.position.y = 0.3;
+    const s2 = sph(0.22, "#FFFFFF", 1, 1, 1, 0.8);
+    s2.position.y = 0.75;
+    const nose = cone(0.04, 0.16, "#F29A4E", 8);
+    nose.rotation.x = PI / 2;
+    nose.position.set(0, 0.76, 0.24);
+    const hat = cyl(0.13, 0.13, 0.18, "#4A3222", 12);
+    hat.position.y = 1.02;
+    sm.add(s1, s2, nose, hat);
+    sm.position.set(2.3, 0, 1.2);
+    g.add(sm);
+    festSets.christmas = g;
+  }
+  // Tết
+  {
+    const g = new THREE.Group();
+    const trunk = cyl(0.1, 0.16, 1.0, "#6B4A30", 8);
+    trunk.position.y = 0.6;
+    g.add(trunk);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * PI * 2;
+      const bl = sph(0.32, i % 2 ? "#F4B6C2" : "#E89AAD", 1, 0.8, 1, 0.9);
+      bl.position.set(Math.sin(a) * 0.5, 1.25 + (i % 3) * 0.18, Math.cos(a) * 0.5);
+      g.add(bl);
+    }
+    ring(6, 1.8, (x, z, i) => {
+      const pole = cyl(0.02, 0.02, 0.9, "#8B5E3C", 6);
+      pole.position.set(x, 0.45, z);
+      g.add(pole);
+      const m = glow("#E8453C", 0.5);
+      festGlow.push(m);
+      const lan = mesh(geo("lantern", () => new THREE.SphereGeometry(0.16, 16, 12)), m);
+      lan.scale.set(1, 1.2, 1);
+      lan.position.set(x, 0.95, z);
+      g.add(lan);
+      if (i % 2 === 0) {
+        const cake = box(0.26, 0.12, 0.26, "#3F7A34");
+        cake.position.set(x * 0.7, 0.06, z * 0.7);
+        g.add(cake);
+      }
+    });
+    festSets.tet = g;
+  }
+  // Halloween
+  {
+    const g = new THREE.Group();
+    ring(7, 1.6, (x, z) => {
+      const p = sph(0.25, "#F29A4E", 1.2, 0.85, 1.2, 0.6);
+      p.position.set(x, 0.2, z);
+      g.add(p);
+      const stem = cyl(0.03, 0.04, 0.12, "#3F7A34", 6);
+      stem.position.set(x, 0.44, z);
+      g.add(stem);
+      const m = glow("#FFB347", 0.9);
+      festGlow.push(m);
+      const face = box(0.16, 0.08, 0.02, "#000000");
+      face.material = m;
+      face.position.set(x, 0.2, z + 0.27);
+      g.add(face);
+    });
+    const hut = box(0.9, 0.8, 0.8, "#6B5B8C");
+    hut.position.y = 0.58;
+    g.add(hut);
+    const hr = cone(0.75, 0.7, "#3E3550", 4);
+    hr.rotation.y = PI / 4;
+    hr.position.y = 1.33;
+    g.add(hr);
+    festSets.halloween = g;
+  }
+  // Trung thu
+  {
+    const g = new THREE.Group();
+    const moon = glow("#FFE39A", 0.9);
+    festGlow.push(moon);
+    const mn = new THREE.Mesh(SPH, moon);
+    mn.scale.setScalar(0.5);
+    mn.position.set(0, 2.6, -1.4);
+    g.add(mn);
+    ring(6, 1.7, (x, z, i) => {
+      const pole = cyl(0.02, 0.02, 0.8, "#8B5E3C", 6);
+      pole.position.set(x, 0.4, z);
+      g.add(pole);
+      const m = glow(["#F2C14E", "#E86F5A", "#F29BB5"][i % 3], 0.6);
+      festGlow.push(m);
+      const star = mesh(geo("starL", () => new THREE.OctahedronGeometry(0.17)), m);
+      star.position.set(x, 0.92, z);
+      g.add(star);
+    });
+    const tbl = cyl(0.4, 0.4, 0.05, "#C9925C", 18);
+    tbl.position.y = 0.42;
+    g.add(tbl);
+    const cake = cyl(0.14, 0.14, 0.08, "#D9A44E", 14);
+    cake.position.y = 0.49;
+    g.add(cake);
+    festSets.midautumn = g;
+  }
+  for (const g of Object.values(festSets)) {
+    g.visible = false;
+    festG.add(g);
+  }
+  const festFog = new THREE.Group();
+  {
+    const cmat = own(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.92 }));
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * PI * 2;
+      const p = new THREE.Mesh(SPH, cmat);
+      p.scale.set(1.4, 0.8, 1.2);
+      p.position.set(Math.sin(a) * 1.6, 1.3 + (i % 2) * 0.4, Math.cos(a) * 1.6);
+      festFog.add(p);
+    }
+    festG.add(festFog);
+  }
+  anchors.set("fest:go", { obj: festG, y: 2.6 });
+
+  // ───────── Đảo Nhỏ Của Tôi: 9 ô trang trí ─────────
+  const MINE_C = new THREE.Vector3(-2.6, 0, -11.2);
+  const MR = 2.8;
+  const mineG = new THREE.Group();
+  mineG.position.copy(MINE_C);
+  world.add(mineG);
+  {
+    const top = cyl(MR, MR + 0.1, 0.5, "#A8D27A", 48, 0.95);
+    top.position.y = -0.25;
+    mineG.add(top);
+    const c7 = cyl(MR + 0.08, MR * 0.7, 1.6, "#C9925C", 48, 0.95);
+    c7.position.y = -1.3;
+    c7.castShadow = false;
+    mineG.add(c7);
+  }
+  const mineHalo = new THREE.Mesh(own(new THREE.RingGeometry(MR - 0.2, MR + 1.4, 56)), own(new THREE.MeshBasicMaterial({ color: 0xd4f3f8, transparent: true, opacity: 0.5, depthWrite: false })));
+  mineHalo.rotation.x = -PI / 2;
+  mineHalo.position.set(MINE_C.x, -1.69, MINE_C.z);
+  scene.add(mineHalo);
+  tag(mineG, "mine:go");
+  function decorModel(id: string): THREE.Group {
+    const g = new THREE.Group();
+    if (id === "pot") {
+      const p = cyl(0.18, 0.13, 0.25, "#C9925C", 12);
+      p.position.y = 0.12;
+      const f = sph(0.22, "#E89AAD", 1, 0.8, 1, 0.9);
+      f.position.y = 0.38;
+      const f2 = sph(0.12, "#F2C14E", 1, 1, 1, 0.9);
+      f2.position.set(0.1, 0.48, 0.08);
+      g.add(p, f, f2);
+    } else if (id === "sign") {
+      const p = cyl(0.03, 0.03, 0.8, "#8B5E3C", 6);
+      p.position.y = 0.4;
+      const b1 = box(0.5, 0.14, 0.04, "#E8CF9B");
+      b1.position.set(0.15, 0.68, 0);
+      const b2 = box(0.45, 0.14, 0.04, "#E8CF9B");
+      b2.position.set(-0.12, 0.48, 0);
+      b2.rotation.y = 0.6;
+      g.add(p, b1, b2);
+    } else if (id === "bench") {
+      const seat = box(0.8, 0.06, 0.28, "#C9925C");
+      seat.position.y = 0.28;
+      const back = box(0.8, 0.22, 0.05, "#B98250");
+      back.position.set(0, 0.45, -0.12);
+      g.add(seat, back);
+      for (const x of [-0.32, 0.32]) {
+        const l = box(0.06, 0.28, 0.26, "#8B5E3C");
+        l.position.set(x, 0.14, 0);
+        g.add(l);
+      }
+    } else if (id === "lamp") {
+      const p = cyl(0.035, 0.05, 1.2, "#3E4A61", 8);
+      p.position.y = 0.6;
+      const m = glow("#FFE7A8", 0.8);
+      festGlow.push(m);
+      const l = new THREE.Mesh(SPH, m);
+      l.scale.setScalar(0.12);
+      l.position.y = 1.25;
+      const cap = cone(0.15, 0.12, "#3E4A61", 10);
+      cap.position.y = 1.38;
+      g.add(p, l, cap);
+    } else if (id === "flamingo") {
+      const b = sph(0.2, "#F29BB5", 1.3, 0.8, 0.8, 0.6);
+      b.position.y = 0.55;
+      const n = cyl(0.04, 0.04, 0.4, "#F29BB5", 8);
+      n.position.set(0.18, 0.78, 0);
+      n.rotation.z = -0.3;
+      const h = sph(0.08, "#F29BB5", 1, 1, 1, 0.6);
+      h.position.set(0.25, 0.98, 0);
+      const beak = cone(0.03, 0.1, "#4A3222", 6);
+      beak.rotation.z = -PI / 2;
+      beak.position.set(0.34, 0.96, 0);
+      const leg = cyl(0.015, 0.015, 0.4, "#E07A93", 4);
+      leg.position.set(0, 0.2, 0);
+      g.add(b, n, h, beak, leg);
+    } else if (id === "snowman") {
+      const s1 = sph(0.28, "#FFFFFF", 1, 1, 1, 0.8);
+      s1.position.y = 0.26;
+      const s2 = sph(0.2, "#FFFFFF", 1, 1, 1, 0.8);
+      s2.position.y = 0.66;
+      const nose = cone(0.035, 0.14, "#F29A4E", 8);
+      nose.rotation.x = PI / 2;
+      nose.position.set(0, 0.68, 0.22);
+      const sc = mesh(geo("scarfS", () => new THREE.TorusGeometry(0.16, 0.04, 8, 20)), mat("#E86F5A"));
+      sc.rotation.x = PI / 2;
+      sc.position.y = 0.5;
+      g.add(s1, s2, nose, sc);
+    } else if (id === "swing") {
+      for (const x of [-0.4, 0.4]) {
+        const p = cyl(0.035, 0.035, 1.1, "#8B5E3C", 6);
+        p.position.set(x, 0.55, 0);
+        g.add(p);
+      }
+      const top = cyl(0.03, 0.03, 0.85, "#8B5E3C", 6);
+      top.rotation.z = PI / 2;
+      top.position.y = 1.1;
+      const seat = box(0.36, 0.04, 0.18, "#E86F5A");
+      seat.position.y = 0.4;
+      g.add(top, seat);
+      for (const x of [-0.15, 0.15]) {
+        const r = cyl(0.008, 0.008, 0.7, "#4A3222", 4);
+        r.position.set(x, 0.75, 0);
+        g.add(r);
+      }
+    } else if (id === "statue") {
+      const base = box(0.4, 0.2, 0.4, "#B9B4A8");
+      base.position.y = 0.1;
+      const body = sph(0.2, "#C9D6E3", 1, 1.1, 0.9, 0.5);
+      body.position.y = 0.42;
+      const head = sph(0.15, "#C9D6E3", 1, 1, 1, 0.5);
+      head.position.y = 0.7;
+      g.add(base, body, head);
+      for (const s of [-1, 1]) {
+        const ear = cone(0.06, 0.12, "#C9D6E3", 8);
+        ear.position.set(s * 0.09, 0.85, 0);
+        g.add(ear);
+      }
+    }
+    return g;
+  }
+  const decorSlots = new Map<string, { root: THREE.Group; marker: THREE.Mesh; item: string | null }>();
+  for (let i = 0; i < 9; i++) {
+    const id = `d${i + 1}`;
+    const root = new THREE.Group();
+    root.position.set(((i % 3) - 1) * 1.3, 0, (Math.floor(i / 3) - 1) * 1.3);
+    mineG.add(root);
+    const marker = cyl(0.42, 0.42, 0.03, "#D9C79E", 24, 0.95);
+    marker.position.y = 0.015;
+    marker.castShadow = false;
+    root.add(marker);
+    tag(root, `mine:${id}`);
+    anchors.set(`mine:${id}`, { obj: root, y: 1.0 });
+    decorSlots.set(id, { root, marker, item: null });
+  }
+  anchors.set("mine:go", { obj: mineG, y: 2.4 });
+
+  // ───────── Đảo bạn bè trên bản đồ biển (tối đa 6) ─────────
+  const FRIEND_AT: [number, number][] = [
+    [-27, -1],
+    [-26, -24],
+    [-8, -32],
+    [14, -33],
+    [33, -4],
+    [30, 12],
+  ];
+  const friendIsles: THREE.Group[] = FRIEND_AT.map(([x, z], i) => {
+    const g = new THREE.Group();
+    g.position.set(x, 0, z);
+    const top = cyl(1.7, 1.8, 0.45, ["#A8D27A", "#B8D98C", "#9CCB6A"][i % 3], 32, 0.95);
+    top.position.y = -0.22;
+    const cl = cyl(1.8, 1.2, 1.4, "#C9925C", 32, 0.95);
+    cl.position.y = -1.15;
+    const house = box(0.7, 0.55, 0.6, "#FFF4E2");
+    house.position.set(-0.2, 0.28, 0);
+    const rf = cone(0.6, 0.4, ["#E86F5A", "#4E7FB8", "#8E5BB5", "#C96A2B", "#3F7A34", "#E07A93"][i], 4);
+    rf.rotation.y = PI / 4;
+    rf.position.set(-0.2, 0.75, 0);
+    const tt = cyl(0.07, 0.09, 0.5, "#8B5E3C", 8);
+    tt.position.set(0.75, 0.25, 0.3);
+    const crown = sph(0.35, "#6FAE4F", 1, 1, 1, 0.9);
+    crown.position.set(0.75, 0.7, 0.3);
+    g.add(top, cl, house, rf, tt, crown);
+    g.visible = false;
+    world.add(g);
+    tag(g, `chart:friend${i}`);
+    anchors.set(`chart:friend${i}`, { obj: g, y: 1.6 });
+    return g;
+  });
 
   // Nhãn trên bản đồ biển
   const chartPin = (id: string, pos: THREE.Vector3, y: number) => {
@@ -2037,7 +2578,9 @@ export function createWorld(opts: WorldOptions): WorldController {
   chartPin("isle", ISLE_C, 3.2);
   chartPin("beach", BEACH_C, 3.0);
   chartPin("harbor", HARBOR_C, 3.6);
-  chartPin("city", CITY_C, 4.2);
+  chartPin("city", CITY_C, 4.6);
+  chartPin("fest", FEST_C, 3.0);
+  chartPin("mine", MINE_C, 2.4);
 
   // Mây
   const clouds: { g: THREE.Group; r: number; a: number; y: number; s: number; m: THREE.MeshStandardMaterial }[] = [];
@@ -2702,6 +3245,27 @@ export function createWorld(opts: WorldOptions): WorldController {
     });
     beachGate.forEach((o) => (o.visible = !s.beach?.open));
     harborFog.visible = !s.harbor;
+    cityFog.visible = !s.city;
+    blimp.visible = !!s.city;
+    for (const [k, g] of Object.entries(festSets)) g.visible = s.fest === k;
+    festFog.visible = !s.fest;
+    festTopMat.color.set(s.fest === "christmas" ? "#F4F8FB" : s.fest === "halloween" ? "#9FB08A" : "#B8D98C");
+    decorSlots.forEach((slot, id) => {
+      const want = s.decor?.[id] || null;
+      if (want === slot.item) return;
+      slot.root.children.filter((c) => c !== slot.marker).forEach((c) => {
+        untag(c);
+        slot.root.remove(c);
+      });
+      slot.item = want;
+      slot.marker.visible = !want;
+      if (want) {
+        const m = decorModel(want);
+        slot.root.add(m);
+        tag(m, `mine:${id}`);
+      }
+    });
+    friendIsles.forEach((g, i) => (g.visible = i < (s.friends || 0)));
     chestG.visible = (s.chests || 0) > 0;
     ferry.visible = !!s.harbor;
     plotViews.forEach((v, id) => {
@@ -2738,11 +3302,15 @@ export function createWorld(opts: WorldOptions): WorldController {
     tCenter = new THREE.Vector3();
   scene.add(sun.target);
   const BEACH_RADIUS = 17;
-  const VIEWS: Record<WorldView, { c: THREE.Vector3; r: number; phi: number }> = {
+  const VIEWS: Record<WorldView, { c: THREE.Vector3; r: number; phi: number; theta?: number }> = {
     home: { c: new THREE.Vector3(), r: HOME.radius, phi: HOME.phi },
     isle: { c: ISLE_C, r: ISLE_RADIUS, phi: HOME.phi },
     beach: { c: BEACH_C, r: BEACH_RADIUS, phi: HOME.phi },
     harbor: { c: HARBOR_C, r: 22, phi: HOME.phi },
+    city: { c: CITY_C, r: 22, phi: HOME.phi },
+    fest: { c: FEST_C, r: 15, phi: HOME.phi },
+    // Nhìn từ phía sau (phía Phố Cảng) để đảo nhà không che mất đảo nhỏ.
+    mine: { c: MINE_C, r: 13, phi: 0.9, theta: PI + 0.35 },
     chart: { c: new THREE.Vector3(3, 0, -7), r: 58, phi: 0.64 },
   };
   function goView(v: WorldView) {
@@ -2750,6 +3318,11 @@ export function createWorld(opts: WorldOptions): WorldController {
     tCenter.copy(VIEWS[v].c);
     orbit.tRadius = VIEWS[v].r;
     orbit.tPhi = VIEWS[v].phi;
+    const want = VIEWS[v].theta ?? HOME.theta;
+    // Xoay theo đường ngắn nhất tới góc nhìn của đảo
+    let d = want - orbit.theta;
+    d -= Math.round(d / (PI * 2)) * PI * 2;
+    orbit.tTheta = orbit.theta + d;
     // Bản đồ biển: mở rộng vùng đổ bóng cho thấy cả quần đảo
     const ext = v === "chart" ? 34 : 11;
     Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext });
@@ -2902,6 +3475,15 @@ export function createWorld(opts: WorldOptions): WorldController {
       ferry.rotation.y = Math.atan2(FERRY_B.x - FERRY_A.x, FERRY_B.z - FERRY_A.z) + (goingOut ? -PI / 2 : PI / 2);
       ferry.rotation.z = Math.sin(t * 1.4) * 0.03;
     }
+    cityWin.emissiveIntensity = duskT * 0.8;
+    cityWin.color.set("#BFE3F0").lerp(new THREE.Color("#FFE7A8"), duskT);
+    cityWin.emissive.copy(cityWin.color);
+    cityLights.forEach((m, i) => (m.emissiveIntensity = state.city ? 0.4 + (Math.sin(t * 5 + i) > 0 ? 0.7 : 0.1) + duskT * 0.4 : 0.05));
+    if (blimp.visible) {
+      blimp.position.set(Math.cos(t * 0.15) * 2.4, 5.2 + Math.sin(t * 0.8) * 0.2 * motion, Math.sin(t * 0.15) * 2.4);
+      blimp.rotation.y = -t * 0.15 + PI / 2;
+    }
+    festGlow.forEach((m, i) => (m.emissiveIntensity = 0.45 + Math.sin(t * 2.4 + i * 0.9) * 0.25 + duskT * 0.6));
     harborWin.emissiveIntensity = duskT * 0.8;
     harborWin.color.set("#BFE3F0").lerp(new THREE.Color("#FFE7A8"), duskT);
     harborWin.emissive.copy(harborWin.color);
@@ -3064,7 +3646,7 @@ export function createWorld(opts: WorldOptions): WorldController {
     focus(id) {
       const a = anchors.get(id);
       if (!a) return;
-      const v: WorldView = id.startsWith("isle:") ? "isle" : id.startsWith("beach:") ? "beach" : id.startsWith("harbor:") || id === "npc:otto" ? "harbor" : "home";
+      const v: WorldView = id.startsWith("isle:") ? "isle" : id.startsWith("beach:") ? "beach" : id.startsWith("harbor:") || id === "npc:otto" ? "harbor" : id.startsWith("city:") ? "city" : id.startsWith("fest:") ? "fest" : id.startsWith("mine:") ? "mine" : "home";
       if (v !== view) goView(v);
       a.obj.getWorldPosition(tmp);
       tmp.sub(tCenter);
