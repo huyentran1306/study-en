@@ -22,9 +22,11 @@ export type WorldState = {
   bossLit?: boolean;
   /** Đảo Cát Vui: đã mở chưa + trạng thái 4 ô đất. */
   beach?: { open: boolean; plots: Record<string, { st: "locked" | "wild" | "empty" | "built"; t?: string; lv?: number }> };
+  /** Đảo Phố Cảng (A2) đã mở chưa. */
+  harbor?: boolean;
 };
 
-export type WorldView = "home" | "isle" | "beach";
+export type WorldView = "home" | "isle" | "beach" | "harbor" | "chart";
 
 export type Projected = { id: string; x: number; y: number; depth: number; behind: boolean };
 
@@ -1617,6 +1619,365 @@ export function createWorld(opts: WorldOptions): WorldController {
   ["p1", "p2", "p3", "p4"].forEach(plotSpot);
   anchors.set("beach:go", { obj: beachG, y: 2.4 });
 
+  // ───────── Đảo Phố Cảng (A2): đảo xa phía sau, đi bằng phà ─────────
+  const HARBOR_C = new THREE.Vector3(3.0, 0, -19.5);
+  const HR = 5.0;
+  const harborG = new THREE.Group();
+  harborG.position.copy(HARBOR_C);
+  world.add(harborG);
+  const harborGround = new THREE.Group();
+  harborG.add(harborGround);
+  {
+    const top = cyl(HR, HR + 0.12, 0.5, "#B8D98C", 64, 0.95);
+    top.position.y = -0.25;
+    harborGround.add(top);
+    const c4 = cyl(HR + 0.1, HR * 0.72, 1.8, "#C9925C", 64, 0.95);
+    c4.position.y = -1.4;
+    c4.castShadow = false;
+    harborGround.add(c4);
+    const sand4 = mesh(own(new THREE.TorusGeometry(HR + 0.06, 0.16, 10, 80)), mat("#F4DFAA", 0.95), false);
+    sand4.rotation.x = PI / 2;
+    sand4.position.y = -0.04;
+    harborGround.add(sand4);
+    // Quảng trường lát đá + đường ra bến
+    const sq = cyl(1.9, 1.9, 0.05, "#E3D3B5", 48, 0.95);
+    sq.position.y = 0.025;
+    sq.castShadow = false;
+    harborGround.add(sq);
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * PI * 2;
+      const st = box(0.34, 0.02, 0.2, "#D2C09C", 0.95);
+      st.position.set(Math.sin(a) * 1.55, 0.055, Math.cos(a) * 1.55);
+      st.rotation.y = a;
+      st.castShadow = false;
+      harborGround.add(st);
+    }
+    const road = box(1.0, 0.05, 3.4, "#E3D3B5", 0.95);
+    road.position.set(0, 0.025, 3.3);
+    road.castShadow = false;
+    harborGround.add(road);
+    // Tháp đồng hồ giữa quảng trường
+    const base = box(0.6, 1.6, 0.6, "#F3E6CC");
+    base.position.y = 0.8;
+    harborGround.add(base);
+    const roofT = cone(0.55, 0.6, "#4E7FB8", 4);
+    roofT.rotation.y = PI / 4;
+    roofT.position.y = 1.9;
+    harborGround.add(roofT);
+    for (const [x, z, ry] of [
+      [0, 0.31, 0],
+      [0.31, 0, PI / 2],
+    ] as const) {
+      const face = cyl(0.2, 0.2, 0.03, "#FFFFFF", 20);
+      face.rotation.set(PI / 2, 0, ry);
+      face.position.set(x, 1.3, z);
+      harborGround.add(face);
+    }
+  }
+  const harborHalo = new THREE.Mesh(own(new THREE.RingGeometry(HR - 0.2, HR + 2.2, 72)), own(new THREE.MeshBasicMaterial({ color: 0xd4f3f8, transparent: true, opacity: 0.5, depthWrite: false })));
+  harborHalo.rotation.x = -PI / 2;
+  harborHalo.position.set(HARBOR_C.x, -1.69, HARBOR_C.z);
+  scene.add(harborHalo);
+  for (let i = 0; i < 2; i++) {
+    const ring = new THREE.Mesh(own(new THREE.TorusGeometry(HR + 0.28, 0.07, 8, 80)), own(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })));
+    ring.rotation.x = PI / 2;
+    ring.position.set(HARBOR_C.x, -1.66, HARBOR_C.z);
+    scene.add(ring);
+    foam.push(ring);
+  }
+  tag(harborGround, "harbor:go");
+
+  function harborSpot(id: string, a: number, r: number, labelY: number, make: (g: THREE.Group) => void) {
+    const g = new THREE.Group();
+    const rad = (a * PI) / 180;
+    g.position.set(Math.sin(rad) * r, 0, Math.cos(rad) * r);
+    g.rotation.y = Math.atan2(-g.position.x, -g.position.z);
+    harborG.add(g);
+    make(g);
+    tag(g, `harbor:${id}`);
+    anchors.set(`harbor:${id}`, { obj: g, y: labelY });
+    return g;
+  }
+  const harborWin: THREE.MeshStandardMaterial = glow("#BFE3F0", 0);
+  function windows(g: THREE.Object3D, rows: number, cols: number, w: number, y0: number, z: number) {
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const win = mesh(geo("hwin", () => new THREE.BoxGeometry(0.22, 0.24, 0.04)), harborWin);
+        win.position.set(-w / 2 + (c + 0.5) * (w / cols), y0 + r * 0.45, z);
+        g.add(win);
+      }
+  }
+  // Khách sạn Hải Âu (chương 5: sân bay & khách sạn)
+  harborSpot("hotel", 300, 3.1, 3.0, (g) => {
+    const body = box(1.5, 2.2, 1.0, "#EEF3F7");
+    body.position.y = 1.1;
+    g.add(body);
+    const top = box(1.65, 0.14, 1.12, "#4E7FB8");
+    top.position.y = 2.27;
+    g.add(top);
+    windows(g, 3, 3, 1.3, 0.85, 0.51);
+    const door = box(0.4, 0.55, 0.04, "#4E7FB8");
+    door.position.set(0, 0.28, 0.51);
+    g.add(door);
+    const awn = box(0.7, 0.05, 0.35, "#F2C14E");
+    awn.position.set(0, 0.62, 0.66);
+    g.add(awn);
+    const sign = box(0.9, 0.24, 0.05, "#FFFFFF");
+    sign.position.set(0, 2.05, 0.53);
+    g.add(sign);
+    const bird = sph(0.08, "#FFFFFF", 1.6, 0.6, 1, 0.5);
+    bird.position.set(-0.25, 2.05, 0.57);
+    g.add(bird);
+    const flagP = cyl(0.02, 0.02, 0.7, "#8B5E3C", 6);
+    flagP.position.set(0.6, 2.65, 0);
+    g.add(flagP);
+    const flag = box(0.03, 0.2, 0.32, "#E86F5A");
+    flag.position.set(0.6, 2.88, 0.16);
+    g.add(flag);
+  });
+  // Nhà hàng Bến Cảng (chương 6)
+  harborSpot("restaurant", 55, 3.0, 2.2, (g) => {
+    const body = box(1.5, 1.1, 1.0, "#FFF4E2");
+    body.position.y = 0.55;
+    g.add(body);
+    const rf = cone(1.15, 0.6, "#C96A2B", 4);
+    rf.rotation.y = PI / 4;
+    rf.scale.set(1, 1, 0.72);
+    rf.position.y = 1.4;
+    g.add(rf);
+    for (let i = 0; i < 6; i++) {
+      const st = box(0.26, 0.05, 0.42, i % 2 ? "#FFFFFF" : "#C96A2B");
+      st.position.set(-0.65 + i * 0.26, 0.95, 0.68);
+      st.rotation.x = 0.3;
+      g.add(st);
+    }
+    windows(g, 1, 2, 1.1, 0.6, 0.51);
+    for (const x of [-0.45, 0.45]) {
+      const tbl = cyl(0.2, 0.2, 0.04, "#FFFFFF", 16);
+      tbl.position.set(x, 0.42, 1.2);
+      g.add(tbl);
+      const leg = cyl(0.03, 0.03, 0.42, "#8B5E3C", 6);
+      leg.position.set(x, 0.21, 1.2);
+      g.add(leg);
+      const umb = cone(0.36, 0.2, x < 0 ? "#E86F5A" : "#F2C14E", 10);
+      umb.position.set(x, 0.95, 1.2);
+      g.add(umb);
+      const up = cyl(0.015, 0.015, 0.5, "#FFFFFF", 6);
+      up.position.set(x, 0.68, 1.2);
+      g.add(up);
+    }
+    const plate = cyl(0.1, 0.1, 0.02, "#FFFFFF", 12);
+    plate.position.set(0.45, 0.45, 1.2);
+    g.add(plate);
+    const fish = sph(0.06, "#F29A4E", 1.6, 0.6, 0.8, 0.5);
+    fish.position.set(0.45, 0.48, 1.2);
+    g.add(fish);
+  });
+  // Bưu điện (chương 7: gọi điện & hẹn lịch)
+  harborSpot("post", 125, 3.0, 2.2, (g) => {
+    const body = box(1.3, 1.1, 0.9, "#F8E6C8");
+    body.position.y = 0.55;
+    g.add(body);
+    const rf = cone(1.0, 0.55, "#C8553D", 4);
+    rf.rotation.y = PI / 4;
+    rf.scale.set(1, 1, 0.75);
+    rf.position.y = 1.37;
+    g.add(rf);
+    windows(g, 1, 2, 0.9, 0.62, 0.46);
+    const door = box(0.32, 0.5, 0.04, "#C8553D");
+    door.position.set(0, 0.25, 0.46);
+    g.add(door);
+    const env = box(0.36, 0.22, 0.04, "#FFFFFF");
+    env.position.set(0, 0.92, 0.47);
+    g.add(env);
+    const flap = cone(0.2, 0.1, "#E8D2B0", 3);
+    flap.rotation.set(PI / 2, 0, PI);
+    flap.position.set(0, 0.97, 0.5);
+    g.add(flap);
+    const mail = cyl(0.14, 0.14, 0.55, "#D9483B", 12);
+    mail.position.set(0.85, 0.28, 0.55);
+    g.add(mail);
+    const mcap = sph(0.14, "#D9483B", 1, 0.6, 1);
+    mcap.position.set(0.85, 0.56, 0.55);
+    g.add(mcap);
+    const booth = box(0.38, 0.85, 0.38, "#D9483B");
+    booth.position.set(-0.9, 0.43, 0.5);
+    g.add(booth);
+    const glass = box(0.26, 0.45, 0.03, "#CFEAF4", 0.2);
+    glass.position.set(-0.9, 0.5, 0.7);
+    g.add(glass);
+  });
+  // Phòng khám & nhà thuốc (chương 8)
+  harborSpot("clinic", 225, 3.1, 2.3, (g) => {
+    const body = box(1.4, 1.3, 1.0, "#FFFFFF");
+    body.position.y = 0.65;
+    g.add(body);
+    const top = box(1.5, 0.12, 1.1, "#3F9E6E");
+    top.position.y = 1.36;
+    g.add(top);
+    windows(g, 1, 3, 1.2, 0.75, 0.51);
+    const door = box(0.36, 0.5, 0.04, "#3F9E6E");
+    door.position.set(0, 0.25, 0.51);
+    g.add(door);
+    const c1 = box(0.32, 0.1, 0.05, "#3F9E6E");
+    c1.position.set(0, 1.62, 0);
+    const c2 = box(0.1, 0.32, 0.05, "#3F9E6E");
+    c2.position.set(0, 1.62, 0);
+    const crossB = box(0.42, 0.42, 0.04, "#FFFFFF");
+    crossB.position.set(0, 1.62, -0.03);
+    g.add(crossB, c1, c2);
+    const pot = cyl(0.14, 0.11, 0.2, "#C9925C", 10);
+    pot.position.set(0.85, 0.1, 0.55);
+    g.add(pot);
+    const herb = sph(0.18, "#6FAE4F", 1, 1.2, 1, 0.9);
+    herb.position.set(0.85, 0.35, 0.55);
+    g.add(herb);
+  });
+  // Bến phà: cầu tàu chìa ra biển về phía đảo nhà + cần cẩu, thùng hàng
+  harborSpot("dock", 0, 4.4, 1.6, (g) => {
+    for (let i = 0; i < 7; i++) {
+      const pl = box(1.1, 0.07, 0.3, i % 2 ? "#C9925C" : "#B98250");
+      pl.position.set(0, 0.03, -0.1 - i * 0.32);
+      g.add(pl);
+    }
+    for (const x of [-0.5, 0.5])
+      for (const z of [-0.4, -1.4, -2.2]) {
+        const p = cyl(0.05, 0.06, 1.8, "#8B5E3C", 8);
+        p.position.set(x, -0.85, z);
+        g.add(p);
+      }
+    const bollard = cyl(0.07, 0.08, 0.16, "#4A3222", 8);
+    bollard.position.set(0.45, 0.12, -2.0);
+    g.add(bollard);
+  });
+  {
+    // Cần cẩu và thùng hàng cạnh bến
+    const rad = (28 * PI) / 180;
+    const cg = new THREE.Group();
+    cg.position.set(Math.sin(rad) * 3.9, 0, Math.cos(rad) * 3.9);
+    harborG.add(cg);
+    const mast = box(0.16, 2.2, 0.16, "#F2C14E");
+    mast.position.y = 1.1;
+    cg.add(mast);
+    const jib = box(1.6, 0.12, 0.12, "#F2C14E");
+    jib.position.set(0.6, 2.15, 0);
+    cg.add(jib);
+    const cable = cyl(0.01, 0.01, 0.9, "#4A3222", 4);
+    cable.position.set(1.2, 1.65, 0);
+    cg.add(cable);
+    const hook = box(0.3, 0.22, 0.3, "#4E7FB8");
+    hook.position.set(1.2, 1.1, 0);
+    cg.add(hook);
+    (
+      [
+        [-0.6, 0.2, "#E86F5A"],
+        [-0.6, 0.62, "#6FAE4F"],
+        [-1.05, 0.2, "#4E7FB8"],
+      ] as const
+    ).forEach(([x, y, c]) => {
+      const crate = box(0.42, 0.4, 0.42, c);
+      crate.position.set(x, y, 0.2);
+      cg.add(crate);
+    });
+  }
+  // Cây cho đảo đỡ trống
+  (
+    [
+      [85, 4.2, 0.7],
+      [170, 4.0, 0.8],
+      [262, 4.2, 0.65, true],
+      [338, 4.0, 0.7],
+    ] as [number, number, number, boolean?][]
+  ).forEach(([a, r, sc, pink], i) => {
+    const rad = (a * PI) / 180;
+    trees.push({ g: tree(HARBOR_C.x + Math.sin(rad) * r, HARBOR_C.z + Math.cos(rad) * r, sc, pink), ph: 4 + i });
+  });
+  // Mây che khi chưa mở
+  const harborFog = new THREE.Group();
+  {
+    const fogMat = own(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.92 }));
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * PI * 2;
+      const r = i % 2 ? 2.8 : 1.6;
+      const puff = new THREE.Mesh(SPH, fogMat);
+      puff.scale.set(1.9, 1.1, 1.6);
+      puff.position.set(Math.sin(a) * r, 1.6 + (i % 3) * 0.4, Math.cos(a) * r);
+      harborFog.add(puff);
+    }
+    const mid = new THREE.Mesh(SPH, fogMat);
+    mid.scale.set(2.4, 1.5, 2.4);
+    mid.position.y = 2.2;
+    harborFog.add(mid);
+    harborG.add(harborFog);
+  }
+  // Phà chạy giữa đảo nhà và Đảo Phố Cảng
+  const ferry = new THREE.Group();
+  {
+    const hull = box(1.3, 0.32, 0.6, "#FFFFFF");
+    hull.position.y = 0.16;
+    ferry.add(hull);
+    const band = box(1.32, 0.1, 0.62, "#4E7FB8");
+    band.position.y = 0.05;
+    ferry.add(band);
+    const cabin = box(0.6, 0.34, 0.46, "#F2C14E");
+    cabin.position.set(-0.1, 0.48, 0);
+    ferry.add(cabin);
+    const chim = cyl(0.07, 0.07, 0.3, "#E86F5A", 10);
+    chim.position.set(0.15, 0.75, 0);
+    ferry.add(chim);
+    world.add(ferry);
+  }
+  const FERRY_A = new THREE.Vector3(2.2, -1.62, -8.9);
+  const FERRY_B = new THREE.Vector3(HARBOR_C.x, -1.62, HARBOR_C.z + HR + 2.6);
+  anchors.set("harbor:go", { obj: harborG, y: 3.2 });
+
+  // Thành Phố Mây (B1) ở xa, còn mây phủ
+  const CITY_C = new THREE.Vector3(19, 0, -17);
+  const cityG = new THREE.Group();
+  cityG.position.copy(CITY_C);
+  world.add(cityG);
+  {
+    const top = cyl(3.2, 3.3, 0.5, "#C9D6E3", 48, 0.95);
+    top.position.y = -0.25;
+    cityG.add(top);
+    const c5 = cyl(3.3, 2.3, 1.7, "#A9B6C6", 48, 0.95);
+    c5.position.y = -1.35;
+    c5.castShadow = false;
+    cityG.add(c5);
+    [
+      [-0.8, 0, 2.2],
+      [0.4, -0.6, 3.0],
+      [1.2, 0.5, 1.7],
+      [-0.2, 1.0, 1.4],
+    ].forEach(([x, z, h]) => {
+      const t = box(0.7, h, 0.7, "#DCE6F0");
+      t.position.set(x, h / 2, z);
+      cityG.add(t);
+    });
+    const cmat = own(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.95 }));
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * PI * 2;
+      const p = new THREE.Mesh(SPH, cmat);
+      p.scale.set(1.6, 0.9, 1.4);
+      p.position.set(Math.sin(a) * 1.6, 2.3 + (i % 2) * 0.5, Math.cos(a) * 1.6);
+      cityG.add(p);
+    }
+  }
+  tag(cityG, "chart:city");
+
+  // Nhãn trên bản đồ biển
+  const chartPin = (id: string, pos: THREE.Vector3, y: number) => {
+    const o = new THREE.Object3D();
+    o.position.copy(pos);
+    world.add(o);
+    anchors.set(`chart:${id}`, { obj: o, y });
+  };
+  chartPin("home", new THREE.Vector3(0, 0, 0), 4.5);
+  chartPin("isle", ISLE_C, 3.2);
+  chartPin("beach", BEACH_C, 3.0);
+  chartPin("harbor", HARBOR_C, 3.6);
+  chartPin("city", CITY_C, 4.2);
+
   // Mây
   const clouds: { g: THREE.Group; r: number; a: number; y: number; s: number; m: THREE.MeshStandardMaterial }[] = [];
   for (let i = 0; i < 6; i++) {
@@ -1652,13 +2013,14 @@ export function createWorld(opts: WorldOptions): WorldController {
   }
 
   // ───────── nhân vật ─────────
-  type Kind = "shiba" | "cat" | "bunny" | "penguin" | "frog";
+  type Kind = "shiba" | "cat" | "bunny" | "penguin" | "frog" | "otter";
   const KINDS: Record<Kind, { body: string; belly: string; inner: string; feet: string }> = {
     shiba: { body: "#E9A15B", belly: "#FFF4E2", inner: "#F7C7A0", feet: "#E9A15B" },
     cat: { body: "#AEB8CB", belly: "#F7F3EC", inner: "#F4B6C2", feet: "#AEB8CB" },
     bunny: { body: "#FBF6EF", belly: "#FFFFFF", inner: "#F4B6C2", feet: "#FBF6EF" },
     penguin: { body: "#3E4A61", belly: "#FBF6EF", inner: "#3E4A61", feet: "#F2A541" },
     frog: { body: "#8CC56A", belly: "#E9F4CF", inner: "#8CC56A", feet: "#8CC56A" },
+    otter: { body: "#A8775A", belly: "#F2DCC4", inner: "#8E6248", feet: "#8E6248" },
   };
   type Char = { id: string; root: THREE.Group; inner: THREE.Group; head: THREE.Group; eyes: THREE.Group; armPivot: THREE.Group; ph: number; blinkAt: number; hop: number; ears: THREE.Object3D[]; float?: number };
   const chars: Char[] = [];
@@ -1836,6 +2198,34 @@ export function createWorld(opts: WorldOptions): WorldController {
       badge.position.set(0, 0.42, 0.33);
       head.add(badge);
     }
+    if (kind === "otter") {
+      [-1, 1].forEach((s) => {
+        const ear = sph(0.09, k.body, 1, 0.8, 0.6, 0.6);
+        ear.position.set(s * 0.3, 0.3, -0.02);
+        head.add(ear);
+      });
+      const muzzle = sph(0.2, k.belly, 1.3, 0.8, 0.7, 0.6);
+      muzzle.position.set(0, -0.13, 0.33);
+      head.add(muzzle);
+      // Mũ thuyền trưởng
+      const crown = cyl(0.3, 0.34, 0.2, "#FFFFFF", 24);
+      crown.position.y = 0.42;
+      head.add(crown);
+      const band = cyl(0.345, 0.345, 0.06, "#2B4C7E", 24);
+      band.position.y = 0.34;
+      head.add(band);
+      const brimO = cyl(0.26, 0.26, 0.03, "#2B4C7E", 20);
+      brimO.scale.z = 0.6;
+      brimO.position.set(0, 0.32, 0.3);
+      head.add(brimO);
+      const anchorB = sph(0.05, "#F2C14E", 1, 1, 0.5, 0.4);
+      anchorB.position.set(0, 0.44, 0.31);
+      head.add(anchorB);
+      const tail = sph(0.12, k.body, 0.7, 0.45, 2.2, 0.6);
+      tail.position.set(0, 0.16, -0.48);
+      tail.rotation.x = 0.4;
+      inner.add(tail);
+    }
     if (kind === "frog") {
       [-1, 1].forEach((s) => {
         const bow = cone(0.08, 0.16, "#E86F5A", 3);
@@ -1862,6 +2252,8 @@ export function createWorld(opts: WorldOptions): WorldController {
   makeChar("mallow", "bunny", 2.8, 1.3);
   makeChar("pip", "penguin", 1.7, -2.7);
   makeChar("kero", "frog", -1.9, 2.2);
+  // Thuyền trưởng Rái đứng gần bến phà Đảo Phố Cảng
+  makeChar("otto", "otter", HARBOR_C.x + 1.1, HARBOR_C.z + 3.2);
 
   // ───────── thú nuôi: heo, trâu, rồng ─────────
   function animalBase(id: string, x: number, z: number, scale: number) {
@@ -2248,6 +2640,8 @@ export function createWorld(opts: WorldOptions): WorldController {
       v.scaffold.visible = !built.has(id);
     });
     beachGate.forEach((o) => (o.visible = !s.beach?.open));
+    harborFog.visible = !s.harbor;
+    ferry.visible = !!s.harbor;
     plotViews.forEach((v, id) => {
       const p = s.beach?.plots[id] || { st: "locked" as const };
       v.empty.visible = p.st === "empty";
@@ -2282,11 +2676,22 @@ export function createWorld(opts: WorldOptions): WorldController {
     tCenter = new THREE.Vector3();
   scene.add(sun.target);
   const BEACH_RADIUS = 17;
+  const VIEWS: Record<WorldView, { c: THREE.Vector3; r: number; phi: number }> = {
+    home: { c: new THREE.Vector3(), r: HOME.radius, phi: HOME.phi },
+    isle: { c: ISLE_C, r: ISLE_RADIUS, phi: HOME.phi },
+    beach: { c: BEACH_C, r: BEACH_RADIUS, phi: HOME.phi },
+    harbor: { c: HARBOR_C, r: 22, phi: HOME.phi },
+    chart: { c: new THREE.Vector3(3, 0, -7), r: 58, phi: 0.64 },
+  };
   function goView(v: WorldView) {
     view = v;
-    tCenter.copy(v === "isle" ? ISLE_C : v === "beach" ? BEACH_C : new THREE.Vector3());
-    orbit.tRadius = v === "isle" ? ISLE_RADIUS : v === "beach" ? BEACH_RADIUS : HOME.radius;
-    orbit.tPhi = HOME.phi;
+    tCenter.copy(VIEWS[v].c);
+    orbit.tRadius = VIEWS[v].r;
+    orbit.tPhi = VIEWS[v].phi;
+    // Bản đồ biển: mở rộng vùng đổ bóng cho thấy cả quần đảo
+    const ext = v === "chart" ? 34 : 11;
+    Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext });
+    sun.shadow.camera.updateProjectionMatrix();
     lastInteract = performance.now();
   }
   let lastInteract = -1e9;
@@ -2339,7 +2744,7 @@ export function createWorld(opts: WorldOptions): WorldController {
     } else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinch0) orbit.tRadius = Math.min(32, Math.max(10, (orbit.tRadius * pinch0) / dist));
+      if (pinch0) orbit.tRadius = Math.min(view === "chart" ? 80 : 32, Math.max(10, (orbit.tRadius * pinch0) / dist));
       pinch0 = dist;
       moved = 99;
     }
@@ -2359,7 +2764,7 @@ export function createWorld(opts: WorldOptions): WorldController {
   };
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
-    orbit.tRadius = Math.min(32, Math.max(10, orbit.tRadius * (1 + Math.sign(e.deltaY) * 0.08)));
+    orbit.tRadius = Math.min(view === "chart" ? 80 : 32, Math.max(10, orbit.tRadius * (1 + Math.sign(e.deltaY) * 0.08)));
     lastInteract = performance.now();
   };
   canvas.addEventListener("pointerdown", onDown);
@@ -2403,10 +2808,10 @@ export function createWorld(opts: WorldOptions): WorldController {
     const portrait = aspect < 1;
     let k = tall ? 0.84 : 1;
     if (portrait) k = 7.4 / (1.06 * Math.tan((camera.fov * PI) / 360) * aspect) / HOME.radius;
-    const R = orbit.radius * k;
+    const R = orbit.radius * k * (portrait && view === "chart" ? 1.4 : 1);
     const ph = orbit.phi - (portrait ? 0.14 : 0);
     camera.position.set(center.x + Math.sin(orbit.theta) * Math.sin(ph) * R, Math.cos(ph) * R + 0.5, center.z + Math.cos(orbit.theta) * Math.sin(ph) * R);
-    camera.lookAt(center.x, portrait ? -0.9 : tall ? -0.1 : view === "home" ? -0.75 : -0.4, center.z + 0.4);
+    camera.lookAt(center.x, view === "chart" ? -1.5 : portrait ? -0.9 : tall ? -0.1 : view === "home" ? -0.75 : -0.4, center.z + 0.4);
     sun.target.position.copy(center);
 
     duskT += ((state.dusk ? 1 : 0) - duskT) * Math.min(1, dt * 2);
@@ -2427,6 +2832,17 @@ export function createWorld(opts: WorldOptions): WorldController {
     }
     if (micGlow) micGlow.emissiveIntensity = 0.15 + duskT * 0.8;
     torchMats.forEach((m, i) => (m.emissiveIntensity = state.bossLit ? 1.0 + Math.sin(t * 11 + i * 2) * 0.3 + duskT * 0.6 : 0));
+    if (ferry.visible) {
+      const u = (1 - Math.cos(t * 0.22 * motion)) / 2;
+      ferry.position.lerpVectors(FERRY_A, FERRY_B, u);
+      ferry.position.y = -1.62 + Math.sin(t * 2) * 0.03;
+      const goingOut = Math.sin(t * 0.22 * motion) >= 0;
+      ferry.rotation.y = Math.atan2(FERRY_B.x - FERRY_A.x, FERRY_B.z - FERRY_A.z) + (goingOut ? -PI / 2 : PI / 2);
+      ferry.rotation.z = Math.sin(t * 1.4) * 0.03;
+    }
+    harborWin.emissiveIntensity = duskT * 0.8;
+    harborWin.color.set("#BFE3F0").lerp(new THREE.Color("#FFE7A8"), duskT);
+    harborWin.emissive.copy(harborWin.color);
     for (let i = 0; i < palms.length; i++) palms[i].rotation.z = Math.sin(t * 1.3 + i) * 0.06 * motion;
     arcadeMats.forEach((m, i) => (m.emissiveIntensity = state.beach?.open ? 0.35 + (Math.sin(t * 4 + i * 1.6) > 0 ? 0.6 : 0.1) + duskT * 0.5 : 0.1));
     if (skiff) {
@@ -2494,7 +2910,7 @@ export function createWorld(opts: WorldOptions): WorldController {
       c.g.position.set(Math.cos(c.a) * c.r, c.y, Math.sin(c.a) * c.r);
       const facing = Math.cos(c.a - camA); // 1 = cùng phía camera
       c.m.opacity = Math.max(0, Math.min(0.95, (0.15 - facing) * 2.2));
-      c.g.visible = c.m.opacity > 0.02;
+      c.g.visible = c.m.opacity > 0.02 && view !== "chart";
     }
     const pa = t * 0.45 * motion;
     plane.position.set(3.0 + Math.cos(pa) * 4.5, 5 + Math.sin(t * 1.5) * 0.2, -4.3 + Math.sin(pa) * 4.5);
@@ -2576,7 +2992,8 @@ export function createWorld(opts: WorldOptions): WorldController {
     resetView() {
       orbit.tTheta = HOME.theta + Math.round((orbit.theta - HOME.theta) / (PI * 2)) * PI * 2;
       orbit.tPhi = HOME.phi;
-      orbit.tRadius = view === "isle" ? ISLE_RADIUS : view === "beach" ? BEACH_RADIUS : HOME.radius;
+      orbit.tPhi = VIEWS[view].phi;
+      orbit.tRadius = VIEWS[view].r;
       lastInteract = performance.now();
     },
     setView(v) {
@@ -2585,7 +3002,7 @@ export function createWorld(opts: WorldOptions): WorldController {
     focus(id) {
       const a = anchors.get(id);
       if (!a) return;
-      const v: WorldView = id.startsWith("isle:") ? "isle" : id.startsWith("beach:") ? "beach" : "home";
+      const v: WorldView = id.startsWith("isle:") ? "isle" : id.startsWith("beach:") ? "beach" : id.startsWith("harbor:") || id === "npc:otto" ? "harbor" : "home";
       if (v !== view) goView(v);
       a.obj.getWorldPosition(tmp);
       tmp.sub(tCenter);
