@@ -93,3 +93,38 @@ export function FloatingControls() {
     </div>
   );
 }
+
+/**
+ * Sau mỗi lần deploy, file CSS/JS cũ bị xoá. Tab đang mở từ trước mà chuyển trang thì tải hụt
+ * → giao diện mất hết kiểu (nút trắng, font thường, chữ đè nhau). Gặp vậy thì tự tải lại trang
+ * một lần để lấy bản mới (tối đa 1 lần mỗi 30 giây cho khỏi lặp).
+ */
+export function StaleAssetGuard() {
+  useEffect(() => {
+    const KEY = "cci-stale-reload";
+    const reload = () => {
+      const last = Number(sessionStorage.getItem(KEY) || "0");
+      if (Date.now() - last < 30_000) return;
+      sessionStorage.setItem(KEY, String(Date.now()));
+      window.location.reload();
+    };
+    const onError = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      if (!t || t === (window as unknown as HTMLElement)) return;
+      const url = t instanceof HTMLLinkElement ? t.href : t instanceof HTMLScriptElement ? t.src : "";
+      if (url.includes("/_next/static/")) reload();
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const r = e.reason as { name?: string; message?: string } | undefined;
+      const msg = `${r?.name || ""} ${r?.message || ""}`;
+      if (/ChunkLoadError|Loading (CSS )?chunk|Failed to fetch dynamically imported module|Importing a module script failed/i.test(msg)) reload();
+    };
+    window.addEventListener("error", onError, true);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError, true);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
+  return null;
+}

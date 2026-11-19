@@ -10,6 +10,7 @@ import { BUILDS, FRIEND_LEVELS, NPC_STORIES, PHRASE_EXTRAS, SOUND_SETS } from ".
 import { EXPAND_COST, FEED_CUT, MAX_FEED, RARE_SELL, SPECIES_BY_KIND, STARTER_SHELLS, rareChance } from "./farm-data";
 import { isDuplicate } from "./memory";
 import { BUILD_BONUS, isleSpot } from "./isle";
+import { ARCADE, PLOTS, arcadeCap, buildKind, libraryFood, plotIncome, plotStatus, upgradeCost } from "./beach";
 import type { ChatReport, ErrorTag } from "./feedback";
 import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
 
@@ -919,7 +920,7 @@ export function openChest(): boolean {
 
 /** Vỏ sò hiện có: 1 vỏ sò cho mỗi 2 XP học tập + tiền bán hải sản − tiền đã tiêu. */
 export function shells(s: IslandState): number {
-  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned + Object.keys(s.built).length * BUILD_BONUS - s.farm.spent);
+  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned + Object.keys(s.built).length * BUILD_BONUS + s.arcade.earned + plotIncome(s) - s.farm.spent);
 }
 
 /** Thức ăn kiếm được từ việc học (nhiệm vụ, phản xạ, nhiệm vụ chat, ôn thẻ). */
@@ -931,7 +932,7 @@ export function foodEarned(s: IslandState): number {
 }
 
 export function food(s: IslandState): number {
-  return Math.max(0, foodEarned(s) - s.farm.foodUsed);
+  return Math.max(0, foodEarned(s) + libraryFood(s) - s.farm.foodUsed);
 }
 
 /** Tiến độ lớn của một ô (0..1) và số phút còn lại. */
@@ -1080,5 +1081,60 @@ export function harvestPlot(chapterId: number): FarmResult {
   if (s.garden[String(chapterId)]) return { ok: false, reason: "Luống này đã thu hoạch rồi." };
   if (missionsDone(s, chapterId) < MISSIONS.length) return { ok: false, reason: `Cần xong đủ ${MISSIONS.length} nhiệm vụ của tuần.` };
   save(markStudy({ ...s, garden: { ...s.garden, [String(chapterId)]: new Date().toISOString() }, farm: { ...s.farm, earned: s.farm.earned + GARDEN_BONUS } }));
+  return { ok: true };
+}
+
+// ───────────── Đảo Cát Vui: mini game + ô đất ─────────────
+
+/** Kết thúc một ván mini game: lưu kỷ lục, đổi điểm ra vỏ sò (có trần mỗi ngày). */
+export function arcadeReward(game: string, score: number): { shells: number; best: boolean; capped: boolean } {
+  const s = load();
+  const g = ARCADE.find((x) => x.id === game);
+  if (!g) return { shells: 0, best: false, capped: false };
+  const t = today();
+  const used = s.arcade.day === t ? s.arcade.today : 0;
+  const cap = arcadeCap(s);
+  const raw = Math.floor(Math.max(0, score) / g.per);
+  const give = Math.max(0, Math.min(raw, cap - used));
+  const prevBest = s.arcade.best[game] || 0;
+  const best = score > prevBest;
+  save({ ...s, arcade: { earned: s.arcade.earned + give, day: t, today: used + give, best: best ? { ...s.arcade.best, [game]: Math.round(score) } : s.arcade.best } });
+  return { shells: give, best, capped: raw > give };
+}
+
+export function clearPlot(id: string): FarmResult {
+  const s = load();
+  const spec = PLOTS.find((p) => p.id === id);
+  if (!spec) return { ok: false, reason: "Ô đất không hợp lệ." };
+  if (plotStatus(s, islandLevel(s.xp).level, id) !== "wild") return { ok: false, reason: "Ô này không cần khai hoang." };
+  if (shells(s) < spec.clear) return { ok: false, reason: `Cần ${spec.clear} vỏ sò để khai hoang.` };
+  save({ ...s, farm: { ...s.farm, spent: s.farm.spent + spec.clear }, plots: { ...s.plots, [id]: { lv: 0, at: "", bank: 0, cleared: true } } });
+  return { ok: true };
+}
+
+export function buildPlot(id: string, type: string): FarmResult {
+  const s = load();
+  const k = buildKind(type);
+  if (!k) return { ok: false, reason: "Công trình không hợp lệ." };
+  if (plotStatus(s, islandLevel(s.xp).level, id) !== "empty") return { ok: false, reason: "Ô này chưa xây được." };
+  if (shells(s) < k.cost) return { ok: false, reason: `Cần ${k.cost} vỏ sò để xây ${k.name.toLowerCase()}.` };
+  const prev = s.plots[id];
+  save({ ...s, farm: { ...s.farm, spent: s.farm.spent + k.cost }, plots: { ...s.plots, [id]: { t: k.id, lv: 1, at: new Date().toISOString(), bank: 0, ...(prev?.cleared ? { cleared: true } : {}) } } });
+  return { ok: true };
+}
+
+export function upgradePlot(id: string): FarmResult {
+  const s = load();
+  const p = s.plots[id];
+  const k = buildKind(p?.t);
+  if (!p || !k) return { ok: false, reason: "Ô này chưa có công trình." };
+  if (p.lv >= 3) return { ok: false, reason: "Đã nâng cấp tối đa." };
+  const cost = upgradeCost(k, p.lv + 1);
+  if (shells(s) < cost) return { ok: false, reason: `Cần ${cost} vỏ sò để nâng cấp.` };
+  // Chốt thu nhập (và thức ăn) của bậc cũ tới hết hôm nay; bậc mới tính từ ngày mai (không đếm trùng hôm nay).
+  const one = { ...s, plots: { [id]: p } };
+  const bank = plotIncome(one);
+  const food = k.id === "library" ? libraryFood(one) : p.food;
+  save({ ...s, farm: { ...s.farm, spent: s.farm.spent + cost }, plots: { ...s.plots, [id]: { ...p, lv: p.lv + 1, at: `${addDays(today(), 1)}T00:00:00`, bank, ...(food ? { food } : {}) } } });
   return { ok: true };
 }

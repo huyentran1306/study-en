@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, BookHeart, BookOpen, Briefcase, Coffee, Dumbbell, Fish, TreePalm, Flame, Flower2, Gift, Hammer, Heart, Home, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
+import { ArrowRight, BookHeart, BookOpen, Briefcase, Coffee, Dumbbell, Fish, Gamepad2, PartyPopper, Shovel, TreePalm, Flame, Flower2, Gift, Hammer, Heart, Home, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
 import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
@@ -14,6 +14,8 @@ import type { Label3D } from "@/components/island/island3d";
 import type { WorldController, WorldState, WorldView } from "@/components/island/world3d";
 import { BuiltToast, ISLE_ICON, IslePanel, IsleBar, IsleTour, type TourStep } from "@/components/island/isle-ui";
 import { ISLE, builtCount, isleSpot, suggestPractice, type IsleId } from "@/lib/island/isle";
+import { BEACH_LEVEL, PLOTS, arcadeCap, arcadeToday, buildKind, plotIncomeToday, plotStatus, type BuildType } from "@/lib/island/beach";
+import { BUILD_ICON, BeachBar, PLOT_NAME, PlotPanel } from "@/components/island/beach-ui";
 import { pickRecall } from "@/lib/island/memory";
 import { bossOpen, weeklyBoss } from "@/lib/island/missions";
 import { canWebGL } from "@/components/island/webgl";
@@ -23,7 +25,7 @@ import { AudioToggles } from "@/components/island/audio-controls";
 import { FullscreenButton } from "@/components/island/island-chrome";
 import { CHAPTERS, MISSIONS, NPCS, PLACES, type NpcId, type SceneId } from "@/lib/island/curriculum";
 import { BUILDS, NPC_STORIES } from "@/lib/island/drills";
-import { SPRINT_DAYS, calendarWeek, getIsland, sprintInfo, activeSlot, collection, growth, shells, chestOpened, currentChapterId, missionsDone, readyCount, dueWords, duePhrases, friendship, isUnlocked, islandLevel, nextMission, streak, todayPlan, totalStars, useIsland, type PlanStep } from "@/lib/island/progress";
+import { SPRINT_DAYS, calendarWeek, getIsland, today, sprintInfo, activeSlot, collection, growth, shells, chestOpened, currentChapterId, missionsDone, readyCount, dueWords, duePhrases, friendship, isUnlocked, islandLevel, nextMission, streak, todayPlan, totalStars, useIsland, type PlanStep } from "@/lib/island/progress";
 import { speak } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
 import { DAILY_ROADMAP_DATA } from "@/data/daily-roadmap-data";
@@ -55,6 +57,7 @@ const ISLE_SHORT: Record<IsleId, string> = { call: "Gọi điện", mission: "Nh
 const TOUR_KEY = "cci-tour-isle";
 const SEEN_BUILT_KEY = "cci-isle-built-seen";
 const VISITED_KEY = "cci-isle-visited";
+const BEACH_SEEN_KEY = "cci-beach-open-seen";
 
 const Island3D = dynamic(() => import("@/components/island/island3d"), {
   ssr: false,
@@ -114,6 +117,8 @@ export default function IslandMapPage() {
   const [tour, setTour] = useState<TourStep | null>(null);
   const [justBuilt, setJustBuilt] = useState<IsleId | null>(null);
   const [isleNew, setIsleNew] = useState(false);
+  const [plotOpen, setPlotOpen] = useState<string | null>(null);
+  const [beachNews, setBeachNews] = useState<string | null>(null);
   const world = useRef<WorldController | null>(null);
   const router = useRouter();
   useEffect(() => {
@@ -122,7 +127,8 @@ export default function IslandMapPage() {
     setMode(saved === "2d" || !canWebGL() ? "2d" : "3d");
     const h = new Date().getHours();
     setDusk(h >= 17 || h < 6);
-    if (new URLSearchParams(window.location.search).get("view") === "isle") setView("isle");
+    const qv = new URLSearchParams(window.location.search).get("view");
+    if (qv === "isle" || qv === "beach") setView(qv);
     if (!localStorage.getItem(TOUR_KEY)) setTour(0);
     setIsleNew(!localStorage.getItem(VISITED_KEY));
   }, []);
@@ -187,6 +193,8 @@ export default function IslandMapPage() {
   const bossNow = mounted && bossOpen();
   const bossDue = bossNow && !s.trophies[weeklyBoss().boss!.trophy];
   const builtSig = mounted ? Object.keys(s.built).sort().join(",") : "";
+  const beachOpen = mounted && lv.level >= BEACH_LEVEL;
+  const plotSt = Object.fromEntries(PLOTS.map((p) => [p.id, mounted ? plotStatus(s, lv.level, p.id) : "locked"])) as Record<string, ReturnType<typeof plotStatus>>;
   const pondKids: SwimItem[] = [];
   for (let i = 0; i < s.farm.size; i++) {
     const sl = activeSlot(s, i);
@@ -205,7 +213,9 @@ export default function IslandMapPage() {
     dusk,
     isle: mounted ? Object.keys(s.built) : [],
     bossLit: bossNow,
+    beach: { open: beachOpen, plots: Object.fromEntries(PLOTS.map((p) => [p.id, { st: plotSt[p.id], t: s.plots[p.id]?.t, lv: s.plots[p.id]?.lv }])) },
   };
+  const beachLockedMsg = () => setBeachNews(`Đảo Cát Vui mở ở cấp đảo ${BEACH_LEVEL}. Bạn đang ở cấp ${lv.level}, học thêm để mở cầu nhé!`);
   const openIsle = (id: IsleId) => {
     if (view !== "isle") {
       goView("isle");
@@ -225,8 +235,15 @@ export default function IslandMapPage() {
       if (key === "go") return goView("isle");
       return openIsle(key as IsleId);
     }
-    // Đang ở Đảo Luyện mà bấm sang đảo nhà: lướt về trước.
-    if (view === "isle") return goView("home");
+    if (kind === "beach") {
+      sfx.open();
+      if (key === "go" || view !== "beach") return goView("beach");
+      if (!beachOpen) return beachLockedMsg();
+      if (key === "arcade") return router.push("/island/arcade");
+      return setPlotOpen(key);
+    }
+    // Đang ở đảo phụ mà bấm sang đảo nhà: lướt về trước.
+    if (view !== "home") return goView("home");
     world.current?.hop(id);
     if (kind === "npc") {
       const who = key as NpcId;
@@ -261,7 +278,20 @@ export default function IslandMapPage() {
       });
     }
   }
+  if (is3d && view === "beach") {
+    labels3d.push({ id: "beach:arcade", node: <PinBody icon={Gamepad2} tone="#C96A2B" label="Quầy trò chơi" locked={!beachOpen} onClick={() => onPick3d("beach:arcade")} title="Mini game xả stress" /> });
+    for (const p of PLOTS) {
+      const st = plotSt[p.id];
+      const k = buildKind(s.plots[p.id]?.t);
+      const label = k ? `${k.name} · ${s.plots[p.id]!.lv}` : st === "wild" ? "Khai hoang" : st === "empty" ? "Đất trống" : `Cấp ${p.level}`;
+      labels3d.push({
+        id: `beach:${p.id}`,
+        node: <PinBody icon={k ? BUILD_ICON[k.id as BuildType] : st === "wild" ? Shovel : Sprout} tone={k ? k.tone : "#8B5E3C"} label={label} locked={st === "locked"} badge={st === "empty" ? "+" : null} onClick={() => onPick3d(`beach:${p.id}`)} title={PLOT_NAME[p.id]} />,
+      });
+    }
+  }
   if (is3d && view === "home") {
+    labels3d.push({ id: "beach:go", node: <PinBody icon={PartyPopper} tone="#C96A2B" label={beachOpen ? "Đảo Cát Vui" : `Đảo Cát Vui · cấp ${BEACH_LEVEL}`} locked={!beachOpen} onClick={() => goView("beach")} title="Mini game và ô đất xây công trình" /> });
     labels3d.push({ id: "isle:go", node: <PinBody icon={Dumbbell} tone="#2F5D50" label="Đảo Luyện" badge={isleNew ? "Mới" : bossDue ? "!" : null} onClick={() => goView("isle")} title="Qua cầu sang Đảo Luyện" /> });
     labels3d.push({ id: "place:garden", node: <PinBody icon={Sprout} tone="#5E9E3E" label="Vườn Nhiệm Vụ" href="/island/garden" badge={plotsReady > 0 ? plotsReady : null} /> });
     labels3d.push({ id: "place:farm", node: <PinBody icon={Fish} tone="#2F8FB0" label="Ao Tôm Cua" href="/island/farm" badge={ready > 0 ? ready : null} /> });
@@ -340,6 +370,21 @@ export default function IslandMapPage() {
       }
     }
   }, [mounted, lv.level]);
+  // Lần đầu đủ cấp mở Đảo Cát Vui: lướt sang, báo tin.
+  useEffect(() => {
+    if (!beachOpen || localStorage.getItem(BEACH_SEEN_KEY)) return;
+    localStorage.setItem(BEACH_SEEN_KEY, "1");
+    if (mode !== "2d") setView("beach");
+    setBeachNews(`Đảo Cát Vui vừa mở! Có quầy trò chơi xả stress và ${PLOTS.filter((p) => lv.level >= p.level).length} ô đất để xây công trình.`);
+    sfx.unlock();
+    import("@/lib/confetti").then((c) => c.fireCelebration()).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [beachOpen]);
+  useEffect(() => {
+    if (!beachNews) return;
+    const t = setTimeout(() => setBeachNews(null), 5200);
+    return () => clearTimeout(t);
+  }, [beachNews]);
   // Vừa dựng xong công trình ở Đảo Luyện (lần đầu thử tính năng): lướt sang, chúc mừng.
   useEffect(() => {
     if (!mounted) return;
@@ -477,6 +522,7 @@ export default function IslandMapPage() {
             onClick={() => setPanel("office")}
             title="Văn phòng Mây — luyện Call khách 30 ngày (mở ở cấp B1)"
           />
+          <Pin x={96} y={250} icon={PartyPopper} tone="#C96A2B" label={mounted && beachOpen ? "Đảo Cát Vui" : `Đảo Cát Vui · cấp ${BEACH_LEVEL}`} locked={!(mounted && beachOpen)} href={mounted && beachOpen ? "/island/arcade" : undefined} onClick={mounted && beachOpen ? undefined : beachLockedMsg} title="Mini game và ô đất xây công trình" />
           <Pin x={1196} y={360} icon={Dumbbell} tone="#2F5D50" label="Đảo Luyện" href="/island/practice" badge={mounted && (isleNew || bossDue) ? (isleNew ? "Mới" : "!") : null} title="Đảo Luyện: gọi điện, nói đuổi, nghe, truyện, thử thách cuối tuần" />
         </div>
         )}
@@ -549,14 +595,16 @@ export default function IslandMapPage() {
           </div>
 
           {/* Thanh dưới: Kero nhắc + hành trình hôm nay + nút đi tiếp (ở Đảo Luyện: gợi ý luyện hôm nay) */}
-          {is3d && view === "isle" ? (
+          {is3d && view === "beach" ? (
+            <BeachBar open={beachOpen} level={lv.level} got={mounted ? arcadeToday(s, today()) : 0} cap={mounted ? arcadeCap(s) : 30} income={mounted ? plotIncomeToday(s, today()) : 0} onHome={() => goView("home")} />
+          ) : is3d && view === "isle" ? (
             <IsleBar builtCount={nBuilt} pick={pick} onHome={() => goView("home")} />
           ) : (
           <div className="cci-h-bar order-1 hud:absolute hud:left-1/2 hud:-translate-x-1/2 hud:bottom-4 hud:z-10 hud:w-[min(780px,calc(100%-12rem))] flex items-center gap-3 rounded-[24px] clay p-2 pl-2.5">
             <button
               type="button"
               data-sfx="none"
-              className="shrink-0 hover:scale-105 transition-transform"
+              className="cci-h-avatar shrink-0 hover:scale-105 transition-transform"
               onClick={() => {
                 sfx.chirp("kero");
                 setTimeout(() => speak(line.en, { who: "kero" }), 300);
@@ -582,12 +630,12 @@ export default function IslandMapPage() {
               </span>
               {extra && pickSpot ? (
                 <>
-                  <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">Luyện thêm: {pickSpot.feature}</span>
+                  <span className="font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">Luyện thêm: {pickSpot.feature}</span>
                   <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug truncate">{pick!.why}</span>
                 </>
               ) : (
                 <>
-                  <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">{mounted ? line.en : cur.quest.en}</span>
+                  <span className="font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">{mounted ? line.en : cur.quest.en}</span>
                   <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug truncate">{mounted ? line.vi : cur.quest.vi}</span>
                 </>
               )}
@@ -638,7 +686,15 @@ export default function IslandMapPage() {
         />
       )}
       {justBuilt && <BuiltToast id={justBuilt} onClose={() => setJustBuilt(null)} />}
-      {tour !== null && mounted && !open && !panel && !isleOpen && (
+      {plotOpen && <PlotPanel id={plotOpen} onClose={() => setPlotOpen(null)} />}
+      {beachNews && (
+        <div className="fixed inset-x-0 top-20 z-[70] flex justify-center px-3 pointer-events-none">
+          <div className="pointer-events-auto max-w-md rounded-[20px] px-5 py-2.5 bg-[#C96A2B] text-white font-extrabold border-[3px] border-[#A4521D] shadow-[0_4px_0_#A4521D] anim-pop flex items-center gap-2 text-left">
+            <PartyPopper className="w-4 h-4 shrink-0" /> {beachNews}
+          </div>
+        </div>
+      )}
+      {tour !== null && mounted && !open && !panel && !isleOpen && !plotOpen && (
         <IsleTour
           step={tour}
           pick={pick}
