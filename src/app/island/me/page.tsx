@@ -24,7 +24,7 @@ const FIELDS: { key: keyof Draft; label: string; hint: string; ph: string; frame
 
 export default function MePage() {
   const s = useIsland();
-  const { username } = useGame();
+  const { username, isAuthenticated } = useGame();
   const [mounted, setMounted] = useState(false);
   const [draft, setDraft] = useState<Draft>({ name: "", hometown: "", job: "", hobby: "" });
   const [preview, setPreview] = useState<Omit<Profile, "at"> | null>(null);
@@ -40,7 +40,7 @@ export default function MePage() {
   useEffect(() => {
     if (!mounted) return;
     const p = s.profile;
-    setDraft(hasProfile(p) ? { name: p.name, hometown: p.hometown, job: p.job, hobby: p.hobby } : { name: username || "", hometown: "", job: "", hobby: "" });
+    setDraft(hasProfile(p) ? { name: p.name, hometown: p.hometown, job: p.job, hobby: p.hobby } : { name: isAuthenticated ? username || "" : "", hometown: "", job: "", hobby: "" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 

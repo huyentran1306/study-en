@@ -26,7 +26,7 @@ import {
   useIsland,
   weekStartDate,
 } from "@/lib/island/progress";
-import { useGame } from "@/contexts/game-context";
+import { usePlayerName } from "@/components/island/player-name";
 
 const CH_ICON: Record<number, React.ElementType> = {
   1: Hand, 2: Coffee, 3: ShoppingBasket, 4: Signpost, 5: Plane, 6: Utensils, 7: Phone, 8: Stethoscope,
@@ -42,7 +42,7 @@ function fmt(d: string) {
 
 export default function IslandPathPage() {
   const s = useIsland();
-  const { username } = useGame();
+  const playerName = usePlayerName(s);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -79,7 +79,7 @@ export default function IslandPathPage() {
           <Avatar who="bo" size={52} />
         </span>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight truncate">Chào {mounted ? username || "Bơ" : "Bơ"}!</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight truncate">Chào {mounted ? playerName || "bạn" : "bạn"}!</h1>
           <p className="font-semibold text-[#6B4A30] text-sm sm:text-base">{mounted && s.sprint?.on ? "Nước rút: hôm nay học khoảng 25 phút nhé." : "Hôm nay học khoảng 10–15 phút nhé."}</p>
           <SyncBadge className="mt-1" />
         </div>
