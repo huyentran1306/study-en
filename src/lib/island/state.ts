@@ -122,6 +122,24 @@ export interface Memory {
 }
 
 /** Một lần ghi âm "Gương thời gian" (âm thanh để trong máy, chỉ số liệu + lời được đồng bộ). */
+/** Ô đất trên Đảo Cát Vui. bank/food: vỏ sò, thức ăn đã làm ra ở các bậc trước (tính tới lần nâng cấp gần nhất). */
+export interface PlotState {
+  t?: string;
+  lv: number;
+  at: string;
+  bank: number;
+  food?: number;
+  cleared?: boolean;
+}
+
+/** Mini game: tổng vỏ sò đã nhận, số nhận trong ngày (để có trần), kỷ lục từng trò. */
+export interface ArcadeState {
+  earned: number;
+  day: string;
+  today: number;
+  best: Record<string, number>;
+}
+
 export interface MirrorTake {
   at: string;
   text: string;
@@ -175,6 +193,9 @@ export interface IslandState {
   mirror: MirrorTake[];
   /** Đảo Luyện: công trình đã dựng (lần đầu thử tính năng) → lúc dựng. */
   built: Record<string, string>;
+  /** Đảo Cát Vui: ô đất → công trình. */
+  plots: Record<string, PlotState>;
+  arcade: ArcadeState;
   /** Mã chia sẻ đảo cho bạn bè ghé thăm (rỗng = chưa chia sẻ). */
   shareCode?: string;
   sprint?: Sprint;
@@ -201,7 +222,7 @@ export function todayStr(): string {
 }
 
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {} };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} } };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -241,6 +262,8 @@ export function normalizeState(input: unknown): IslandState {
     episodes: {},
     mirror: [],
     built: {},
+    plots: {},
+    arcade: { earned: 0, day: "", today: 0, best: {} },
   };
   {
     const iso = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
@@ -267,6 +290,21 @@ export function normalizeState(input: unknown): IslandState {
     }
     if (x.built && typeof x.built === "object") {
       for (const [k, v] of Object.entries(x.built as Record<string, unknown>)) if (key(k) && iso(v)) out.built[k] = (v as string).slice(0, 40);
+    }
+    if (x.plots && typeof x.plots === "object") {
+      for (const [k, v] of Object.entries(x.plots as Record<string, unknown>)) {
+        const m = v as Record<string, unknown>;
+        if (!/^p[1-9]$/.test(k) || !m || typeof m !== "object") continue;
+        const t = typeof m.t === "string" && /^[a-z]{2,20}$/.test(m.t) ? m.t : undefined;
+        if (t && !iso(m.at)) continue;
+        out.plots[k] = { lv: num(m.lv, 0, 3), at: iso(m.at) ? (m.at as string).slice(0, 40) : "", bank: num(m.bank, 0, 1_000_000), ...(t ? { t } : {}), ...(m.food ? { food: num(m.food, 0, 1_000_000) } : {}), ...(m.cleared ? { cleared: true } : {}) };
+        if (t && out.plots[k].lv < 1) out.plots[k].lv = 1;
+      }
+    }
+    if (x.arcade && typeof x.arcade === "object") {
+      const a = x.arcade as Record<string, unknown>;
+      out.arcade = { earned: num(a.earned, 0, 10_000_000), day: date(a.day) || "", today: num(a.today, 0, 10_000), best: {} };
+      if (a.best && typeof a.best === "object") for (const [k, v] of Object.entries(a.best as Record<string, unknown>)) if (key(k)) out.arcade.best[k] = num(v, 0, 100_000_000);
     }
     if (x.episodes && typeof x.episodes === "object") {
       for (const [k, v] of Object.entries(x.episodes as Record<string, unknown>)) {
@@ -561,6 +599,22 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
     freeze: { bought: Math.max(a.freeze.bought, b.freeze.bought), used: Array.from(new Set([...a.freeze.used, ...b.freeze.used])).sort().slice(-60) },
     reallife: { ...b.reallife, ...a.reallife },
     episodes: { ...b.episodes, ...a.episodes },
+    plots: (() => {
+      const o: Record<string, PlotState> = { ...a.plots };
+      const rank = (p: PlotState) => (p.t ? 1000 : 0) + p.lv * 100 + (p.cleared ? 1 : 0);
+      for (const [k, v] of Object.entries(b.plots)) {
+        const x = o[k];
+        if (!x || rank(v) > rank(x) || (rank(v) === rank(x) && v.bank > x.bank)) o[k] = v;
+      }
+      return o;
+    })(),
+    arcade: (() => {
+      const best = { ...a.arcade.best };
+      for (const [k, v] of Object.entries(b.arcade.best)) best[k] = Math.max(best[k] || 0, v);
+      const day = a.arcade.day > b.arcade.day ? a.arcade.day : b.arcade.day;
+      const today = Math.max(a.arcade.day === day ? a.arcade.today : 0, b.arcade.day === day ? b.arcade.today : 0);
+      return { earned: Math.max(a.arcade.earned, b.arcade.earned), day, today, best };
+    })(),
     built: (() => {
       const o = { ...a.built };
       for (const [k, v] of Object.entries(b.built)) if (!o[k] || v < o[k]) o[k] = v;

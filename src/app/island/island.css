@@ -309,3 +309,22 @@ html .cci .cci-full .cci-mapfit { width: auto !important; }
   .cci .cci-full .cci-h-bar { left: 140px; right: 60px; bottom: 8px; }
   .cci .cci-full .cci-mapctl { top: 50%; transform: translateY(-50%); }
 }
+
+/* ── Mini game Đảo Cát Vui ── */
+@keyframes mgPop { 0% { transform: scale(1) } 45% { transform: scale(1.18) } 100% { transform: scale(1) } }
+@keyframes mgIn { 0% { transform: scale(.2); opacity: 0 } 100% { transform: scale(1); opacity: 1 } }
+.cci .mg-pop { animation: mgPop .22s ease-out }
+.cci .mg-in { animation: mgIn .2s ease-out .08s both }
+@keyframes g3Drop { from { transform: translateY(calc(var(--d, 0) * -108%)) } to { transform: translateY(0) } }
+@keyframes g3Out { to { transform: scale(0); opacity: 0 } }
+@keyframes g3Shake { 0%, 100% { transform: translateX(0) } 25% { transform: translateX(-8%) } 75% { transform: translateX(8%) } }
+@keyframes g3Float { 0% { transform: translate(-50%, 0); opacity: 0 } 15% { opacity: 1 } 100% { transform: translate(-50%, -60px); opacity: 0 } }
+.cci .g3-drop { animation: g3Drop .26s cubic-bezier(.3,.9,.4,1.15) both }
+.cci .g3-out { animation: g3Out .18s ease-in forwards }
+.cci .g3-shake { animation: g3Shake .25s ease-in-out 2 }
+.cci .g3-float { animation: g3Float 1.1s ease-out forwards }
+@keyframes g3Rainbow { to { transform: rotate(360deg) } }
+.cci .g3-rainbow { background: conic-gradient(#F29A4E, #F2C14E, #9CCB6A, #6FC1DA, #B49AE0, #F29BB5, #F29A4E); animation: g3Rainbow 3s linear infinite }
+@media (prefers-reduced-motion: reduce) {
+  .cci .mg-pop, .cci .mg-in, .cci .g3-drop, .cci .g3-out, .cci .g3-shake, .cci .g3-rainbow { animation: none }
+}
