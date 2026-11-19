@@ -1,7 +1,9 @@
 "use client";
 
-import { Cloud, CloudOff, LogIn, Loader2, RefreshCw } from "lucide-react";
-import { syncIsland, useSyncStatus } from "@/lib/island/progress";
+import { useEffect, useRef, useState } from "react";
+import { Cloud, CloudOff, LogIn, LogOut, Loader2, RefreshCw } from "lucide-react";
+import { flushIsland, syncIsland, useSyncStatus } from "@/lib/island/progress";
+import { useGame } from "@/contexts/game-context";
 import { openLogin } from "@/lib/auth-events";
 import { sfx } from "@/lib/island/sfx";
 
@@ -91,5 +93,72 @@ function SyncDot({ status, at, className }: { status: string; at?: string; class
     <button type="button" onClick={() => syncIsland()} className={dot} style={{ background: "#FDEEDD", color: "#A4521D" }} title="Chưa đồng bộ được — bấm để thử lại" aria-label="Thử đồng bộ lại">
       <CloudOff className="w-4 h-4" />
     </button>
+  );
+}
+
+/**
+ * Nút tài khoản cạnh tên người chơi: khách → "Đăng nhập"; đã đăng nhập → biểu tượng đồng bộ,
+ * bấm vào mở menu (trạng thái lưu, đồng bộ ngay, đăng xuất).
+ */
+export function AccountMenu({ hideGuest = false }: { hideGuest?: boolean }) {
+  const { isAuthenticated, username, logout } = useGame();
+  const { status, at } = useSyncStatus();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: Event) => {
+      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  if (!isAuthenticated) return hideGuest ? null : <SyncBadge compact />;
+  const Icon = status === "syncing" ? Loader2 : status === "synced" ? Cloud : status === "guest" || status === "idle" ? Cloud : CloudOff;
+  const tone = status === "error" || status === "offline" ? { bg: "#FDEEDD", fg: "#A4521D" } : { bg: "#EAF3DC", fg: "#2C5A25" };
+  const statusText = status === "synced" ? `Đã lưu lên máy chủ lúc ${hhmm(at)}` : status === "syncing" ? "Đang đồng bộ…" : status === "offline" ? "Mất mạng: tiến độ vẫn giữ trong máy" : status === "error" ? "Chưa đồng bộ được" : "Đang kiểm tra…";
+  return (
+    <div ref={box} className="relative shrink-0">
+      <button type="button" data-sfx="open" onClick={() => setOpen((o) => !o)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: tone.bg, color: tone.fg }} aria-haspopup="menu" aria-expanded={open} aria-label="Tài khoản" title="Tài khoản">
+        <Icon className={`w-4 h-4 ${status === "syncing" ? "animate-spin" : ""}`} />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-10 z-[80] w-[230px] cci-card-wood p-3 flex flex-col gap-2 anim-pop text-left">
+          <div>
+            <div className="font-baloo font-extrabold leading-tight truncate">{username || "Tài khoản của bạn"}</div>
+            <div className="text-xs font-semibold flex items-center gap-1" style={{ color: tone.fg }}>
+              <Icon className="w-3.5 h-3.5 shrink-0" /> {statusText}
+            </div>
+          </div>
+          <button type="button" role="menuitem" className="cci-btn !min-h-[38px] !text-sm justify-center" onClick={() => syncIsland()} disabled={status === "syncing"}>
+            <RefreshCw className="w-4 h-4" /> Đồng bộ ngay
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={busy}
+            className="cci-btn !min-h-[38px] !text-sm justify-center !text-[#A4521D]"
+            onClick={async () => {
+              setBusy(true);
+              await flushIsland();
+              logout();
+              setOpen(false);
+              setBusy(false);
+              // Xoá tiến độ của tài khoản khỏi máy, về chế độ khách.
+              setTimeout(() => syncIsland(), 50);
+            }}
+          >
+            <LogOut className="w-4 h-4" /> {busy ? "Đang lưu…" : "Đăng xuất"}
+          </button>
+          <p className="text-[11px] font-semibold text-[#6B4A30] leading-snug">Đăng xuất xong, tiến độ vẫn nằm trên máy chủ. Đăng nhập lại là học tiếp.</p>
+        </div>
+      )}
+    </div>
   );
 }

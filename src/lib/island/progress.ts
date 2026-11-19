@@ -11,6 +11,7 @@ import { EXPAND_COST, FEED_CUT, MAX_FEED, RARE_SELL, SPECIES_BY_KIND, STARTER_SH
 import { isDuplicate } from "./memory";
 import { BUILD_BONUS, isleSpot } from "./isle";
 import { PIECES_PER_CHEST, quizPieces, quizShells } from "./harbor-quiz";
+import { checkDue, type CheckRecord } from "./checkpoint";
 import { ARCADE, PLOTS, arcadeCap, buildKind, libraryFood, plotIncome, plotStatus, upgradeCost } from "./beach";
 import type { ChatReport, ErrorTag } from "./feedback";
 import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
@@ -896,7 +897,7 @@ export function talkToday(s: IslandState): number {
   return s.talk[today()] || 0;
 }
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
   window.addEventListener("cci-spoke", (e) => addTalk(Number((e as CustomEvent).detail) || 0));
 }
 
@@ -922,7 +923,21 @@ function talkStep(s: IslandState, curId: number): PlanStep {
   };
 }
 
+/** Ngày tới hạn kiểm tra nói: thay bước Ao Phản Xạ bằng bài kiểm tra (khỏi thêm bước). */
+function withCheck(s: IslandState, steps: PlanStep[]): PlanStep[] {
+  const t = today();
+  const doneToday = s.checks.some((c) => c.at.slice(0, 10) === t || new Date(c.at).toLocaleDateString("sv") === t);
+  if (!checkDue(s, t) && !doneToday) return steps;
+  const step: PlanStep = { key: "check", title: "Kiểm tra nói 2 tuần", desc: "3 đề nói 45 giây, AI chấm trình độ, so với lần trước", href: "/island/checkpoint", done: doneToday, mins: 5 };
+  const i = steps.findIndex((p) => p.key === "reflex");
+  return i >= 0 ? steps.map((p, k) => (k === i ? step : p)) : [...steps, step];
+}
+
 export function todayPlan(s: IslandState): PlanStep[] {
+  return withCheck(s, basePlan(s));
+}
+
+function basePlan(s: IslandState): PlanStep[] {
   if (s.sprint?.on) return [...sprintPlan(s), talkStep(s, currentChapterId(s))];
   const log = s.daily[today()] || [];
   const curId = currentChapterId(s);
@@ -1219,4 +1234,20 @@ export function openTreasure(): FarmResult {
   if (quizPieces(s).have < PIECES_PER_CHEST) return { ok: false, reason: `Cần đủ ${PIECES_PER_CHEST} mảnh bản đồ.` };
   save({ ...s, quiz: { ...s.quiz, chests: s.quiz.chests + 1 } });
   return { ok: true };
+}
+
+// ───────────── Kiểm tra nói định kỳ ─────────────
+
+export function saveCheck(rec: CheckRecord) {
+  update((s) => markStudy({ ...s, checks: [...s.checks.filter((c) => c.at !== rec.at), rec].slice(-24), xp: s.xp + 40 }));
+}
+
+/** Trước khi đăng xuất: đẩy nốt phần tiến độ chưa lưu lên máy chủ (để không mất). */
+export async function flushIsland(): Promise<void> {
+  if (typeof window === "undefined" || !currentUid() || !dirty) return;
+  try {
+    await pushNow();
+  } catch {
+    /* mất mạng: tiến độ vẫn nằm trong máy cho tới lần đăng nhập sau */
+  }
 }

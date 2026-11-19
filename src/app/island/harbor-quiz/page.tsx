@@ -32,7 +32,7 @@ export default function HarborQuizPage() {
   const day = mounted ? today() : "";
   const qs = useMemo(() => (mounted ? dailyQuiz(s, day, isUnlocked) : []), [mounted, day]); // eslint-disable-line react-hooks/exhaustive-deps
   const q: Question | undefined = qs[i];
-  const open = mounted && harborOpen(s, isUnlocked);
+  const open = mounted && harborOpen(s);
   const pieces = mounted ? quizPieces(s).have : 0;
   const todayBest = mounted ? s.quiz.days[day] : undefined;
 
@@ -117,7 +117,7 @@ export default function HarborQuizPage() {
       {mounted && !open ? (
         <div className="cci-card-wood p-5 flex flex-col items-center gap-3 text-center">
           <Lock className="w-8 h-8 text-[#8B6B48]" />
-          <p className="font-bold">Đảo Phố Cảng còn mây phủ. Học xong 4 chương A1 là phà bắt đầu chạy.</p>
+          <p className="font-bold">Đảo Phố Cảng còn mây phủ. Qua thử thách cuối cấp A1 «Ngày đầu trên đảo» là phà bắt đầu chạy.</p>
           <Link href="/island/path" className="cci-btn cci-btn-primary">
             Về Lộ trình <ArrowRight className="w-4 h-4" />
           </Link>

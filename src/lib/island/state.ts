@@ -1,6 +1,7 @@
 // Kiểu dữ liệu + chuẩn hoá + gộp tiến độ Chit Chat Island.
 // File thuần (không "use client") để dùng chung cho trình duyệt và API máy chủ.
 import type { Word } from "./curriculum";
+import type { CheckRecord } from "./checkpoint";
 import { CEFR, asTag, type ChatReport, type Cefr, type ErrorTag } from "./feedback";
 
 export interface ChapterProgress {
@@ -196,6 +197,8 @@ export interface IslandState {
   /** Đảo Cát Vui: ô đất → công trình. */
   plots: Record<string, PlotState>;
   arcade: ArcadeState;
+  /** Kiểm tra nói định kỳ (2 tuần một lần). */
+  checks: CheckRecord[];
   /** Số giây đã nói tiếng Anh thật (ước theo số từ nói ra) mỗi ngày. */
   talk: Record<string, number>;
   /** Phiên bản luật mở chương (2 = cần đủ 3 chìa khoá). Dữ liệu cũ được giữ các chương đã mở. */
@@ -221,6 +224,7 @@ const REFLEX_MODES: ReflexMode[] = ["quick", "swap", "filler"];
 export const MAX_MEMORIES = 80;
 export const MAX_REPORTS = 60;
 export const MAX_MIRROR = 24;
+export const MAX_CHECKS = 24;
 
 export function todayStr(): string {
   const d = new Date();
@@ -228,7 +232,7 @@ export function todayStr(): string {
 }
 
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 }, talk: {}, rulesV: 2 };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 }, talk: {}, checks: [], rulesV: 2 };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -272,6 +276,7 @@ export function normalizeState(input: unknown): IslandState {
     arcade: { earned: 0, day: "", today: 0, best: {} },
     quiz: { days: {}, chests: 0 },
     talk: {},
+    checks: [],
   };
   {
     const iso = (v: unknown) => typeof v === "string" && !Number.isNaN(Date.parse(v));
@@ -307,6 +312,14 @@ export function normalizeState(input: unknown): IslandState {
         if (t && !iso(m.at)) continue;
         out.plots[k] = { lv: num(m.lv, 0, 3), at: iso(m.at) ? (m.at as string).slice(0, 40) : "", bank: num(m.bank, 0, 1_000_000), ...(t ? { t } : {}), ...(m.food ? { food: num(m.food, 0, 1_000_000) } : {}), ...(m.cleared ? { cleared: true } : {}) };
         if (t && out.plots[k].lv < 1) out.plots[k].lv = 1;
+      }
+    }
+    if (Array.isArray(x.checks)) {
+      const CE = ["A1", "A2", "B1", "B2"];
+      for (const v of x.checks.slice(-MAX_CHECKS)) {
+        const m = v as Record<string, unknown>;
+        if (!m || !iso(m.at) || !CE.includes(m.cefr as string)) continue;
+        out.checks.push({ at: (m.at as string).slice(0, 40), cefr: m.cefr as CheckRecord["cefr"], f: num(m.f, 1, 5, 1), a: num(m.a, 1, 5, 1), r: num(m.r, 1, 5, 1), c: num(m.c, 1, 5, 1), wpm: num(m.wpm, 0, 400), words: num(m.words, 0, 5000), fillers: num(m.fillers, 0, 500) });
       }
     }
     if (x.talk && typeof x.talk === "object") {
@@ -632,6 +645,13 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
         if (!x || rank(v) > rank(x) || (rank(v) === rank(x) && v.bank > x.bank)) o[k] = v;
       }
       return o;
+    })(),
+    checks: (() => {
+      const by = new Map<string, CheckRecord>();
+      for (const c of [...a.checks, ...b.checks]) by.set(c.at, c);
+      return Array.from(by.values())
+        .sort((p, q) => (p.at < q.at ? -1 : 1))
+        .slice(-MAX_CHECKS);
     })(),
     talk: (() => {
       const o = { ...a.talk };

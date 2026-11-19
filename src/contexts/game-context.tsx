@@ -192,6 +192,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (raw) {
           const storedAuthUser = JSON.parse(raw) as AuthUser;
           setCurrentUser(storedAuthUser);
+          // Tên hiển thị lấy ngay từ thông tin đăng nhập đã lưu (không chờ máy chủ, kẻo còn tên mặc định).
+          setState(prev => ({ ...prev, username: storedAuthUser.display_name || storedAuthUser.username || prev.username }));
           // Also restore their game state
           setStoredUserId(storedAuthUser.id);
           getGameState(storedAuthUser.id)

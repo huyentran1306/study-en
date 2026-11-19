@@ -6,6 +6,19 @@ import { API_BASE } from "@/lib/api";
 
 const AUTH_USER_KEY = "studyen-auth-user";
 const UID_KEY = "studyen-uid";
+const RETURN_KEY = "studyen-return-to";
+
+/** Trang để quay về sau khi đăng nhập Google: chỉ nhận đường dẫn nội bộ ("/island", không "//evil.com"). */
+function returnPath(): string {
+  try {
+    const p = localStorage.getItem(RETURN_KEY) || "";
+    localStorage.removeItem(RETURN_KEY);
+    if (p.startsWith("/") && !p.startsWith("//") && !p.startsWith("/auth-callback")) return p;
+  } catch {
+    /* bỏ qua */
+  }
+  return "/";
+}
 
 function AuthCallbackInner() {
   const searchParams = useSearchParams();
@@ -51,7 +64,7 @@ function AuthCallbackInner() {
         };
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(authUser));
         localStorage.setItem(UID_KEY, uid);
-        window.location.href = "/";
+        window.location.href = returnPath();
       })
       .catch((e: Error) => {
         setErrorMsg(e.message || "Failed to authenticate");
@@ -66,10 +79,10 @@ function AuthCallbackInner() {
           <div className="text-5xl mb-4">😢</div>
           <p className="text-red-500 font-semibold mb-4">Đăng nhập thất bại: {errorMsg}</p>
           <button
-            onClick={() => { window.location.href = "/"; }}
+            onClick={() => { window.location.href = returnPath(); }}
             className="px-6 py-2 bg-kawaii-pink text-white rounded-xl font-semibold hover:opacity-90"
           >
-            Về trang chủ
+            Quay lại
           </button>
         </div>
       </div>

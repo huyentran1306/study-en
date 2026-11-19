@@ -38,7 +38,12 @@ export function HarborBar({ open, quest, quizDue, onHome, onQuest }: { open: boo
         {!open ? (
           <>
             <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5">Mây còn phủ kín đảo</span>
-            <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug line-clamp-2">Học xong 4 chương A1 là phà bắt đầu chạy.</span>
+            <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug line-clamp-2">
+              Qua thử thách cuối cấp A1 «Ngày đầu trên đảo» là phà bắt đầu chạy.{" "}
+              <Link href="/island/lesson/c1" className="underline underline-offset-2 font-extrabold text-[#2B4C7E]">
+                Làm thử thách
+              </Link>
+            </span>
           </>
         ) : ch && quest ? (
           <>

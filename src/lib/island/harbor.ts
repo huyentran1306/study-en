@@ -1,5 +1,5 @@
 // Đảo Phố Cảng (A2 · "Đảo Đi Đây Đó"): đảo xa phía sau đảo nhà, đi bằng phà.
-// Mỗi chương A2 (5–8) có một địa điểm trên đảo. Mở khi học xong A1 (chương 5 đã mở).
+// Mỗi chương A2 (5–8) có một địa điểm trên đảo. Mở khi qua thử thách cuối cấp A1 (nhập vai không gợi ý).
 import { CHAPTERS, type NpcId } from "./curriculum";
 import type { IslandState } from "./state";
 
@@ -60,7 +60,14 @@ export const ISLANDS: { id: IslandId; name: string; tag: string }[] = [
   { id: "city", name: "Thành Phố Mây", tag: "B1 · sắp có" },
 ];
 
-/** Đảo Phố Cảng đã mở: học xong A1, tức chương 5 đã mở. */
-export function harborOpen(s: IslandState, isUnlocked: (s: IslandState, id: number) => boolean): boolean {
-  return isUnlocked(s, HARBOR_FIRST_CHAPTER);
+/** Thử thách cuối cấp A1 mở Đảo Phố Cảng; thử thách A2 sẽ mở Thành Phố Mây. */
+export const HARBOR_CHALLENGE = "c1";
+export const CITY_CHALLENGE = "c2";
+
+/**
+ * Đảo Phố Cảng mở theo năng lực: qua thử thách cuối cấp A1.
+ * Ai đã học bài A2 đầu tiên (từ trước khi có luật này) thì giữ đảo đang mở.
+ */
+export function harborOpen(s: IslandState): boolean {
+  return !!s.challenges[HARBOR_CHALLENGE]?.done || !!s.chapters[HARBOR_FIRST_CHAPTER]?.lesson;
 }

@@ -8,7 +8,7 @@ import { Anchor, ArrowRight, Puzzle, BookHeart, BookOpen, Briefcase, Cloud, Coff
 import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
-import { SyncBadge } from "@/components/island/sync-badge";
+import { AccountMenu } from "@/components/island/sync-badge";
 import { ANIMALS, GardenAnimals, IslandBuilds, BuildPanel } from "@/components/island/garden";
 import type { Label3D } from "@/components/island/island3d";
 import type { WorldController, WorldState, WorldView } from "@/components/island/world3d";
@@ -198,7 +198,7 @@ export default function IslandMapPage() {
   const bossDue = bossNow && !s.trophies[weeklyBoss().boss!.trophy];
   const builtSig = mounted ? Object.keys(s.built).sort().join(",") : "";
   const beachOpen = mounted && lv.level >= BEACH_LEVEL;
-  const hOpen = mounted && harborOpen(s, isUnlocked);
+  const hOpen = mounted && harborOpen(s);
   /** Chương đang học là chương A2 → nhiệm vụ nằm ở Đảo Phố Cảng. */
   const questPlace: HarborPlace | null = hOpen ? harborPlaceOfChapter(curId) || null : null;
   const quizDue = hOpen && s.quiz.days[today()] === undefined;
@@ -226,7 +226,7 @@ export default function IslandMapPage() {
     chests: mounted ? s.quiz.chests : 0,
     beach: { open: beachOpen, plots: Object.fromEntries(PLOTS.map((p) => [p.id, { st: plotSt[p.id], t: s.plots[p.id]?.t, lv: s.plots[p.id]?.lv }])) },
   };
-  const harborLockedMsg = () => setBeachNews("Đảo Phố Cảng còn mây phủ. Học xong 4 chương A1 là phà bắt đầu chạy!");
+  const harborLockedMsg = () => setBeachNews("Đảo Phố Cảng còn mây phủ. Qua thử thách cuối cấp A1 «Ngày đầu trên đảo» (nhập vai không gợi ý) là phà bắt đầu chạy!");
   const cityMsg = () => setBeachNews("Thành Phố Mây (B1) đang được xây, sẽ mở sau Đảo Phố Cảng.");
   const ottoTalk = () => {
     const n = talkCount.current.otto || 0;
@@ -445,7 +445,7 @@ export default function IslandMapPage() {
       }
     }
   }, [mounted, lv.level]);
-  // Lần đầu học xong A1: phà bắt đầu chạy sang Đảo Phố Cảng.
+  // Lần đầu qua thử thách cuối cấp A1: phà bắt đầu chạy sang Đảo Phố Cảng.
   useEffect(() => {
     if (!hOpen || localStorage.getItem(HARBOR_SEEN_KEY)) return;
     localStorage.setItem(HARBOR_SEEN_KEY, "1");
@@ -511,7 +511,7 @@ export default function IslandMapPage() {
       <div className={full ? "cci-mapfit fixed inset-0 z-[1]" : "cci-mapfit relative z-[1] mx-auto w-full mb-8 lg:mb-12 lg:w-[min(100%,calc((100dvh-5.5rem)*1.6))]"}>
         {/* ── Bản đồ ── */}
         {mode === "3d" || !mounted ? (
-          <div className="cci-map3d absolute inset-0" style={{ containerType: "inline-size" }}>
+          <div className="cci-map3d absolute inset-0 isolate" style={{ containerType: "inline-size" }}>
             {is3d ? <Island3D state={worldState} labels={labels3d} onPick={onPick3d} onFail={() => setMode("2d")} apiRef={world} /> : <MapLoading />}
             {is3d && (
               <div className="cci-mapctl absolute right-2 bottom-2 hud:right-4 hud:bottom-4 z-[5] flex flex-col gap-1.5">
@@ -617,7 +617,7 @@ export default function IslandMapPage() {
         {/* ── HUD: máy tính đè lên bản đồ (gọn 4 góc), điện thoại xếp dưới bản đồ ── */}
         <div className={cx("flex flex-col gap-3 mt-10 hud:contents", full && "cci-hud")}>
           {/* Thẻ người chơi */}
-          <div className="cci-h-player order-2 hud:absolute hud:left-4 hud:top-4 hud:z-10 self-start flex items-center gap-3 rounded-[22px] clay pl-1.5 pr-2 py-1.5">
+          <div style={{ zIndex: 20 }} className="cci-h-player order-2 hud:absolute hud:left-4 hud:top-4 self-start flex items-center gap-3 rounded-[22px] clay pl-1.5 pr-2 py-1.5">
             <div className="relative shrink-0">
               <Avatar who="bo" size={50} />
               <span className="absolute -bottom-1 -right-1.5 min-w-[24px] h-[24px] px-1 rounded-full bg-[#F2C14E] border-[2.5px] border-[#4A3222] font-baloo font-extrabold text-[13px] leading-none flex items-center justify-center" title="Cấp đảo">
@@ -633,7 +633,7 @@ export default function IslandMapPage() {
                 Cấp đảo {mounted ? lv.level : 1} · {mounted ? lv.pct : 0}%
               </span>
             </div>
-            <SyncBadge compact />
+            <AccountMenu />
           </div>
 
           {/* Thanh công cụ: dọc bên trái trên máy tính, hàng ngang trên điện thoại */}

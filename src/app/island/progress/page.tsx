@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Info, KeyRound, Mic, TrendingUp } from "lucide-react";
+import { ArrowRight, ClipboardCheck, Info, KeyRound, Mic, TrendingUp } from "lucide-react";
 import { BackLink } from "@/components/island/ui";
 import { Columns, StatTile, Trend, type Point } from "@/components/island/progress-charts";
 import { CHAPTERS } from "@/lib/island/curriculum";
 import { CEFR, type ChatReport } from "@/lib/island/feedback";
 import { TALK_GOAL, chapterKeys, today, useIsland } from "@/lib/island/progress";
+import { CHECK_SKILLS, checkDue, nextCheckDay } from "@/lib/island/checkpoint";
 
 const dayLabel = (iso: string) => {
   const d = new Date(iso);
@@ -62,8 +63,20 @@ export default function ProgressPage() {
   const latest = reports[reports.length - 1];
   const first = reports[0];
 
+  // Kiểm tra nói định kỳ
+  const checks = s.checks;
+  const due = checkDue(s, t);
+  const nextDay = nextCheckDay(s);
+  const checkPts: Point[] = checks.map((c, i) => ({ x: String(i + 1), label: `${dayLabel(c.at)} · lần ${i + 1}`, value: cefrIdx(c.cefr) }));
+  const c0 = checks[0],
+    cN = checks[checks.length - 1];
+
   // Nhận xét ngắn
   const notes: string[] = [];
+  if (checks.length >= 2) {
+    const d = cefrIdx(cN.cefr) - cefrIdx(c0.cefr);
+    notes.push(d > 0 ? `Bài kiểm tra nói: từ ${c0.cefr} lên ${cN.cefr} sau ${checks.length} lần. Bạn đang tiến bộ thật!` : `Bài kiểm tra nói: vẫn ở ${cN.cefr}; tốc độ nói ${c0.wpm} → ${cN.wpm} từ/phút.`);
+  }
   if (thisWeek >= (TALK_GOAL / 60) * 5) notes.push(`Tuần này bạn nói ${Math.round(thisWeek)} phút, đủ nhịp để tiến bộ đều.`);
   else notes.push(`Tuần này bạn mới nói ${Math.round(thisWeek)} phút. Mục tiêu là ${TALK_GOAL / 60} phút mỗi ngày, khoảng ${(TALK_GOAL / 60) * 7} phút mỗi tuần.`);
   if (reports.length >= 4) {
@@ -98,6 +111,28 @@ export default function ProgressPage() {
         <StatTile label="Từ & câu đã nhớ" value={`${wordsKnown + phrasesKnown}`} delta={`${wordsKnown} từ · ${phrasesKnown} câu`} />
         <StatTile label="Chương đủ 3 chìa khoá" value={`${keysDone}/${CHAPTERS.length}`} />
       </div>
+
+      <Card icon={ClipboardCheck} title="Kiểm tra nói 2 tuần một lần" sub="3 đề cố định (giới thiệu, kể cuối tuần, xử lý tình huống). AI chấm trên thang CEFR tuyệt đối nên so được giữa các lần.">
+        <div className="flex items-center gap-3 flex-wrap">
+          <p className="flex-1 min-w-[200px] text-sm font-bold" style={{ color: due ? "#A4521D" : "#2C5A25" }}>
+            {!checks.length ? "Chưa có mốc đầu tiên. Làm ngay để có điểm xuất phát." : due ? "Đã tới hạn kiểm tra lại." : `Lần kế tiếp: ${nextDay ? nextDay.split("-").reverse().slice(0, 2).map(Number).join("/") : ""}. Làm sớm cũng được.`}
+            {cN && ` Lần gần nhất: ${cN.cefr}, ${cN.wpm} từ/phút.`}
+          </p>
+          <Link href="/island/checkpoint" className={due || !checks.length ? "cci-btn cci-btn-primary !min-h-[40px]" : "cci-btn !min-h-[40px]"}>
+            <Mic className="w-4 h-4" /> {checks.length ? "Kiểm tra lại" : "Làm mốc đầu tiên"}
+          </Link>
+        </div>
+        {checks.length >= 2 && (
+          <>
+            <Trend name="Trình độ qua các lần kiểm tra" points={checkPts} unit="" min={1} max={4} ticks={[1, 2, 3, 4]} format={(v) => CEFR[Math.round(v) - 1] || ""} height={110} />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {CHECK_SKILLS.map((k) => (
+                <StatTile key={k.k} label={k.name} value={`${cN[k.k]}/5`} delta={`lần đầu ${c0[k.k]}/5`} good={cN[k.k] > c0[k.k] ? true : cN[k.k] < c0[k.k] ? false : null} />
+              ))}
+            </div>
+          </>
+        )}
+      </Card>
 
       <Card icon={Mic} title="Phút nói tiếng Anh mỗi ngày" sub={`14 ngày gần nhất · mục tiêu ${TALK_GOAL / 60} phút/ngày. Chỉ tính lúc bạn nói thật (theo số từ nói ra).`}>
         <Columns name="Phút nói mỗi ngày" points={talkPts} unit="phút" goal={TALK_GOAL / 60} goalLabel={`Mục tiêu ${TALK_GOAL / 60}′`} />
