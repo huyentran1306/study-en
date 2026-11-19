@@ -74,6 +74,18 @@ function getRecognition(): RecognitionCtor | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
+/**
+ * Báo đã nói tiếng Anh (để đếm "phút nói mỗi ngày"). Ước theo số từ nói ra (~2,3 từ/giây),
+ * hoặc theo độ dài thật nếu có (sec). Không dùng thời gian bật micro để khỏi đếm lúc im lặng.
+ */
+export function reportSpoken(text: string, sec?: number) {
+  if (typeof window === "undefined") return;
+  const words = text.split(/\s+/).filter((w) => /[a-z]/i.test(w)).length;
+  if (!words) return;
+  const est = sec && sec > 0 ? Math.min(sec, words / 1.2) : words / 2.3;
+  window.dispatchEvent(new CustomEvent("cci-spoke", { detail: Math.max(1, est) }));
+}
+
 export function useListen() {
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
@@ -132,6 +144,7 @@ export function useListen() {
     rec.onend = () => {
       setListening(false);
       const text = finalRef.current || "";
+      reportSpoken(text);
       resolveRef.current?.(text);
       resolveRef.current = null;
     };

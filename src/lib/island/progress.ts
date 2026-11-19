@@ -617,8 +617,26 @@ export function resetIsland() {
 
 // ───────────── Tính toán ─────────────
 
+/** 3 chìa khoá của một chương: phải xong cả 3 thì chương sau mới mở (trừ khi bài kiểm tra xếp lớp đã mở sẵn). */
+export const KEY_MISSIONS = ["lesson", "speak", "chat"] as const;
+export const KEY_NAMES: Record<(typeof KEY_MISSIONS)[number], string> = { lesson: "Bài học", speak: "Nhập vai bằng giọng", chat: "Tám chuyện AI" };
+
+export function chapterKeys(s: IslandState, chapterId: number) {
+  const p = s.chapters[chapterId] || {};
+  const have = KEY_MISSIONS.filter((k) => !!p[k]);
+  return { have, missing: KEY_MISSIONS.filter((k) => !p[k]), all: have.length === KEY_MISSIONS.length };
+}
+
+/** Câu báo về chương kế tiếp sau khi xong một chìa khoá: đã mở, hay còn thiếu gì. null = không cần báo. */
+export function unlockNote(s: IslandState, chapterId: number): string | null {
+  const next = CHAPTERS.find((c) => c.id === chapterId + 1);
+  if (!next || next.id <= s.unlockedUpTo) return null;
+  const k = chapterKeys(s, chapterId);
+  return k.all ? `Đã mở khoá Chương ${next.id}: ${next.title}` : `Còn ${k.missing.length} chìa khoá để mở Chương ${next.id}: ${k.missing.map((m) => KEY_NAMES[m]).join(", ")}`;
+}
+
 export function isUnlocked(s: IslandState, chapterId: number): boolean {
-  return chapterId <= s.unlockedUpTo || !!s.chapters[chapterId - 1]?.lesson;
+  return chapterId <= s.unlockedUpTo || chapterKeys(s, chapterId - 1).all;
 }
 
 export function isChallengeUnlocked(s: IslandState, id: string): boolean {
@@ -861,8 +879,51 @@ export interface PlanStep {
 }
 
 /** Các bước hôm nay. Nhịp 13 tuần: nhiệm vụ tuần → ôn thẻ đến hạn → Ao Phản Xạ. Nước rút: 3–4 chặng của ngày. */
+// ───────────── Phút nói mỗi ngày ─────────────
+
+/** Mục tiêu nói tiếng Anh mỗi ngày (giây). */
+export const TALK_GOAL = 600;
+
+/** Cộng thời gian đã nói (giây). Gọi từ sự kiện "cci-spoke" do micro phát ra. */
+export function addTalk(sec: number) {
+  if (!(sec > 0)) return;
+  const s = load();
+  const t = today();
+  save({ ...s, talk: { ...s.talk, [t]: Math.min(86_400, Math.round((s.talk[t] || 0) + Math.min(120, sec))) } });
+}
+
+export function talkToday(s: IslandState): number {
+  return s.talk[today()] || 0;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("cci-spoke", (e) => addTalk(Number((e as CustomEvent).detail) || 0));
+}
+
+/** Bước "Nói đủ 10 phút": gợi ý một cách luyện nói, đổi theo ngày. */
+function talkStep(s: IslandState, curId: number): PlanStep {
+  const sec = talkToday(s);
+  const opts = [
+    { name: "Gọi điện với cư dân", href: "/island/call" },
+    { name: "Tám chuyện bằng giọng", href: `/island/chat?ch=${curId}` },
+    { name: "Nói đuổi", href: "/island/shadow" },
+    { name: "Ao Phản Xạ", href: `/island/reflex?ch=${curId}` },
+  ];
+  const d = new Date();
+  const o = opts[Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000) % opts.length];
+  const left = Math.max(0, Math.ceil((TALK_GOAL - sec) / 60));
+  return {
+    key: "talk",
+    title: `Nói đủ ${TALK_GOAL / 60} phút`,
+    desc: sec >= TALK_GOAL ? `Đã nói ${Math.round(sec / 60)} phút hôm nay` : `Đã nói ${Math.floor(sec / 60)} phút, còn ${left} phút · thử ${o.name}`,
+    href: o.href,
+    done: sec >= TALK_GOAL,
+    mins: left || 10,
+  };
+}
+
 export function todayPlan(s: IslandState): PlanStep[] {
-  if (s.sprint?.on) return sprintPlan(s);
+  if (s.sprint?.on) return [...sprintPlan(s), talkStep(s, currentChapterId(s))];
   const log = s.daily[today()] || [];
   const curId = currentChapterId(s);
   const ch = CHAPTERS.find((c) => c.id === curId)!;
@@ -897,6 +958,7 @@ export function todayPlan(s: IslandState): PlanStep[] {
       done: log.includes("reflex"),
       mins: 3,
     },
+    talkStep(s, curId),
   ];
 }
 
@@ -909,7 +971,7 @@ export function chestOpened(s: IslandState): boolean {
   return (s.daily[today()] || []).includes("chest");
 }
 
-/** Mở rương khi xong cả 3 bước: +30 XP, mỗi ngày một lần. Trả về true nếu vừa mở. */
+/** Mở rương khi xong cả 4 bước: +30 XP, mỗi ngày một lần. Trả về true nếu vừa mở. */
 export function openChest(): boolean {
   const s = load();
   if (chestOpened(s) || todayPlan(s).some((p) => !p.done)) return false;

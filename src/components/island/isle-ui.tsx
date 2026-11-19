@@ -122,7 +122,7 @@ export function IsleTour({ step, pick, has3d, onNext, onDone }: { step: TourStep
   const pages = [
     {
       title: "Chào mừng tới Đảo Tám Chuyện!",
-      body: "Mỗi ngày bạn chỉ cần làm theo thanh “Hôm nay” ở dưới: 3 bước, khoảng 10 phút. Học xong thì đảo lớn dần.",
+      body: "Mỗi ngày làm theo thanh “Hôm nay” ở dưới: 4 bước, khoảng 25 phút, trong đó có 10 phút nói tiếng Anh thật. Học xong thì đảo lớn dần.",
     },
     {
       title: "Qua cầu là Đảo Luyện",

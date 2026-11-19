@@ -9,7 +9,7 @@ import { BackLink, cx } from "@/components/island/ui";
 import { ReportCard, type ReportView } from "@/components/island/report-card";
 import { CHAPTERS, NPCS, type NpcId } from "@/lib/island/curriculum";
 import { aboutLearner, personalizeDeep } from "@/lib/island/me";
-import { addChatTurn, addFix, currentChapterId, fixCards, getIsland, markBuilt, markChatDone, markMemoryUsed, saveReport, today, useIsland, type Memory } from "@/lib/island/progress";
+import { addChatTurn, addFix, completeMission, currentChapterId, fixCards, getIsland, markBuilt, markChatDone, markMemoryUsed, saveReport, today, unlockNote, useIsland, type Memory } from "@/lib/island/progress";
 import { pickRecall, practiceFixes, recallOpener, recentFacts } from "@/lib/island/memory";
 import { chatMetrics, topTags, trend } from "@/lib/island/feedback";
 import { askNpc, fetchReport, rememberChat, type Correction, type Turn } from "@/lib/island/chat-client";
@@ -172,7 +172,11 @@ function Inner() {
       markChatDone();
       addXP(25);
       sfx.coin();
-      setNote(`Đủ ${GOAL} lượt, +25 XP! Nói tiếp hoặc cúp máy để xem nhận xét.`);
+      // Cuộc gọi đủ lượt cũng tính là chìa khoá "Tám chuyện AI" của chương đang học.
+      const isl = getIsland();
+      if (isl.chapters[ch.id]?.lesson && !isl.chapters[ch.id]?.chat) completeMission(ch.id, "chat", 0);
+      const note = unlockNote(getIsland(), ch.id);
+      setNote(`Đủ ${GOAL} lượt, +25 XP!${note ? ` ${note}.` : ""} Nói tiếp hoặc cúp máy để xem nhận xét.`);
     }
     await say(data.reply);
   };

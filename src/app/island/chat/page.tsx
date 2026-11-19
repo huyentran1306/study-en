@@ -8,7 +8,7 @@ import { Avatar } from "@/components/island/character";
 import { BackLink, cx } from "@/components/island/ui";
 import { CHAPTERS, NPCS, RESCUE_BAG, type NpcId } from "@/lib/island/curriculum";
 import { aboutLearner, personalizeDeep } from "@/lib/island/me";
-import { addChatTurn, addFix, fixCards, forgetMemory, saveReport, markChatDone, markMemoryUsed, completeMission, currentChapterId, getIsland, isUnlocked, markChatTask, praiseFix, today, useIsland, type Memory } from "@/lib/island/progress";
+import { addChatTurn, addFix, fixCards, forgetMemory, saveReport, markChatDone, markMemoryUsed, completeMission, currentChapterId, getIsland, isUnlocked, markChatTask, praiseFix, today, unlockNote, useIsland, type Memory } from "@/lib/island/progress";
 import { pickRecall, practiceFixes, recallNoteVi, recallOpener, recentFacts } from "@/lib/island/memory";
 import { FIX_MODE_KEY, TAG_VI, chatMetrics, defaultFixMode, ideaCount, isRepair, topTags, trend, type ErrorTag, type FixMode, type ReportAI } from "@/lib/island/feedback";
 import { ReportCard, type ReportView } from "@/components/island/report-card";
@@ -275,6 +275,8 @@ function Inner() {
         completeMission(ch.id, "chat", 30);
         addXP(30);
         import("@/lib/confetti").then((m) => m.fireCelebration()).catch(() => {});
+        const note = unlockNote(getIsland(), ch.id);
+        if (note) setTaskToast(note);
       }
     }
   };

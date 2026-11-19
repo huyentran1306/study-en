@@ -70,7 +70,7 @@ export function NextStep({ className = "" }: { className?: string }) {
   );
 }
 
-/** Bảng "Hành trình hôm nay" trên bản đồ: 3 bước có thứ tự + rương thưởng. */
+/** Bảng "Hành trình hôm nay" trên bản đồ: các bước có thứ tự + rương thưởng. */
 export function JourneyPanel({ onClose }: { onClose: () => void }) {
   const s = useIsland();
   const plan = todayPlan(s);
@@ -147,6 +147,9 @@ export function JourneyPanel({ onClose }: { onClose: () => void }) {
             ⚡ Muốn nhanh hơn? Bật Nước rút 30 ngày ở trang Lộ trình
           </Link>
         )}
+        <Link href="/island/progress" data-sfx="whoosh" className="text-sm font-extrabold text-[#2C5A25] underline underline-offset-4 self-center">
+          📈 Xem tiến bộ của tôi: phút nói, điểm nói, trình độ
+        </Link>
         <Link href="/island/garden" data-sfx="whoosh" className="text-sm font-extrabold text-[#2C5A25] underline underline-offset-4 self-center">
           🌱 Mỗi nhiệm vụ tuần làm cây trong Vườn Nhiệm Vụ lớn thêm — xem vườn
         </Link>
