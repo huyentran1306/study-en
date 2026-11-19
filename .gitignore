@@ -44,3 +44,6 @@ next-env.d.ts
 !.dev.vars.example
 !.env.example
 *.png
+# Icon của Đảo Tám Chuyện cần có trong repo
+!public/island-icon-192.png
+!public/island-apple-icon.png

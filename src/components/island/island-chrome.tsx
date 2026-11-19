@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Maximize2, Minimize2, TreePalm } from "lucide-react";
+import { Home, Maximize2, Minimize2 } from "lucide-react";
 import { AudioToggles } from "./audio-controls";
+import { IslandLogo } from "./island-logo";
 
 /** Bật/tắt toàn màn hình cho cả trang (ẩn luôn menu web) — "chui vào" chơi trong khu vườn. */
 /** Đang toàn màn hình? Tính cả nút của game (Fullscreen API) lẫn F11 của trình duyệt. */
@@ -74,7 +75,7 @@ export function IslandTopBar() {
         <Home className="w-4 h-4" /> Về đảo
       </Link>
       <Link href="/island" className="flex-1 min-w-0 flex items-center justify-center gap-1.5 font-baloo font-extrabold text-[17px] truncate">
-        <TreePalm className="w-5 h-5 text-[#3F7A34] shrink-0" /> Đảo Tám Chuyện
+        <IslandLogo size={34} /> Đảo Tám Chuyện
       </Link>
       <FullscreenButton small />
     </div>

@@ -10,12 +10,13 @@ const nunito = Nunito({ subsets: ["latin", "vietnamese"], weight: ["400", "600",
 export const metadata: Metadata = {
   title: "Chit Chat Island · Đảo Tám Chuyện — Luyện tiếng Anh giao tiếp 3 tháng",
   description: "Game học tiếng Anh giao tiếp A1 → B1 trong 13 tuần: nhập vai với cư dân đảo, câu cứu nguy, sổ từ ôn ngắt quãng và tám chuyện với AI.",
+  // Icon riêng của Đảo: chú shiba Bơ trên hòn đảo nhỏ có cây dừa.
   icons: {
     icon: [
-      { url: "/mascot-logo.png", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/island-icon.svg", type: "image/svg+xml" },
+      { url: "/island-icon-192.png", sizes: "192x192", type: "image/png" },
     ],
+    apple: [{ url: "/island-apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
