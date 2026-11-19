@@ -6,6 +6,9 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  // Không chèn hàm __name khi đóng gói: next-themes đưa nguyên code hàm vào thẻ <script> trên trang,
+  // trình duyệt không có __name nên báo lỗi "__name is not defined" ở mọi trang.
+  "keep_names": false,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
