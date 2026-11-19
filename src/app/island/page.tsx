@@ -556,7 +556,7 @@ export default function IslandMapPage() {
             <button
               type="button"
               data-sfx="none"
-              className="shrink-0 hover:scale-105 transition-transform"
+              className="cci-h-avatar shrink-0 hover:scale-105 transition-transform"
               onClick={() => {
                 sfx.chirp("kero");
                 setTimeout(() => speak(line.en, { who: "kero" }), 300);
@@ -582,12 +582,12 @@ export default function IslandMapPage() {
               </span>
               {extra && pickSpot ? (
                 <>
-                  <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">Luyện thêm: {pickSpot.feature}</span>
+                  <span className="font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">Luyện thêm: {pickSpot.feature}</span>
                   <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug truncate">{pick!.why}</span>
                 </>
               ) : (
                 <>
-                  <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">{mounted ? line.en : cur.quest.en}</span>
+                  <span className="font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5 line-clamp-2">{mounted ? line.en : cur.quest.en}</span>
                   <span className="block text-[13px] font-semibold text-[#6B4A30] leading-snug truncate">{mounted ? line.vi : cur.quest.vi}</span>
                 </>
               )}

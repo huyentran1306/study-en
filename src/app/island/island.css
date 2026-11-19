@@ -280,7 +280,21 @@ html .cci .cci-full .cci-mapfit { width: auto !important; }
   .cci .cci-full .cci-rail { left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
   .cci .cci-full .cci-rail > * { height: 54px; }
   .cci .cci-full .cci-h-bar { left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
-  .cci .cci-full .cci-mapctl { top: 50%; bottom: auto; right: 8px; transform: translateY(-50%); }
+  /* Nút xoay/hoàng hôn/2D: dưới thẻ người chơi, tránh chỗ ghim "Đảo Luyện" bám mép phải giữa màn */
+  .cci .cci-full .cci-mapctl { top: calc(env(safe-area-inset-top, 0px) + 140px); bottom: auto; right: 8px; }
+}
+/* Máy tính bảng, laptop màn thấp (vd 1280×720): thanh công cụ dọc bên trái, thanh nhiệm vụ ở giữa đáy như máy tính */
+@media (min-width: 768px) and (min-height: 561px) and (max-width: 1023px), (min-width: 768px) and (min-height: 561px) and (max-height: 739px) {
+  .cci .cci-full .cci-h-player { top: 12px; left: 12px; }
+  .cci .cci-full .cci-h-stats { top: 12px; left: auto; right: 12px; }
+  .cci .cci-full .cci-rail { top: 92px; left: 12px; right: auto; bottom: auto; grid-template-columns: 62px; gap: 8px; }
+  .cci .cci-full .cci-rail > * { height: 56px; }
+  .cci .cci-full .cci-h-bar { left: 50%; right: auto; bottom: 12px; width: min(780px, calc(100% - 24px)); transform: translateX(-50%); }
+  .cci .cci-full .cci-mapctl { top: 92px; right: 12px; }
+}
+/* Điện thoại rất hẹp: bỏ ảnh Kero ở thanh nhiệm vụ cho chữ rộng chỗ */
+@media (max-width: 379px) {
+  .cci .cci-full .cci-h-avatar { display: none; }
 }
 /* Màn rất hẹp: thanh công cụ 2 hàng → thanh nhiệm vụ đẩy lên */
 @media (max-width: 379px) {
@@ -293,4 +307,5 @@ html .cci .cci-full .cci-mapfit { width: auto !important; }
   .cci .cci-full .cci-rail { top: 78px; bottom: auto; right: auto; grid-template-columns: repeat(2, 58px); gap: 6px; }
   .cci .cci-full .cci-rail > * { height: 50px; }
   .cci .cci-full .cci-h-bar { left: 140px; right: 60px; bottom: 8px; }
+  .cci .cci-full .cci-mapctl { top: 50%; transform: translateY(-50%); }
 }
