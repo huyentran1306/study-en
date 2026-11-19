@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Anchor, ArrowRight, BookHeart, BookOpen, Briefcase, Cloud, Coffee, Compass, Dumbbell, Fish, Gamepad2, Ship, PartyPopper, Shovel, TreePalm, Flame, Flower2, Gift, Hammer, Heart, Home, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
+import { Anchor, ArrowRight, Puzzle, BookHeart, BookOpen, Briefcase, Cloud, Coffee, Compass, Dumbbell, Fish, Gamepad2, Ship, PartyPopper, Shovel, TreePalm, Flame, Flower2, Gift, Hammer, Heart, Home, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
 import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
@@ -201,6 +201,7 @@ export default function IslandMapPage() {
   const hOpen = mounted && harborOpen(s, isUnlocked);
   /** Chương đang học là chương A2 → nhiệm vụ nằm ở Đảo Phố Cảng. */
   const questPlace: HarborPlace | null = hOpen ? harborPlaceOfChapter(curId) || null : null;
+  const quizDue = hOpen && s.quiz.days[today()] === undefined;
   const islandOpen: Record<IslandId, boolean> = { home: true, isle: true, beach: beachOpen, harbor: hOpen, city: false };
   const plotSt = Object.fromEntries(PLOTS.map((p) => [p.id, mounted ? plotStatus(s, lv.level, p.id) : "locked"])) as Record<string, ReturnType<typeof plotStatus>>;
   const pondKids: SwimItem[] = [];
@@ -222,6 +223,7 @@ export default function IslandMapPage() {
     isle: mounted ? Object.keys(s.built) : [],
     bossLit: bossNow,
     harbor: hOpen,
+    chests: mounted ? s.quiz.chests : 0,
     beach: { open: beachOpen, plots: Object.fromEntries(PLOTS.map((p) => [p.id, { st: plotSt[p.id], t: s.plots[p.id]?.t, lv: s.plots[p.id]?.lv }])) },
   };
   const harborLockedMsg = () => setBeachNews("Đảo Phố Cảng còn mây phủ. Học xong 4 chương A1 là phà bắt đầu chạy!");
@@ -262,6 +264,7 @@ export default function IslandMapPage() {
       if (!hOpen) return harborLockedMsg();
       if (id === "npc:otto") return ottoTalk();
       if (key === "dock") return goView("chart");
+      if (key === "quiz") return router.push("/island/harbor-quiz");
       if (harborPlace(key)) return setHarborOpenId(key as HarborPlaceId);
       return;
     }
@@ -316,13 +319,14 @@ export default function IslandMapPage() {
   if (is3d && view === "chart") {
     for (const i of ISLANDS) {
       const Icon = i.id === "home" ? TreePalm : i.id === "isle" ? Dumbbell : i.id === "beach" ? PartyPopper : i.id === "harbor" ? Ship : Cloud;
-      labels3d.push({ id: `chart:${i.id}`, node: <PinBody icon={Icon} tone={i.id === "harbor" ? "#4E7FB8" : i.id === "beach" ? "#C96A2B" : "#3F7A34"} label={`${i.name} · ${i.tag}`} locked={!islandOpen[i.id]} badge={i.id === "harbor" && questPlace ? "!" : null} onClick={() => onPick3d(`chart:${i.id}`)} /> });
+      labels3d.push({ id: `chart:${i.id}`, node: <PinBody icon={Icon} tone={i.id === "harbor" ? "#4E7FB8" : i.id === "beach" ? "#C96A2B" : "#3F7A34"} label={`${i.name} · ${i.tag}`} locked={!islandOpen[i.id]} badge={i.id === "harbor" && (questPlace || quizDue) ? "!" : null} onClick={() => onPick3d(`chart:${i.id}`)} /> });
     }
   }
   if (is3d && view === "harbor") {
     for (const p of HARBOR_PLACES) {
       labels3d.push({ id: `harbor:${p.id}`, node: <PinBody icon={HARBOR_ICON[p.id]} tone={p.tone} label={p.name} locked={!hOpen} badge={questPlace?.id === p.id ? "!" : null} onClick={() => onPick3d(`harbor:${p.id}`)} title={`Chương ${p.ch}`} /> });
     }
+    labels3d.push({ id: "harbor:quiz", node: <PinBody icon={Puzzle} tone="#2B4C7E" label="Câu đố của Rái" locked={!hOpen} badge={quizDue ? "!" : null} onClick={() => onPick3d("harbor:quiz")} title="5 câu đố mỗi ngày từ bài A2" /> });
     labels3d.push({ id: "harbor:dock", node: <PinBody icon={Compass} tone="#2B4C7E" label="Bến phà · bản đồ biển" locked={!hOpen} onClick={() => onPick3d("harbor:dock")} /> });
     if (talk?.id === "otto")
       labels3d.push({
@@ -681,7 +685,7 @@ export default function IslandMapPage() {
           {is3d && view === "chart" ? (
             <ChartBar unlocked={islandOpen} onGo={(id) => (id === "city" ? cityMsg() : goView(id))} onHome={() => goView("home")} />
           ) : is3d && view === "harbor" ? (
-            <HarborBar open={hOpen} quest={questPlace} onHome={() => goView("home")} onQuest={() => questPlace && setHarborOpenId(questPlace.id)} />
+            <HarborBar open={hOpen} quest={questPlace} quizDue={quizDue} onHome={() => goView("home")} onQuest={() => questPlace && setHarborOpenId(questPlace.id)} />
           ) : is3d && view === "beach" ? (
             <BeachBar open={beachOpen} level={lv.level} got={mounted ? arcadeToday(s, today()) : 0} cap={mounted ? arcadeCap(s) : 30} income={mounted ? plotIncomeToday(s, today()) : 0} onHome={() => goView("home")} />
           ) : is3d && view === "isle" ? (

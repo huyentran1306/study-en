@@ -24,6 +24,8 @@ export type WorldState = {
   beach?: { open: boolean; plots: Record<string, { st: "locked" | "wild" | "empty" | "built"; t?: string; lv?: number }> };
   /** Đảo Phố Cảng (A2) đã mở chưa. */
   harbor?: boolean;
+  /** Số rương kho báu đã mở (hiện rương ở bến phà). */
+  chests?: number;
 };
 
 export type WorldView = "home" | "isle" | "beach" | "harbor" | "chart";
@@ -1886,12 +1888,71 @@ export function createWorld(opts: WorldOptions): WorldController {
       [85, 4.2, 0.7],
       [170, 4.0, 0.8],
       [262, 4.2, 0.65, true],
-      [338, 4.0, 0.7],
+      [315, 4.3, 0.7],
     ] as [number, number, number, boolean?][]
   ).forEach(([a, r, sc, pink], i) => {
     const rad = (a * PI) / 180;
     trees.push({ g: tree(HARBOR_C.x + Math.sin(rad) * r, HARBOR_C.z + Math.cos(rad) * r, sc, pink), ph: 4 + i });
   });
+  // Bảng câu đố của Thuyền trưởng Rái
+  harborSpot("quiz", 330, 3.6, 1.7, (g) => {
+    for (const x of [-0.4, 0.4]) {
+      const p = cyl(0.05, 0.06, 1.2, "#8B5E3C", 8);
+      p.position.set(x, 0.6, 0);
+      g.add(p);
+    }
+    const board = box(0.95, 0.65, 0.07, "#2B4C7E");
+    board.position.y = 0.95;
+    g.add(board);
+    const paper = box(0.5, 0.38, 0.02, "#F8E6B8");
+    paper.position.set(-0.12, 0.95, 0.05);
+    paper.rotation.z = 0.06;
+    g.add(paper);
+    const xMark1 = box(0.12, 0.025, 0.01, "#D9483B");
+    xMark1.position.set(-0.05, 0.92, 0.065);
+    xMark1.rotation.z = 0.7;
+    const xMark2 = xMark1.clone();
+    xMark2.rotation.z = -0.7;
+    g.add(xMark1, xMark2);
+    const q = sph(0.11, "#F2C14E", 1, 1, 0.4, 0.4);
+    q.position.set(0.3, 1.05, 0.05);
+    g.add(q);
+  });
+  // Rương kho báu (hiện khi đã mở ít nhất một rương)
+  const chestG = new THREE.Group();
+  {
+    const rad = (345 * PI) / 180;
+    chestG.position.set(Math.sin(rad) * 4.3, 0, Math.cos(rad) * 4.3);
+    chestG.rotation.y = 0.4;
+    harborG.add(chestG);
+    const body = box(0.6, 0.34, 0.4, "#8B5E3C");
+    body.position.y = 0.17;
+    chestG.add(body);
+    const lid = cyl(0.2, 0.2, 0.6, "#A86A4A", 16);
+    lid.rotation.z = PI / 2;
+    lid.scale.set(1, 1, 1);
+    lid.position.y = 0.34;
+    chestG.add(lid);
+    for (const x of [-0.22, 0.22]) {
+      const band = box(0.06, 0.56, 0.42, "#F2C14E");
+      band.position.set(x, 0.3, 0);
+      chestG.add(band);
+    }
+    const lock = box(0.1, 0.12, 0.04, "#F2C14E");
+    lock.position.set(0, 0.28, 0.22);
+    chestG.add(lock);
+    const gold = glow("#FFD25A", 0.8);
+    for (const [x, z] of [
+      [0.42, 0.1],
+      [0.5, -0.12],
+      [0.36, -0.2],
+    ] as const) {
+      const coin = mesh(geo("coin", () => new THREE.CylinderGeometry(0.06, 0.06, 0.02, 14)), gold);
+      coin.position.set(x, 0.02, z);
+      chestG.add(coin);
+    }
+  }
+  tag(chestG, "harbor:quiz");
   // Mây che khi chưa mở
   const harborFog = new THREE.Group();
   {
@@ -2641,6 +2702,7 @@ export function createWorld(opts: WorldOptions): WorldController {
     });
     beachGate.forEach((o) => (o.visible = !s.beach?.open));
     harborFog.visible = !s.harbor;
+    chestG.visible = (s.chests || 0) > 0;
     ferry.visible = !!s.harbor;
     plotViews.forEach((v, id) => {
       const p = s.beach?.plots[id] || { st: "locked" as const };
