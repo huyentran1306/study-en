@@ -675,7 +675,10 @@ export default function IslandMapPage() {
             title="Văn phòng Mây — luyện Call khách 30 ngày (mở ở cấp B1)"
           />
           <Pin x={660} y={34} icon={Ship} tone="#4E7FB8" label={mounted && hOpen ? "Đảo Phố Cảng" : "Đảo Phố Cảng · A2"} locked={!(mounted && hOpen)} href={mounted && hOpen ? "/island/path" : undefined} onClick={mounted && hOpen ? undefined : harborLockedMsg} title="Các bài A2: sân bay, nhà hàng, gọi điện, đi khám" />
-          <Pin x={96} y={250} icon={PartyPopper} tone="#C96A2B" label={mounted && beachOpen ? "Đảo Cát Vui" : `Đảo Cát Vui · cấp ${BEACH_LEVEL}`} locked={!(mounted && beachOpen)} href={mounted && beachOpen ? "/island/arcade" : undefined} onClick={mounted && beachOpen ? undefined : beachLockedMsg} title="Mini game và ô đất xây công trình" />
+          <Pin x={1190} y={120} icon={Building2} tone="#2B4C7E" label={mounted && cOpen ? "Thành Phố Mây" : "Thành Phố Mây · B1"} locked={!(mounted && cOpen)} href={mounted && cOpen ? "/island/path" : undefined} onClick={mounted && cOpen ? undefined : cityMsg} title="Các bài B1: small talk, rủ rê, kể chuyện, phàn nàn, phỏng vấn" />
+          <Pin x={430} y={96} icon={Snowflake} tone="#C96A2B" label={mounted && season ? `Lễ hội ${season.fest.name}` : "Đảo Lễ Hội"} href="/island/festival" badge={mounted && season && !(s.fest[season.key]?.words && s.fest[season.key]?.speak) ? "!" : null} title="Từ vựng và lời chúc theo mùa lễ" />
+          <Pin x={1190} y={520} icon={Paintbrush} tone="#3F7A34" label="Đảo Nhỏ Của Tôi" locked={!(mounted && mineOpen)} onClick={() => (mounted && mineOpen ? switchMode("3d") : setBeachNews(`Đảo Nhỏ Của Tôi mở ở cấp đảo ${MINE_LEVEL}. Học thêm để lên cấp nhé!`))} title="Tự trang trí đảo (xem ở chế độ 3D)" />
+          <Pin x={232} y={214} icon={PartyPopper} tone="#C96A2B" label={mounted && beachOpen ? "Đảo Cát Vui" : `Đảo Cát Vui · cấp ${BEACH_LEVEL}`} locked={!(mounted && beachOpen)} href={mounted && beachOpen ? "/island/arcade" : undefined} onClick={mounted && beachOpen ? undefined : beachLockedMsg} title="Mini game và ô đất xây công trình" />
           <Pin x={1196} y={360} icon={Dumbbell} tone="#2F5D50" label="Đảo Luyện" href="/island/practice" badge={mounted && (isleNew || bossDue) ? (isleNew ? "Mới" : "!") : null} title="Đảo Luyện: gọi điện, nói đuổi, nghe, truyện, thử thách cuối tuần" />
         </div>
         )}
