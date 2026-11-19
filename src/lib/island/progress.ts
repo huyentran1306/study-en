@@ -12,6 +12,8 @@ import { isDuplicate } from "./memory";
 import { BUILD_BONUS, isleSpot } from "./isle";
 import { PIECES_PER_CHEST, quizPieces, quizShells } from "./harbor-quiz";
 import { checkDue, type CheckRecord } from "./checkpoint";
+import { FEST_BONUS } from "./festival";
+import { MINE_LEVEL, decorItem } from "./decor";
 import { ARCADE, PLOTS, arcadeCap, buildKind, libraryFood, plotIncome, plotStatus, upgradeCost } from "./beach";
 import type { ChatReport, ErrorTag } from "./feedback";
 import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
@@ -998,7 +1000,7 @@ export function openChest(): boolean {
 
 /** Vỏ sò hiện có: 1 vỏ sò cho mỗi 2 XP học tập + tiền bán hải sản − tiền đã tiêu. */
 export function shells(s: IslandState): number {
-  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned + Object.keys(s.built).length * BUILD_BONUS + s.arcade.earned + plotIncome(s) + quizShells(s) - s.farm.spent);
+  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned + Object.keys(s.built).length * BUILD_BONUS + s.arcade.earned + plotIncome(s) + quizShells(s) + festShells(s) - s.farm.spent);
 }
 
 /** Thức ăn kiếm được từ việc học (nhiệm vụ, phản xạ, nhiệm vụ chat, ôn thẻ). */
@@ -1250,4 +1252,45 @@ export async function flushIsland(): Promise<void> {
   } catch {
     /* mất mạng: tiến độ vẫn nằm trong máy cho tới lần đăng nhập sau */
   }
+}
+
+// ───────────── Bạn bè, lễ hội, trang trí ─────────────
+
+/** Ghi nhớ đảo bạn bè vừa ghé (hiện trên bản đồ biển). */
+export function addFriend(code: string, name: string) {
+  const s = load();
+  if (!/^[A-Z0-9]{6,10}$/.test(code) || code === s.shareCode) return;
+  const at = new Date().toISOString();
+  save({ ...s, friends: [...s.friends.filter((f) => f.code !== code), { code, name: cleanField(name, 30) || "Bạn", at }].slice(-12) });
+}
+
+export function festShells(s: IslandState): number {
+  return Object.values(s.fest).reduce((n, f) => n + (f.words ? FEST_BONUS : 0) + (f.speak ? FEST_BONUS : 0), 0);
+}
+
+/** Xong một phần của mùa lễ (học từ / nói lời chúc). Trả về true nếu lần đầu xong phần đó. */
+export function festDone(key: string, part: "words" | "speak"): boolean {
+  const s = load();
+  if (s.fest[key]?.[part]) return false;
+  save(markStudy({ ...s, xp: s.xp + 20, fest: { ...s.fest, [key]: { ...s.fest[key], [part]: new Date().toISOString() } } }));
+  return true;
+}
+
+export function placeDecor(slot: string, item: string): FarmResult {
+  const s = load();
+  const it = decorItem(item);
+  if (!it || !/^d\d$/.test(slot)) return { ok: false, reason: "Món này không hợp lệ." };
+  if (islandLevel(s.xp).level < MINE_LEVEL) return { ok: false, reason: `Đảo trang trí mở ở cấp đảo ${MINE_LEVEL}.` };
+  if (s.decor[slot] === item) return { ok: true };
+  if (shells(s) < it.cost) return { ok: false, reason: `Cần ${it.cost} vỏ sò.` };
+  save({ ...s, farm: { ...s.farm, spent: s.farm.spent + it.cost }, decor: { ...s.decor, [slot]: item } });
+  return { ok: true };
+}
+
+export function clearDecor(slot: string) {
+  update((s) => {
+    const decor = { ...s.decor };
+    delete decor[slot];
+    return { ...s, decor };
+  });
 }

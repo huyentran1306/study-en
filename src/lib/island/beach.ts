@@ -7,7 +7,7 @@ export const BEACH_LEVEL = 3;
 
 // ───────────── Mini game ─────────────
 
-export type ArcadeId = "merge" | "garden";
+export type ArcadeId = "merge" | "garden" | "memory" | "fishing";
 
 export interface ArcadeGame {
   id: ArcadeId;
@@ -23,6 +23,8 @@ export interface ArcadeGame {
 export const ARCADE: ArcadeGame[] = [
   { id: "merge", href: "/island/arcade/merge", title: "Ghép sinh vật biển", en: "Sea Merge", desc: "Vuốt để gộp hai con giống nhau, nuôi từ con sò lên tới cá voi.", tone: "#2F8FB0", per: 150 },
   { id: "garden", href: "/island/arcade/garden", title: "Ghép 3 vườn rau", en: "Garden Match", desc: "Đổi chỗ rau quả, đủ 3 cái giống nhau thì nổ. Có chế độ thư giãn không giới hạn.", tone: "#5E9E3E", per: 250 },
+  { id: "memory", href: "/island/arcade/memory", title: "Lật thẻ trí nhớ", en: "Memory Cards", desc: "Lật 2 thẻ cho trùng cặp từ tiếng Anh với nghĩa, lấy từ Sổ từ của bạn.", tone: "#8E5BB5", per: 40 },
+  { id: "fishing", href: "/island/arcade/fishing", title: "Câu cá chiều", en: "Sunset Fishing", desc: "Thả cần, chờ phao chìm thì kéo, giữ dây trong vùng xanh để bắt cá hiếm.", tone: "#2F8FB0", per: 30 },
 ];
 
 /** Trần vỏ sò từ mini game mỗi ngày (chưa tính Quầy kem). */

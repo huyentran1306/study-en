@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Anchor, ArrowRight, Puzzle, BookHeart, BookOpen, Briefcase, Cloud, Coffee, Compass, Dumbbell, Fish, Gamepad2, Ship, PartyPopper, Shovel, TreePalm, Flame, Flower2, Gift, Hammer, Heart, Home, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
+import { Anchor, ArrowRight, Building2, Paintbrush, Puzzle, Snowflake, Users, BookHeart, BookOpen, Briefcase, Coffee, Compass, Dumbbell, Fish, Gamepad2, Ship, PartyPopper, Shovel, TreePalm, Flame, Flower2, Gift, Hammer, Heart, Home, Lock, Map as MapIcon, MessageCircle, MessageCircleHeart, Moon, Plane, RotateCcw, Route, Shell, ShoppingBasket, Signpost, Sprout, Star, Sun, Volume2, X, Zap } from "lucide-react";
 import { MAP_BG_3D } from "@/components/island/art3d";
 import { Avatar, Character } from "@/components/island/character";
 import { cx } from "@/components/island/ui";
@@ -16,7 +16,11 @@ import { BuiltToast, ISLE_ICON, IslePanel, IsleBar, IsleTour, type TourStep } fr
 import { ISLE, builtCount, isleSpot, suggestPractice, type IsleId } from "@/lib/island/isle";
 import { BEACH_LEVEL, PLOTS, arcadeCap, arcadeToday, buildKind, plotIncomeToday, plotStatus, type BuildType } from "@/lib/island/beach";
 import { BUILD_ICON, BeachBar, PLOT_NAME, PlotPanel } from "@/components/island/beach-ui";
-import { ChartBar, HARBOR_ICON, HarborBar } from "@/components/island/harbor-ui";
+import { ChartBar, HARBOR_ICON, HarborBar, SimpleBar } from "@/components/island/harbor-ui";
+import { DecorPanel } from "@/components/island/decor-ui";
+import { CITY_PLACES, cityOpen, cityPlace, cityPlaceOfChapter, type CityPlace, type CityPlaceId } from "@/lib/island/city";
+import { activeSeason, daysBetween, nextSeason } from "@/lib/island/festival";
+import { DECOR_SLOTS, MINE_LEVEL, decorItem } from "@/lib/island/decor";
 import { HARBOR_PLACES, ISLANDS, OTTO, harborOpen, harborPlace, harborPlaceOfChapter, type HarborPlace, type HarborPlaceId, type IslandId } from "@/lib/island/harbor";
 import { pickRecall } from "@/lib/island/memory";
 import { bossOpen, weeklyBoss } from "@/lib/island/missions";
@@ -61,6 +65,7 @@ const SEEN_BUILT_KEY = "cci-isle-built-seen";
 const VISITED_KEY = "cci-isle-visited";
 const BEACH_SEEN_KEY = "cci-beach-open-seen";
 const HARBOR_SEEN_KEY = "cci-harbor-open-seen";
+const CITY_SEEN_KEY = "cci-city-open-seen";
 
 const Island3D = dynamic(() => import("@/components/island/island3d"), {
   ssr: false,
@@ -122,6 +127,8 @@ export default function IslandMapPage() {
   const [isleNew, setIsleNew] = useState(false);
   const [plotOpen, setPlotOpen] = useState<string | null>(null);
   const [harborOpenId, setHarborOpenId] = useState<HarborPlaceId | null>(null);
+  const [cityOpenId, setCityOpenId] = useState<CityPlaceId | null>(null);
+  const [decorSlot, setDecorSlot] = useState<string | null>(null);
   const [beachNews, setBeachNews] = useState<string | null>(null);
   const world = useRef<WorldController | null>(null);
   const router = useRouter();
@@ -132,7 +139,7 @@ export default function IslandMapPage() {
     const h = new Date().getHours();
     setDusk(h >= 17 || h < 6);
     const qv = new URLSearchParams(window.location.search).get("view");
-    if (qv === "isle" || qv === "beach" || qv === "harbor" || qv === "chart") setView(qv);
+    if (qv === "isle" || qv === "beach" || qv === "harbor" || qv === "chart" || qv === "city" || qv === "fest" || qv === "mine") setView(qv);
     if (!localStorage.getItem(TOUR_KEY)) setTour(0);
     setIsleNew(!localStorage.getItem(VISITED_KEY));
   }, []);
@@ -202,7 +209,13 @@ export default function IslandMapPage() {
   /** Chương đang học là chương A2 → nhiệm vụ nằm ở Đảo Phố Cảng. */
   const questPlace: HarborPlace | null = hOpen ? harborPlaceOfChapter(curId) || null : null;
   const quizDue = hOpen && s.quiz.days[today()] === undefined;
-  const islandOpen: Record<IslandId, boolean> = { home: true, isle: true, beach: beachOpen, harbor: hOpen, city: false };
+  const cOpen = mounted && cityOpen(s);
+  const cityQuest: CityPlace | null = cOpen ? cityPlaceOfChapter(curId) || null : null;
+  const season = mounted ? activeSeason(today()) : null;
+  const upcoming = mounted ? nextSeason(today()) : null;
+  const mineOpen = mounted && lv.level >= MINE_LEVEL;
+  const friendList = mounted ? s.friends.slice(-6) : [];
+  const islandOpen: Record<IslandId, boolean> = { home: true, isle: true, beach: beachOpen, harbor: hOpen, city: cOpen, fest: true, mine: mineOpen };
   const plotSt = Object.fromEntries(PLOTS.map((p) => [p.id, mounted ? plotStatus(s, lv.level, p.id) : "locked"])) as Record<string, ReturnType<typeof plotStatus>>;
   const pondKids: SwimItem[] = [];
   for (let i = 0; i < s.farm.size; i++) {
@@ -223,11 +236,15 @@ export default function IslandMapPage() {
     isle: mounted ? Object.keys(s.built) : [],
     bossLit: bossNow,
     harbor: hOpen,
+    city: cOpen,
+    fest: season ? season.fest.id : null,
+    decor: mounted ? s.decor : {},
+    friends: friendList.length,
     chests: mounted ? s.quiz.chests : 0,
     beach: { open: beachOpen, plots: Object.fromEntries(PLOTS.map((p) => [p.id, { st: plotSt[p.id], t: s.plots[p.id]?.t, lv: s.plots[p.id]?.lv }])) },
   };
   const harborLockedMsg = () => setBeachNews("Đảo Phố Cảng còn mây phủ. Qua thử thách cuối cấp A1 «Ngày đầu trên đảo» (nhập vai không gợi ý) là phà bắt đầu chạy!");
-  const cityMsg = () => setBeachNews("Thành Phố Mây (B1) đang được xây, sẽ mở sau Đảo Phố Cảng.");
+  const cityMsg = () => setBeachNews("Thành Phố Mây còn mây phủ. Qua thử thách cuối cấp A2 «Chuyến du lịch» là bay sang được!");
   const ottoTalk = () => {
     const n = talkCount.current.otto || 0;
     talkCount.current.otto = n + 1;
@@ -254,8 +271,12 @@ export default function IslandMapPage() {
     // Bản đồ biển: bấm vào đâu thì bay tới đảo đó
     if (view === "chart" || kind === "chart") {
       sfx.open();
-      const to: IslandId = kind === "chart" ? (key as IslandId) : kind === "isle" ? "isle" : kind === "beach" ? "beach" : kind === "harbor" || id === "npc:otto" ? "harbor" : "home";
-      if (to === "city") return cityMsg();
+      if (kind === "chart" && key.startsWith("friend")) {
+        const f = friendList[Number(key.slice(6))];
+        if (f) router.push(`/island/visit?code=${f.code}`);
+        return;
+      }
+      const to: IslandId = kind === "chart" ? (key as IslandId) : kind === "isle" ? "isle" : kind === "beach" ? "beach" : kind === "harbor" || id === "npc:otto" ? "harbor" : kind === "city" ? "city" : kind === "fest" ? "fest" : kind === "mine" ? "mine" : "home";
       return goView(to);
     }
     if (kind === "harbor" || id === "npc:otto") {
@@ -267,6 +288,24 @@ export default function IslandMapPage() {
       if (key === "quiz") return router.push("/island/harbor-quiz");
       if (harborPlace(key)) return setHarborOpenId(key as HarborPlaceId);
       return;
+    }
+    if (kind === "city") {
+      sfx.open();
+      if (key === "go" || view !== "city") return goView("city");
+      if (!cOpen) return cityMsg();
+      if (cityPlace(key)) return setCityOpenId(key as CityPlaceId);
+      return;
+    }
+    if (kind === "fest") {
+      sfx.open();
+      if (view !== "fest") return goView("fest");
+      return router.push("/island/festival");
+    }
+    if (kind === "mine") {
+      sfx.open();
+      if (key === "go" || view !== "mine") return goView("mine");
+      if (!mineOpen) return setBeachNews(`Đảo Nhỏ Của Tôi mở ở cấp đảo ${MINE_LEVEL}. Học thêm để lên cấp nhé!`);
+      return setDecorSlot(key);
     }
     if (kind === "isle") {
       sfx.open();
@@ -318,8 +357,22 @@ export default function IslandMapPage() {
   }
   if (is3d && view === "chart") {
     for (const i of ISLANDS) {
-      const Icon = i.id === "home" ? TreePalm : i.id === "isle" ? Dumbbell : i.id === "beach" ? PartyPopper : i.id === "harbor" ? Ship : Cloud;
-      labels3d.push({ id: `chart:${i.id}`, node: <PinBody icon={Icon} tone={i.id === "harbor" ? "#4E7FB8" : i.id === "beach" ? "#C96A2B" : "#3F7A34"} label={`${i.name} · ${i.tag}`} locked={!islandOpen[i.id]} badge={i.id === "harbor" && (questPlace || quizDue) ? "!" : null} onClick={() => onPick3d(`chart:${i.id}`)} /> });
+      const Icon = i.id === "home" ? TreePalm : i.id === "isle" ? Dumbbell : i.id === "beach" ? PartyPopper : i.id === "harbor" ? Ship : i.id === "city" ? Building2 : i.id === "fest" ? Snowflake : Paintbrush;
+      const tag = i.id === "fest" ? (season ? season.fest.name : "Theo mùa") : i.tag;
+      labels3d.push({ id: `chart:${i.id}`, node: <PinBody icon={Icon} tone={i.id === "harbor" ? "#4E7FB8" : i.id === "beach" || i.id === "fest" ? "#C96A2B" : i.id === "city" ? "#2B4C7E" : "#3F7A34"} label={`${i.name} · ${tag}`} locked={!islandOpen[i.id]} badge={(i.id === "harbor" && (questPlace || quizDue)) || (i.id === "city" && cityQuest) ? "!" : null} onClick={() => onPick3d(`chart:${i.id}`)} /> });
+    }
+    friendList.forEach((f, k) => labels3d.push({ id: `chart:friend${k}`, node: <PinBody icon={Users} tone="#5A6FC9" label={`Đảo của ${f.name}`} onClick={() => onPick3d(`chart:friend${k}`)} title="Ghé thăm đảo bạn" /> }));
+  }
+  if (is3d && view === "city") {
+    for (const p of CITY_PLACES) labels3d.push({ id: `city:${p.id}`, node: <PinBody icon={Building2} tone={p.tone} label={p.name} locked={!cOpen} badge={cityQuest?.id === p.id ? "!" : null} onClick={() => onPick3d(`city:${p.id}`)} title={`Chương ${p.ch}`} /> });
+  }
+  if (is3d && view === "fest") {
+    labels3d.push({ id: "fest:go", node: <PinBody icon={Snowflake} tone="#C96A2B" label={season ? `Lễ hội ${season.fest.name} · vào chơi` : `Sắp tới: ${upcoming?.fest.name}`} onClick={() => router.push("/island/festival")} /> });
+  }
+  if (is3d && view === "mine") {
+    for (const d of DECOR_SLOTS) {
+      const it = decorItem(s.decor[d]);
+      labels3d.push({ id: `mine:${d}`, node: <PinBody icon={Paintbrush} tone="#3F7A34" label={it ? it.name : "Ô trống"} locked={!mineOpen} badge={!it && mineOpen ? "+" : null} onClick={() => onPick3d(`mine:${d}`)} /> });
     }
   }
   if (is3d && view === "harbor") {
@@ -365,6 +418,9 @@ export default function IslandMapPage() {
     }
   }
   if (is3d && view === "home") {
+    if (cOpen) labels3d.push({ id: "city:go", node: <PinBody icon={Building2} tone="#2B4C7E" label="Thành Phố Mây" badge={cityQuest ? "!" : null} onClick={() => goView("city")} /> });
+    labels3d.push({ id: "fest:go", node: <PinBody icon={Snowflake} tone="#C96A2B" label={season ? `Lễ hội ${season.fest.name}` : "Đảo Lễ Hội"} badge={season && !(s.fest[season.key]?.words && s.fest[season.key]?.speak) ? "!" : null} onClick={() => goView("fest")} /> });
+    labels3d.push({ id: "mine:go", node: <PinBody icon={Paintbrush} tone="#3F7A34" label="Đảo Nhỏ Của Tôi" locked={!mineOpen} onClick={() => goView("mine")} /> });
     labels3d.push({ id: "harbor:go", node: <PinBody icon={Ship} tone="#4E7FB8" label={hOpen ? "Đảo Phố Cảng" : "Đảo Phố Cảng · A2"} locked={!hOpen} badge={questPlace ? "!" : null} onClick={() => goView("harbor")} title="Đi phà sang Đảo Phố Cảng" /> });
     labels3d.push({ id: "beach:go", node: <PinBody icon={PartyPopper} tone="#C96A2B" label={beachOpen ? "Đảo Cát Vui" : `Đảo Cát Vui · cấp ${BEACH_LEVEL}`} locked={!beachOpen} onClick={() => goView("beach")} title="Mini game và ô đất xây công trình" /> });
     labels3d.push({ id: "isle:go", node: <PinBody icon={Dumbbell} tone="#2F5D50" label="Đảo Luyện" badge={isleNew ? "Mới" : bossDue ? "!" : null} onClick={() => goView("isle")} title="Qua cầu sang Đảo Luyện" /> });
@@ -375,7 +431,7 @@ export default function IslandMapPage() {
       id: "place:office",
       node: <PinBody icon={Briefcase} tone="#C96A2B" label={officeOpen ? "Văn phòng Mây" : "???"} locked={!officeOpen} onClick={() => setPanel("office")} title="Văn phòng Mây — luyện Call khách 30 ngày (mở ở cấp B1)" />,
     });
-    if (!questPlace) labels3d.push({
+    if (!questPlace && !cityQuest) labels3d.push({
       id: `npc:${cur.npc}`,
       top: true,
       node: (
@@ -455,6 +511,16 @@ export default function IslandMapPage() {
     import("@/lib/confetti").then((c) => c.fireCelebration()).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hOpen]);
+  // Lần đầu qua thử thách A2: Thành Phố Mây tan mây.
+  useEffect(() => {
+    if (!cOpen || localStorage.getItem(CITY_SEEN_KEY)) return;
+    localStorage.setItem(CITY_SEEN_KEY, "1");
+    if (mode !== "2d") setView("city");
+    setBeachNews("Thành Phố Mây đã mở! Các bài B1 đang chờ bạn ở đó.");
+    sfx.unlock();
+    import("@/lib/confetti").then((c) => c.fireCelebration()).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cOpen]);
   // Lần đầu đủ cấp mở Đảo Cát Vui: lướt sang, báo tin.
   useEffect(() => {
     if (!beachOpen || localStorage.getItem(BEACH_SEEN_KEY)) return;
@@ -682,8 +748,34 @@ export default function IslandMapPage() {
           </div>
 
           {/* Thanh dưới: Kero nhắc + hành trình hôm nay + nút đi tiếp (ở Đảo Luyện: gợi ý luyện hôm nay) */}
-          {is3d && view === "chart" ? (
-            <ChartBar unlocked={islandOpen} onGo={(id) => (id === "city" ? cityMsg() : goView(id))} onHome={() => goView("home")} />
+          {is3d && view === "city" ? (
+            <SimpleBar
+              tag="Thành Phố Mây · B1"
+              tone="#2B4C7E"
+              title={!cOpen ? "Mây còn phủ kín thành phố" : cityQuest ? `Chương ${cityQuest.ch} · ở ${cityQuest.name}` : "Small talk, rủ rê, kể chuyện, phàn nàn, phỏng vấn"}
+              sub={!cOpen ? "Qua thử thách cuối cấp A2 «Chuyến du lịch» là bay sang được." : "Bấm vào một công trình để học chương đó."}
+              cta={!cOpen ? { label: "Thử thách", href: "/island/lesson/c2", icon: Building2 } : cityQuest ? { label: "Tới nơi", onClick: () => setCityOpenId(cityQuest.id), icon: Building2 } : undefined}
+              onHome={() => goView("home")}
+            />
+          ) : is3d && view === "fest" ? (
+            <SimpleBar
+              tag="Đảo Lễ Hội"
+              tone="#C96A2B"
+              title={season ? `Mùa ${season.fest.name} · còn ${daysBetween(today(), season.to) + 1} ngày` : `Sắp tới: ${upcoming?.fest.name}`}
+              sub={season ? "10 từ mới + 3 lời chúc bằng tiếng Anh, mỗi phần +30 vỏ sò." : `Mở sau ${upcoming ? daysBetween(today(), upcoming.from) : 0} ngày. Học trước từ vựng được.`}
+              cta={{ label: "Vào chơi", href: "/island/festival", icon: Snowflake }}
+              onHome={() => goView("home")}
+            />
+          ) : is3d && view === "mine" ? (
+            <SimpleBar
+              tag="Đảo Nhỏ Của Tôi"
+              tone="#3F7A34"
+              title={mineOpen ? `Đã trang trí ${Object.keys(s.decor).length}/9 ô` : `Mở ở cấp đảo ${MINE_LEVEL}`}
+              sub={mineOpen ? "Bấm vào một ô để đặt đồ trang trí bằng vỏ sò. Mỗi món có tên tiếng Anh." : "Học thêm để lên cấp, rồi tự bày biện đảo của riêng bạn."}
+              onHome={() => goView("home")}
+            />
+          ) : is3d && view === "chart" ? (
+            <ChartBar unlocked={islandOpen} onGo={(id) => goView(id)} onHome={() => goView("home")} />
           ) : is3d && view === "harbor" ? (
             <HarborBar open={hOpen} quest={questPlace} quizDue={quizDue} onHome={() => goView("home")} onQuest={() => questPlace && setHarborOpenId(questPlace.id)} />
           ) : is3d && view === "beach" ? (
@@ -779,6 +871,8 @@ export default function IslandMapPage() {
       )}
       {justBuilt && <BuiltToast id={justBuilt} onClose={() => setJustBuilt(null)} />}
       {plotOpen && <PlotPanel id={plotOpen} onClose={() => setPlotOpen(null)} />}
+      {decorSlot && <DecorPanel slot={decorSlot} onClose={() => setDecorSlot(null)} />}
+      {cityOpenId && <PlacePanel scene={CHAPTERS.find((c) => c.id === cityPlace(cityOpenId)!.ch)!.scene} chapterId={cityPlace(cityOpenId)!.ch} title={cityPlace(cityOpenId)!.name} onClose={() => setCityOpenId(null)} />}
       {beachNews && (
         <div className="fixed inset-x-0 top-20 z-[70] flex justify-center px-3 pointer-events-none">
           <div className="pointer-events-auto max-w-md rounded-[20px] px-5 py-2.5 bg-[#C96A2B] text-white font-extrabold border-[3px] border-[#A4521D] shadow-[0_4px_0_#A4521D] anim-pop flex items-center gap-2 text-left">
@@ -786,7 +880,7 @@ export default function IslandMapPage() {
           </div>
         </div>
       )}
-      {tour !== null && mounted && !open && !panel && !isleOpen && !plotOpen && !harborOpenId && (
+      {tour !== null && mounted && !open && !panel && !isleOpen && !plotOpen && !harborOpenId && !cityOpenId && !decorSlot && (
         <IsleTour
           step={tour}
           pick={pick}

@@ -50,9 +50,15 @@ export default function BeachPage() {
               {ARCADE.map((g) => (
                 <li key={g.id}>
                   <Link href={g.href} data-sfx="whoosh" className="clay rounded-[22px] bg-white p-3.5 flex gap-3 items-center hover:-translate-y-0.5 transition-transform h-full">
-                    <span className="w-16 h-16 shrink-0 rounded-[18px] p-1.5 grid grid-cols-2 gap-0.5" style={{ background: g.id === "merge" ? "#CDE8F4" : "#DDF0D0", border: "2.5px solid #8B5E3C" }}>
-                      {g.id === "merge" ? [0, 2, 3, 9].map((t) => <SeaTierArt key={t} tier={t} />) : [0, 1, 4, 2].map((k) => <ProduceArt key={k} kind={k} />)}
-                    </span>
+                    {g.id === "merge" || g.id === "garden" ? (
+                      <span className="w-16 h-16 shrink-0 rounded-[18px] p-1.5 grid grid-cols-2 gap-0.5" style={{ background: g.id === "merge" ? "#CDE8F4" : "#DDF0D0", border: "2.5px solid #8B5E3C" }}>
+                        {g.id === "merge" ? [0, 2, 3, 9].map((t) => <SeaTierArt key={t} tier={t} />) : [0, 1, 4, 2].map((k) => <ProduceArt key={k} kind={k} />)}
+                      </span>
+                    ) : (
+                      <span className="gem w-16 h-16 shrink-0 rounded-[18px] flex items-center justify-center text-white" style={{ ["--tone" as string]: g.tone }}>
+                        {g.id === "memory" ? <Layers className="w-8 h-8" /> : <Fish className="w-8 h-8" />}
+                      </span>
+                    )}
                     <span className="flex-1 min-w-0">
                       <span className="block font-baloo font-extrabold text-lg leading-tight">{g.title}</span>
                       <span className="block text-sm font-semibold text-[#6B4A30] leading-snug">{g.desc}</span>
@@ -61,21 +67,6 @@ export default function BeachPage() {
                       </span>
                     </span>
                   </Link>
-                </li>
-              ))}
-              {[
-                { icon: Fish, title: "Câu cá chiều", desc: "Chạm đúng lúc để kéo cần, cá hiếm thỉnh thoảng mới ra." },
-                { icon: Layers, title: "Lật thẻ trí nhớ", desc: "Lật 2 thẻ cho trùng cặp, lấy từ Sổ từ của bạn." },
-              ].map((g) => (
-                <li key={g.title} className="rounded-[22px] border-[3px] border-dashed border-[#D8BF92] p-3.5 flex gap-3 items-center opacity-80">
-                  <span className="w-16 h-16 shrink-0 rounded-[18px] bg-[#F3E6CC] flex items-center justify-center">
-                    <g.icon className="w-7 h-7 text-[#8B6B48]" />
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block font-baloo font-extrabold text-lg leading-tight text-[#6B4A30]">{g.title}</span>
-                    <span className="block text-sm font-semibold text-[#8B6B48] leading-snug">{g.desc}</span>
-                    <span className="mt-1 inline-block text-[11px] font-extrabold rounded-full px-2 py-0.5 bg-[#F3E6CC] text-[#8B5E3C]">Sắp có</span>
-                  </span>
                 </li>
               ))}
             </ul>
