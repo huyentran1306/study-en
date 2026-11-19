@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, BookOpen, Calendar, KeyRound, TrendingUp, Check, ChevronDown, Coffee, Crown, Ear, Flame, Hand, Lock, MessageCircle, Mic, Plane, Repeat, ShoppingBasket, Signpost, Star, Stethoscope, Phone, Utensils, PartyPopper, Frown, Briefcase, Feather, Zap, AudioLines, MessageSquareQuote, Fish, Sprout, BookHeart } from "lucide-react";
 import { Avatar } from "@/components/island/character";
 import { BackLink, cx } from "@/components/island/ui";
-import { SyncBadge } from "@/components/island/sync-badge";
+import { AccountMenu, SyncBadge } from "@/components/island/sync-badge";
 import { ProfileCard, SprintCard } from "@/components/island/sprint";
 import { CHALLENGES, CHAPTERS, LEVELS, MISSIONS, NPCS, TOTAL_WEEKS, missionHref, type Level } from "@/lib/island/curriculum";
 import {
@@ -83,7 +83,10 @@ export default function IslandPathPage() {
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight truncate">Chào {mounted ? playerName || "bạn" : "bạn"}!</h1>
           <p className="font-semibold text-[#6B4A30] text-sm sm:text-base">{mounted && s.sprint?.on ? "Nước rút: hôm nay học khoảng 25 phút nhé." : "Hôm nay học khoảng 10–15 phút nhé."}</p>
-          <SyncBadge className="mt-1" />
+          <span className="mt-1 flex items-center gap-2">
+            <SyncBadge />
+            <AccountMenu hideGuest />
+          </span>
         </div>
         <div className="cci-card-wood flex items-center gap-1.5 px-3 h-11 shrink-0" title="Chuỗi ngày học">
           <Flame className="w-5 h-5" fill="#F29A4E" stroke="#4A3222" />

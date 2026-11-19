@@ -42,6 +42,12 @@ export function AuthLoginModal({ onLogin, onRegister, onContinueAsGuest }: AuthL
   };
 
   const handleGoogleLogin = () => {
+    // Nhớ trang đang mở (vd. Đảo Tám Chuyện) để đăng nhập xong quay lại đúng chỗ, không đá về trang chủ.
+    try {
+      localStorage.setItem("studyen-return-to", window.location.pathname + window.location.search);
+    } catch {
+      /* chế độ riêng tư: bỏ qua, sẽ về trang chủ */
+    }
     const callbackUrl = `${window.location.origin}/auth-callback`;
     window.location.href = `${GOOGLE_OAUTH_URL}?state=${encodeURIComponent(callbackUrl)}`;
   };
