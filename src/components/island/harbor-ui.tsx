@@ -1,7 +1,8 @@
 "use client";
 
 // Giao diện Đảo Phố Cảng (A2) và Bản đồ biển trên bản đồ đảo.
-import { ArrowRight, Anchor, Compass, Hotel, Lock, Mail, Stethoscope, TreePalm, Utensils } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Anchor, Compass, Hotel, Lock, Mail, Puzzle, Stethoscope, TreePalm, Utensils } from "lucide-react";
 import { cx } from "./ui";
 import { CHAPTERS } from "@/lib/island/curriculum";
 import { ISLANDS, type HarborPlace, type HarborPlaceId, type IslandId } from "@/lib/island/harbor";
@@ -20,13 +21,20 @@ function HomeBtn({ onHome }: { onHome: () => void }) {
 }
 
 /** Thanh dưới khi đang ở Đảo Phố Cảng. quest: địa điểm của chương đang học (nếu là chương A2). */
-export function HarborBar({ open, quest, onHome, onQuest }: { open: boolean; quest: HarborPlace | null; onHome: () => void; onQuest: () => void }) {
+export function HarborBar({ open, quest, quizDue, onHome, onQuest }: { open: boolean; quest: HarborPlace | null; quizDue: boolean; onHome: () => void; onQuest: () => void }) {
   const ch = quest ? CHAPTERS.find((c) => c.id === quest.ch) : null;
   return (
     <div className={BAR}>
       <HomeBtn onHome={onHome} />
       <div className="flex-1 min-w-0">
-        <span className="block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#4E7FB8]">Đảo Phố Cảng · A2</span>
+        <span className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#4E7FB8]">
+          <span className="shrink-0">Đảo Phố Cảng · A2</span>
+          {open && quest && (
+            <Link href="/island/harbor-quiz" className="normal-case tracking-normal text-[#6B4A30] underline underline-offset-2 inline-flex items-center gap-1 shrink-0">
+              <Puzzle className="w-3 h-3" /> Câu đố{quizDue ? " (mới)" : ""}
+            </Link>
+          )}
+        </span>
         {!open ? (
           <>
             <span className="block font-extrabold text-[15px] sm:text-[16px] leading-snug mt-0.5">Mây còn phủ kín đảo</span>
@@ -46,6 +54,19 @@ export function HarborBar({ open, quest, onHome, onQuest }: { open: boolean; que
           </>
         )}
       </div>
+      {open && !quest && (
+        <Link
+          href="/island/harbor-quiz"
+          data-sfx="whoosh"
+          className="gloss shrink-0 flex flex-col items-center justify-center rounded-[18px] h-[62px] px-4 min-w-[104px] text-white hover:-translate-y-0.5 active:translate-y-0.5 transition-transform"
+          style={{ background: "linear-gradient(180deg,#6E9BD6,#4E7FB8)", border: "3px solid #3D6797", boxShadow: "0 4px 0 #3D6797" }}
+        >
+          <Puzzle className="w-4 h-4" />
+          <span className="font-baloo font-extrabold text-[17px] leading-tight flex items-center gap-1 mt-0.5">
+            Câu đố <ArrowRight className="w-4 h-4" />
+          </span>
+        </Link>
+      )}
       {open && quest && (
         <button
           type="button"

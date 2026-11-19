@@ -10,6 +10,7 @@ import { BUILDS, FRIEND_LEVELS, NPC_STORIES, PHRASE_EXTRAS, SOUND_SETS } from ".
 import { EXPAND_COST, FEED_CUT, MAX_FEED, RARE_SELL, SPECIES_BY_KIND, STARTER_SHELLS, rareChance } from "./farm-data";
 import { isDuplicate } from "./memory";
 import { BUILD_BONUS, isleSpot } from "./isle";
+import { PIECES_PER_CHEST, quizPieces, quizShells } from "./harbor-quiz";
 import { ARCADE, PLOTS, arcadeCap, buildKind, libraryFood, plotIncome, plotStatus, upgradeCost } from "./beach";
 import type { ChatReport, ErrorTag } from "./feedback";
 import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
@@ -920,7 +921,7 @@ export function openChest(): boolean {
 
 /** Vỏ sò hiện có: 1 vỏ sò cho mỗi 2 XP học tập + tiền bán hải sản − tiền đã tiêu. */
 export function shells(s: IslandState): number {
-  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned + Object.keys(s.built).length * BUILD_BONUS + s.arcade.earned + plotIncome(s) - s.farm.spent);
+  return Math.max(0, STARTER_SHELLS + Math.floor(s.xp / 2) + s.farm.earned + Object.keys(s.built).length * BUILD_BONUS + s.arcade.earned + plotIncome(s) + quizShells(s) - s.farm.spent);
 }
 
 /** Thức ăn kiếm được từ việc học (nhiệm vụ, phản xạ, nhiệm vụ chat, ôn thẻ). */
@@ -1136,5 +1137,24 @@ export function upgradePlot(id: string): FarmResult {
   const bank = plotIncome(one);
   const food = k.id === "library" ? libraryFood(one) : p.food;
   save({ ...s, farm: { ...s.farm, spent: s.farm.spent + cost }, plots: { ...s.plots, [id]: { ...p, lv: p.lv + 1, at: `${addDays(today(), 1)}T00:00:00`, bank, ...(food ? { food } : {}) } } });
+  return { ok: true };
+}
+
+// ───────────── Câu đố của Thuyền trưởng Rái ─────────────
+
+/** Lưu kết quả câu đố hôm nay (giữ lần tốt nhất). Trả về true nếu lần này vừa được mảnh bản đồ. */
+export function finishQuiz(score: number): { gotPiece: boolean; shells: number } {
+  const s = load();
+  const t = today();
+  const prev = s.quiz.days[t] || 0;
+  const next = Math.max(prev, Math.max(0, Math.min(5, Math.round(score))));
+  save(markStudy({ ...s, quiz: { ...s.quiz, days: { ...s.quiz.days, [t]: next } } }));
+  return { gotPiece: prev < 4 && next >= 4, shells: (next - prev) * 3 };
+}
+
+export function openTreasure(): FarmResult {
+  const s = load();
+  if (quizPieces(s).have < PIECES_PER_CHEST) return { ok: false, reason: `Cần đủ ${PIECES_PER_CHEST} mảnh bản đồ.` };
+  save({ ...s, quiz: { ...s.quiz, chests: s.quiz.chests + 1 } });
   return { ok: true };
 }
