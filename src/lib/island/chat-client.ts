@@ -36,7 +36,9 @@ export async function askNpc(p: AskParams): Promise<NpcReply> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...p, npcName: NPCS[p.npc].name, npc: undefined }),
     });
-    return (await res.json()) as NpcReply;
+    const data = (await res.json()) as NpcReply;
+    if (!res.ok || typeof data.reply !== "string" || !data.reply.trim()) throw new Error("Invalid NPC reply");
+    return data;
   } catch {
     return { reply: "Sorry, I didn't catch that. Could you say it again?", correction: null, offline: true };
   }

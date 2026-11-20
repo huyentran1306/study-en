@@ -122,7 +122,7 @@ export function IsleTour({ step, pick, has3d, onNext, onDone }: { step: TourStep
   const pages = [
     {
       title: "Chào mừng tới Đảo Tám Chuyện!",
-      body: "Mỗi ngày làm theo thanh “Hôm nay” ở dưới: 4 bước, khoảng 25 phút, trong đó có 10 phút nói tiếng Anh thật. Học xong thì đảo lớn dần.",
+      body: "Làm quen với Pip bằng ba cụm chào hỏi, hoặc xem qua các điểm luyện trên đảo. Thanh “Hôm nay” sẽ dẫn bạn tới bài tiếp theo.",
     },
     {
       title: "Qua cầu là Đảo Luyện",
@@ -150,6 +150,11 @@ export function IsleTour({ step, pick, has3d, onNext, onDone }: { step: TourStep
             </span>
           </div>
           <p className="text-sm font-semibold text-[#4A3222] leading-snug">{pg.body}</p>
+          {step === 0 && (
+            <Link href="/island/vocabulary?ch=1" className="text-sm font-extrabold text-[#2C5A25] underline underline-offset-4 self-start" onClick={onDone}>
+              Thử 3 cụm chào hỏi với Pip
+            </Link>
+          )}
           <div className="flex items-center gap-2 justify-end">
             <button type="button" data-sfx="close" className="text-xs font-extrabold underline underline-offset-4 text-[#6B4A30] mr-auto" onClick={onDone}>
               Bỏ qua

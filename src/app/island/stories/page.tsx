@@ -7,7 +7,7 @@ import { BackLink, cx } from "@/components/island/ui";
 import { CHAPTERS, NPCS } from "@/lib/island/curriculum";
 import { EPISODES, fillPrev, type Episode } from "@/lib/island/life";
 import { addMemories, calendarWeek, currentChapterId, saveEpisode, useIsland } from "@/lib/island/progress";
-import { askNpc, type Correction } from "@/lib/island/chat-client";
+import { askNpc } from "@/lib/island/chat-client";
 import { aboutLearner } from "@/lib/island/me";
 import { speak, useListen } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
@@ -36,8 +36,8 @@ export default function StoriesPage() {
       </div>
       <ol className="flex flex-col gap-2">
         {EPISODES.map((ep) => {
-          const unlocked = mounted && week >= ep.week;
           const done = mounted && !!s.episodes[ep.id];
+          const unlocked = mounted && (done || week >= ep.week);
           return (
             <li key={ep.id}>
               <button
@@ -69,9 +69,10 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
   const { addXP } = useGame();
   const prev = ep.prevId ? s.episodes[ep.prevId]?.answer : undefined;
   const lines = ep.lines.map((l) => ({ en: fillPrev(l.en, prev && short(prev)), vi: fillPrev(l.vi, prev && short(prev)) }));
-  const [text, setText] = useState(s.episodes[ep.id]?.answer || "");
+  const saved = s.episodes[ep.id];
+  const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [reply, setReply] = useState<{ reply: string; correction: Correction | null } | null>(null);
+
   const [vi, setVi] = useState(false);
   const { supported, listening, interim, listen, stop } = useListen();
   const npc = NPCS[ep.npc];
@@ -92,16 +93,9 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
   }, [ep.id]);
 
   const submit = async () => {
-    const a = text.trim();
-    if (a.split(/\s+/).length < 2 || busy) return;
+    const a = (saved?.answer ?? text).trim();
+    if (a.split(/\s+/).length < 2 || busy || saved?.reply) return;
     setBusy(true);
-    const first = !s.episodes[ep.id];
-    saveEpisode(ep.id, a, 15);
-    if (first) {
-      addXP(15);
-      const sa = short(a);
-      addMemories(ep.npc, ch.id, [{ fact: ep.memory.fact.replace("{a}", sa), vi: ep.memory.vi.replace("{a}", sa), ask: ep.memory.ask }]);
-    }
     const r = await askNpc({
       npc: ep.npc,
       persona: `${npc.role} on Chit Chat Island, a close friend of the learner`,
@@ -112,7 +106,11 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
       about: aboutLearner(s.profile),
       mode: "flow",
     });
-    setReply({ reply: r.reply, correction: r.offline ? null : r.correction });
+    if (saveEpisode(ep.id, a, 15, { reply: r.reply, correction: r.offline ? undefined : r.correction ?? undefined })) {
+      addXP(15);
+      const sa = short(a);
+      addMemories(ep.npc, ch.id, [{ fact: ep.memory.fact.replace("{a}", sa), vi: ep.memory.vi.replace("{a}", sa), ask: ep.memory.ask }]);
+    }
     setBusy(false);
     sfx.win();
     speak(r.reply, { who: ep.npc });
@@ -145,7 +143,7 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
         </button>
       </section>
 
-      {!reply ? (
+      {!saved ? (
         <section className="flex flex-col gap-2">
           <textarea
             value={listening ? `${text} ${interim}`.trim() : text}
@@ -176,16 +174,24 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
         </section>
       ) : (
         <section className="flex flex-col gap-2 anim-pop">
-          <div className="self-end max-w-[85%] rounded-[16px] rounded-br-[4px] px-3.5 py-2 border-[3px] border-[#6FAE4F] bg-[#EAF3DC] font-bold leading-snug">{text}</div>
-          {reply.correction && (
+          <div className="self-end max-w-[85%] rounded-[16px] rounded-br-[4px] px-3.5 py-2 border-[3px] border-[#6FAE4F] bg-[#EAF3DC] font-bold leading-snug">{saved.answer}</div>
+          {saved.correction && (
             <div className="self-end max-w-[85%] rounded-[14px] px-3 py-2 bg-[#FDEEDD] border-2 border-[#E0A26E] text-sm">
-              <b>Nói tự nhiên hơn:</b> {reply.correction.fixed}
+              <b>Nói tự nhiên hơn:</b> {saved.correction.fixed}
             </div>
           )}
-          <div className="flex items-end gap-2">
-            <Avatar who={ep.npc} size={34} />
-            <div className="max-w-[85%] rounded-[16px] rounded-bl-[4px] px-3.5 py-2 bg-white border-[3px] border-[#8B5E3C] font-bold leading-snug">{reply.reply}</div>
-          </div>
+          {saved.reply ? (
+            <div className="flex items-end gap-2">
+              <Avatar who={ep.npc} size={34} />
+              <button type="button" data-sfx="none" onClick={() => speak(saved.reply!, { who: ep.npc })} className="max-w-[85%] rounded-[16px] rounded-bl-[4px] px-3.5 py-2 bg-white border-[3px] border-[#8B5E3C] font-bold leading-snug text-left">
+                {saved.reply} <Volume2 className="inline w-4 h-4 text-[#3F7A34]" />
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="cci-btn self-start" onClick={submit} disabled={busy}>
+              {busy ? `${npc.name} đang đọc…` : `Xin ${npc.name} phản hồi`}
+            </button>
+          )}
           <p className="text-sm font-bold text-[#2C5A25]">💭 {npc.name} sẽ nhớ câu trả lời của bạn, và tập sau sẽ có hồi tiếp!</p>
           <button type="button" className="cci-btn self-start" onClick={onBack}>
             Về danh sách tập

@@ -153,6 +153,13 @@ export interface MirrorTake {
   secs: number;
 }
 
+export interface EpisodeProgress {
+  at: string;
+  answer: string;
+  reply?: string;
+  correction?: { fixed: string; note: string; tag?: ErrorTag };
+}
+
 export interface IslandState {
   startDate: string;
   unlockedUpTo: number;
@@ -189,7 +196,7 @@ export interface IslandState {
   /** Thử ngoài đời: id → lúc làm + câu đã nói. */
   reallife: Record<string, { at: string; note: string }>;
   /** Truyện cư dân nhiều tuần: tập → lúc xem + câu trả lời của bạn. */
-  episodes: Record<string, { at: string; answer: string }>;
+  episodes: Record<string, EpisodeProgress>;
   /** Gương thời gian. */
   mirror: MirrorTake[];
   /** Đảo Luyện: công trình đã dựng (lần đầu thử tính năng) → lúc dựng. */
@@ -207,7 +214,7 @@ export interface IslandState {
   checks: CheckRecord[];
   /** Số giây đã nói tiếng Anh thật (ước theo số từ nói ra) mỗi ngày. */
   talk: Record<string, number>;
-  /** Phiên bản luật mở chương (2 = cần đủ 3 chìa khoá). Dữ liệu cũ được giữ các chương đã mở. */
+  /** Từ phiên bản 3, unlockedUpTo chỉ lưu quyền mở sẵn và chương đã có tiến độ khi di trú. */
   rulesV?: number;
   /** Câu đố của Thuyền trưởng Rái: ngày → số câu đúng (cao nhất), số rương kho báu đã mở. */
   quiz: { days: Record<string, number>; chests: number };
@@ -237,8 +244,12 @@ export function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+export function placementChapter(level?: string): number {
+  return level === "B1" ? 9 : level === "A2" ? 5 : 1;
+}
+
 export function freshState(): IslandState {
-  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 }, talk: {}, checks: [], friends: [], fest: {}, decor: {}, rulesV: 2 };
+  return { startDate: todayStr(), unlockedUpTo: 1, chapters: {}, challenges: {}, words: {}, xp: 0, studyDays: [], chatTurns: 0, phrases: {}, reflex: [], chatTasks: {}, sounds: {}, daily: {}, farm: { earned: 0, spent: 0, foodUsed: 0, size: 3, slots: {}, caught: {}, dexClaimed: 0 }, garden: {}, memories: [], reports: [], missions: {}, trophies: {}, freeze: { bought: 0, used: [] }, reallife: {}, episodes: {}, mirror: [], built: {}, plots: {}, arcade: { earned: 0, day: "", today: 0, best: {} }, quiz: { days: {}, chests: 0 }, talk: {}, checks: [], friends: [], fest: {}, decor: {}, rulesV: 3 };
 }
 
 const num = (v: unknown, min: number, max: number, def = 0) => {
@@ -364,7 +375,14 @@ export function normalizeState(input: unknown): IslandState {
     if (x.episodes && typeof x.episodes === "object") {
       for (const [k, v] of Object.entries(x.episodes as Record<string, unknown>)) {
         const m = v as Record<string, unknown>;
-        if (key(k) && m && iso(m.at)) out.episodes[k] = { at: (m.at as string).slice(0, 40), answer: plain(m.answer, 300) };
+        if (!key(k) || !m || !iso(m.at)) continue;
+        const episode: EpisodeProgress = { at: (m.at as string).slice(0, 40), answer: plain(m.answer, 300) };
+        const reply = plain(m.reply, 600);
+        if (reply) episode.reply = reply;
+        const correction = m.correction as Record<string, unknown> | undefined;
+        const fixed = plain(correction?.fixed, 300);
+        if (reply && fixed) episode.correction = { fixed, note: plain(correction?.note, 300), tag: asTag(correction?.tag) };
+        out.episodes[k] = episode;
       }
     }
     if (Array.isArray(x.mirror)) {
@@ -463,7 +481,7 @@ export function normalizeState(input: unknown): IslandState {
     const keys = Object.keys(x.daily as object).filter((k) => DATE_RE.test(k)).sort().slice(-21);
     for (const k of keys) {
       const v = (x.daily as Record<string, unknown>)[k];
-      if (Array.isArray(v)) out.daily[k] = v.filter((t): t is string => typeof t === "string" && /^[a-z]{1,12}$/.test(t)).slice(0, 10);
+      if (Array.isArray(v)) out.daily[k] = v.filter((t): t is string => typeof t === "string" && (/^[a-z]{1,12}$/.test(t) || /^mission:[1-9]\d{0,2}:(lesson|listen|speak|chat|review|reflex|sound)$/.test(t))).slice(0, 10);
     }
   }
   if (x.phrases && typeof x.phrases === "object") {
@@ -541,14 +559,13 @@ export function normalizeState(input: unknown): IslandState {
   if (typeof x.planResetAt === "string" && !Number.isNaN(Date.parse(x.planResetAt))) out.planResetAt = x.planResetAt;
   if (typeof x.owner === "string" && x.owner) out.owner = x.owner.slice(0, 128);
   if (typeof x.updatedAt === "string" && !Number.isNaN(Date.parse(x.updatedAt))) out.updatedAt = x.updatedAt;
-  // Luật mở chương mới (cần đủ 3 chìa khoá): dữ liệu cũ giữ nguyên các chương đã mở theo luật cũ (xong bài là mở chương sau).
-  if (typeof x.rulesV === "number" && x.rulesV >= 2) out.rulesV = 2;
-  else {
-    let reach = out.unlockedUpTo;
-    for (let id = 2; id <= 99; id++) if (out.chapters[id - 1]?.lesson) reach = Math.max(reach, id);
-    out.unlockedUpTo = Math.max(out.unlockedUpTo, reach);
-    out.rulesV = 2;
+  if (x.rulesV === 2) {
+    // Bản v2 cũng tăng unlockedUpTo khi chỉ xong bài học. Giữ quyền xếp lớp và chương thực sự có tiến độ.
+    const placement = placementChapter(out.placement?.level);
+    const studied = Object.keys(out.chapters).filter((id) => Number(id) <= 99 && MISSION_KEYS.some((key) => out.chapters[id][key]));
+    out.unlockedUpTo = Math.max(placement, ...studied.map(Number));
   }
+  out.rulesV = 3;
   return out;
 }
 
@@ -661,7 +678,13 @@ export function mergeStates(a: IslandState, b: IslandState): IslandState {
     })(),
     freeze: { bought: Math.max(a.freeze.bought, b.freeze.bought), used: Array.from(new Set([...a.freeze.used, ...b.freeze.used])).sort().slice(-60) },
     reallife: { ...b.reallife, ...a.reallife },
-    episodes: { ...b.episodes, ...a.episodes },
+    episodes: Object.fromEntries([...new Set([...Object.keys(a.episodes), ...Object.keys(b.episodes)])].map((id) => {
+      const x = a.episodes[id];
+      const y = b.episodes[id];
+      if (!x || !y) return [id, x || y];
+      if (x.answer === y.answer && Boolean(x.reply) !== Boolean(y.reply)) return [id, x.reply ? x : y];
+      return [id, x.at >= y.at ? x : y];
+    })),
     plots: (() => {
       const o: Record<string, PlotState> = { ...a.plots };
       const rank = (p: PlotState) => (p.t ? 1000 : 0) + p.lv * 100 + (p.cleared ? 1 : 0);

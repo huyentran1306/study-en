@@ -160,6 +160,16 @@ function Inner() {
         </div>
       </div>
 
+      <section className="cci-card-wood p-4 flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[180px]">
+          <h2 className="font-baloo font-extrabold text-xl leading-tight">Cụm từ giao tiếp</h2>
+          <p className="text-sm font-semibold text-[#6B4A30]">Tự nhớ cụm từ và dùng trong một câu của bạn, theo tình huống đang học.</p>
+        </div>
+        <Link href={`/island/vocabulary?ch=${missionCh}`} className="cci-btn cci-btn-primary shrink-0">
+          Luyện theo tình huống <ArrowRight className="w-4 h-4" />
+        </Link>
+      </section>
+
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Stat label="Từ trong sổ" value={mounted ? all.length : 0} />
         <Stat label="Đến hạn hôm nay" value={mounted ? due.length : 0} accent />
@@ -243,7 +253,7 @@ function EmptyBook({ ch }: { ch: number }) {
         <div className="flex-1 min-w-0 text-center sm:text-left">
           <h2 className="text-xl sm:text-2xl font-extrabold leading-tight">Sổ còn trống, chưa có từ nào để ôn</h2>
           <p className="font-semibold text-[#6B4A30] mt-1">
-            Từ chỉ vào sổ sau khi bạn học xong một bài. Học xong Chương {chapter.id} là có ngay {chapter.words.length} thẻ đầu tiên, ngày mai ôn lần đầu.
+            Cụm từ đã luyện và từ mới trong bài học sẽ vào sổ. Học xong Chương {chapter.id} là có ngay {chapter.words.length} thẻ đầu tiên, ngày mai ôn lần đầu.
           </p>
         </div>
         <Link href={`/island/lesson/${chapter.id}`} className="cci-btn cci-btn-primary cci-btn-big gloss shrink-0 self-center">

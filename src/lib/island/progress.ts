@@ -6,17 +6,18 @@ import { useSyncExternalStore } from "react";
 import { CHAPTERS, CHALLENGES, TOTAL_WEEKS, MISSIONS, missionHref, type Chapter, type MissionKey, type NpcId, type Word } from "./curriculum";
 import { cleanField, lenientWords, mePhrases } from "./me";
 import { setLenientWords } from "./speech";
+import { vocabularyFor } from "./vocabulary";
 import { BUILDS, FRIEND_LEVELS, NPC_STORIES, PHRASE_EXTRAS, SOUND_SETS } from "./drills";
 import { EXPAND_COST, FEED_CUT, MAX_FEED, RARE_SELL, SPECIES_BY_KIND, STARTER_SHELLS, rareChance } from "./farm-data";
 import { isDuplicate } from "./memory";
 import { BUILD_BONUS, isleSpot } from "./isle";
 import { PIECES_PER_CHEST, quizPieces, quizShells } from "./harbor-quiz";
-import { checkDue, type CheckRecord } from "./checkpoint";
+import { CHECK_MAX_SEC, checkDue, type CheckRecord } from "./checkpoint";
 import { FEST_BONUS } from "./festival";
 import { MINE_LEVEL, decorItem } from "./decor";
 import { ARCADE, PLOTS, arcadeCap, buildKind, libraryFood, plotIncome, plotStatus, upgradeCost } from "./beach";
-import type { ChatReport, ErrorTag } from "./feedback";
-import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
+import { isMeaningfulCorrection, type ChatReport, type ErrorTag } from "./feedback";
+import { MAX_MEMORIES, MAX_MIRROR, MAX_REPORTS, type MirrorTake, freshState, mergeStates, normalizeState, placementChapter, sameContent, todayStr, type Memory, type ChapterProgress, type IslandState, type EpisodeProgress, type FarmKind, type FarmSlot, type PhraseCard, type Profile, type ReflexRun, type WordCard } from "./state";
 
 export type { Profile, Sprint } from "./state";
 export type { ChapterProgress, IslandState, Memory, MirrorTake, PhraseCard, ReflexMode, ReflexRun, WordCard } from "./state";
@@ -144,9 +145,14 @@ export function doRealLife(id: string, note: string, xp: number) {
   update((s) => (s.reallife[id] ? { ...s, reallife: { ...s.reallife, [id]: { ...s.reallife[id], note: cleanField(note, 300) } } } : markStudy({ ...s, reallife: { ...s.reallife, [id]: { at: new Date().toISOString(), note: cleanField(note, 300) } }, xp: s.xp + xp })));
 }
 
-/** Truyện cư dân: lưu câu trả lời của bạn cho một tập. */
-export function saveEpisode(id: string, answer: string, xp: number) {
-  update((s) => withBuilt(markStudy({ ...s, episodes: { ...s.episodes, [id]: { at: s.episodes[id]?.at || new Date().toISOString(), answer: cleanField(answer, 300) } }, xp: s.xp + (s.episodes[id] ? 0 : xp) }), "stories"));
+/** Truyện cư dân: lưu cả hai lời thoại và chỉ trao thưởng ở lần đầu. */
+export function saveEpisode(id: string, answer: string, xp: number, result: Pick<EpisodeProgress, "reply" | "correction">): boolean {
+  const s = load();
+  const prev = s.episodes[id];
+  if (prev?.reply) return false;
+  const episode = { at: prev?.at || new Date().toISOString(), answer: cleanField(answer, 300), ...result };
+  save(withBuilt(markStudy({ ...s, episodes: { ...s.episodes, [id]: episode }, xp: s.xp + (prev ? 0 : xp) }), "stories"));
+  return !prev;
 }
 
 /** Bài học của tôi: thêm các câu về cuộc sống của bạn vào Sổ câu. Trả về số câu mới. */
@@ -175,7 +181,7 @@ export function setShareCode(code: string | undefined) {
 
 export type DailyStep = "mission" | "review" | "reflex" | "chat" | "unit";
 
-function markDaily(s: IslandState, step: DailyStep | "chest"): IslandState {
+function markDaily(s: IslandState, step: DailyStep | "chest" | `mission:${number}:${MissionKey}`): IslandState {
   const t = today();
   const cur = s.daily[t] || [];
   if (cur.includes(step)) return s;
@@ -183,6 +189,12 @@ function markDaily(s: IslandState, step: DailyStep | "chest"): IslandState {
   const keys = Object.keys(daily).sort();
   for (const k of keys.slice(0, Math.max(0, keys.length - 21))) delete daily[k];
   return { ...s, daily };
+}
+
+/** Giữ đúng nhiệm vụ đầu tiên đã hoàn thành để tiêu đề và liên kết khớp với dấu Xong. */
+function markDailyMission(s: IslandState, chapterId: number, key: MissionKey) {
+  if ((s.daily[today()] || []).includes("mission")) return s;
+  return markDaily(markDaily(s, "mission"), `mission:${chapterId}:${key}`);
 }
 
 // ───────────── Đồng bộ máy chủ ─────────────
@@ -372,11 +384,10 @@ export function completeMission(chapterId: number, key: MissionKey, xp: number, 
       ch.stars = Math.max(prev.stars || 0, extra.stars || 0);
       ch.doneAt = prev.doneAt || today();
     }
-    let next: IslandState = markDaily({ ...s, xp: s.xp + xp, chapters: { ...s.chapters, [chapterId]: ch } }, "mission");
+    let next = markDailyMission({ ...s, xp: s.xp + xp, chapters: { ...s.chapters, [chapterId]: ch } }, chapterId, key);
     if (key === "review") next = markDaily(next, "review");
     if (key === "reflex") next = markDaily(next, "reflex");
     if (key === "lesson") {
-      next.unlockedUpTo = Math.max(next.unlockedUpTo, Math.min(chapterId + 1, CHAPTERS.length));
       const chapter = CHAPTERS.find((c) => c.id === chapterId);
       if (chapter) next = addPhrases(addWords(next, chapterId, chapter.words), chapter);
     }
@@ -452,7 +463,7 @@ export function logReflex(run: Omit<ReflexRun, "at">, xp: number, missionCh?: nu
   update((s) => {
     let next: IslandState = markDaily({ ...s, xp: s.xp + xp, reflex: [...s.reflex, { ...run, at: new Date().toISOString() }].slice(-400) }, "reflex");
     if (missionCh && s.chapters[missionCh]?.lesson && !s.chapters[missionCh]?.reflex) {
-      next = markDaily({ ...next, chapters: { ...next.chapters, [missionCh]: { ...next.chapters[missionCh], reflex: true } } }, "mission");
+      next = markDailyMission({ ...next, chapters: { ...next.chapters, [missionCh]: { ...next.chapters[missionCh], reflex: true } } }, missionCh, "reflex");
     }
     return markStudy(next);
   });
@@ -474,19 +485,32 @@ export function saveSound(setId: string, pct: number, xp: number, missionCh?: nu
   update((s) => {
     let next: IslandState = { ...s, xp: s.xp + xp, sounds: { ...s.sounds, [setId]: Math.max(s.sounds[setId] || 0, pct) } };
     if (pct >= 60 && missionCh && s.chapters[missionCh]?.lesson && !s.chapters[missionCh]?.sound) {
-      next = markDaily({ ...next, chapters: { ...next.chapters, [missionCh]: { ...next.chapters[missionCh], sound: true } } }, "mission");
+      next = markDailyMission({ ...next, chapters: { ...next.chapters, [missionCh]: { ...next.chapters[missionCh], sound: true } } }, missionCh, "sound");
     }
     return markStudy(next);
   });
 }
 
+function withWordGrade(s: IslandState, card: WordCard, remembered: boolean): IslandState {
+  const box = remembered ? Math.min(card.box + 1, INTERVALS.length - 1) : 1;
+  const due = remembered ? addDays(today(), INTERVALS[box]) : today();
+  return markStudy(markDaily({ ...s, words: { ...s.words, [card.en]: { ...card, box, due, seen: card.seen + 1 } } }, "review"));
+}
+
 export function gradeWord(en: string, remembered: boolean) {
+  update((s) => s.words[en] ? withWordGrade(s, s.words[en], remembered) : s);
+}
+
+export function reviewSpeakingChunk(chapterId: number, phrase: string, remembered: boolean) {
   update((s) => {
-    const card = s.words[en];
-    if (!card) return s;
-    const box = remembered ? Math.min(card.box + 1, INTERVALS.length - 1) : 1;
-    const due = remembered ? addDays(today(), INTERVALS[box]) : today();
-    return markStudy(markDaily({ ...s, words: { ...s.words, [en]: { ...card, box, due, seen: card.seen + 1 } } }, "review"));
+    if (!isUnlocked(s, chapterId)) return s;
+    const word = vocabularyFor(chapterId).find((item) => item.en === phrase);
+    if (!word) return s;
+    const previous = s.words[phrase];
+    // Luyện trước hạn vẫn tính hoạt động, nhưng một đáp án đúng không đẩy lịch đi xa hơn.
+    if (remembered && previous && previous.due > today()) return markStudy(markDaily(s, "review"));
+    const card = previous ?? { en: word.en, vi: word.vi, ex: word.ex, ch: chapterId, box: 0, due: today(), seen: 0 };
+    return withWordGrade(s, card, remembered);
   });
 }
 
@@ -528,7 +552,7 @@ const MAX_FIXES = 150;
 export function addFix(said: string, fixed: string, note: string, ch: number, tag?: ErrorTag): boolean {
   const en = fixed.replace(/\s+/g, " ").trim().slice(0, 300);
   const was = said.replace(/\s+/g, " ").trim().slice(0, 300);
-  if (!en || !was || en.split(" ").length > 30) return false;
+  if (en.split(" ").length > 30 || !isMeaningfulCorrection(was, en, note)) return false;
   const s = load();
   if (s.phrases[en]) return false;
   const phrases = { ...s.phrases };
@@ -543,8 +567,12 @@ export function addFix(said: string, fixed: string, note: string, ch: number, ta
   return true;
 }
 
+export function isFixCard(card: PhraseCard): boolean {
+  return card.kind === "fix" && (!card.said || isMeaningfulCorrection(card.said, card.en, card.vi));
+}
+
 export function fixCards(s: IslandState): PhraseCard[] {
-  return Object.values(s.phrases).filter((p) => p.kind === "fix");
+  return Object.values(s.phrases).filter(isFixCard);
 }
 
 /** Người học vừa nói đúng một câu từng sai: đẩy thẻ Sổ lỗi sai lên một hộp (không tính là bước "ôn" trong ngày). */
@@ -605,7 +633,7 @@ export function addChatTurn() {
 }
 
 export function applyPlacement(level: string, score: number) {
-  const upTo = level === "B1" ? 9 : level === "A2" ? 5 : 1;
+  const upTo = placementChapter(level);
   update((s) => ({ ...s, unlockedUpTo: Math.max(s.unlockedUpTo, upTo), placement: { level, score, at: today() } }));
 }
 
@@ -655,9 +683,9 @@ export function currentChapterId(s: IslandState): number {
   // Đã xong hết bài học → chương đầu tiên còn nhiệm vụ chưa xong
   for (const c of CHAPTERS) {
     const p = s.chapters[c.id] || {};
-    if (MISSIONS.some((m) => !p[m.key])) return c.id;
+    if (isUnlocked(s, c.id) && MISSIONS.some((m) => !p[m.key])) return c.id;
   }
-  return CHAPTERS[CHAPTERS.length - 1].id;
+  return [...CHAPTERS].reverse().find((c) => isUnlocked(s, c.id))?.id ?? 1;
 }
 
 /** Tuần theo lịch (tính từ ngày bắt đầu). */
@@ -687,7 +715,7 @@ export function dueWords(s: IslandState): WordCard[] {
 
 export function duePhrases(s: IslandState): PhraseCard[] {
   const t = today();
-  return Object.values(s.phrases).filter((p) => p.due <= t);
+  return Object.values(s.phrases).filter((p) => p.due <= t && (p.kind !== "fix" || isFixCard(p)));
 }
 
 /** Thời gian phản xạ trung bình (giây) của N lượt nói gần nhất, null nếu chưa có. */
@@ -930,7 +958,7 @@ function withCheck(s: IslandState, steps: PlanStep[]): PlanStep[] {
   const t = today();
   const doneToday = s.checks.some((c) => c.at.slice(0, 10) === t || new Date(c.at).toLocaleDateString("sv") === t);
   if (!checkDue(s, t) && !doneToday) return steps;
-  const step: PlanStep = { key: "check", title: "Kiểm tra nói 2 tuần", desc: "3 đề nói 45 giây, AI chấm trình độ, so với lần trước", href: "/island/checkpoint", done: doneToday, mins: 5 };
+  const step: PlanStep = { key: "check", title: "Kiểm tra nói 2 tuần", desc: `3 đề, tối đa ${CHECK_MAX_SEC} giây mỗi đề · so với lần trước`, href: "/island/checkpoint", done: doneToday, mins: 5 };
   const i = steps.findIndex((p) => p.key === "reflex");
   return i >= 0 ? steps.map((p, k) => (k === i ? step : p)) : [...steps, step];
 }
@@ -943,27 +971,26 @@ function basePlan(s: IslandState): PlanStep[] {
   if (s.sprint?.on) return [...sprintPlan(s), talkStep(s, currentChapterId(s))];
   const log = s.daily[today()] || [];
   const curId = currentChapterId(s);
-  const ch = CHAPTERS.find((c) => c.id === curId)!;
-  const nm = nextMission(s, curId);
-  const m = MISSIONS.find((x) => x.key === nm);
-  const missionHrefFor = (key: MissionKey) =>
-    key === "lesson" ? `/island/lesson/${curId}` : key === "listen" ? `/island/lesson/${curId}?mode=listen` : key === "speak" ? `/island/lesson/${curId}?mode=speak` : key === "chat" ? `/island/chat?ch=${curId}` : key === "review" ? `/island/words?ch=${curId}` : key === "reflex" ? `/island/reflex?ch=${curId}` : `/island/sounds?ch=${curId}`;
+  const missionDone = log.includes("mission");
+  const [, completedChapter, completedKey] = (log.filter((entry) => entry.startsWith("mission:")).sort()[0] ?? "").split(":");
+  const ch = CHAPTERS.find((c) => c.id === (missionDone ? Number(completedChapter) : curId));
+  const m = MISSIONS.find((entry) => entry.key === (missionDone ? completedKey : nextMission(s, curId)));
   const nWords = dueWords(s).length;
   const nPhrases = duePhrases(s).length;
   return [
     {
       key: "mission",
-      title: m ? `Ngày ${m.day} · ${m.title}` : "Ôn lại chương bất kỳ",
-      desc: m ? `Chương ${ch.id} · ${ch.title}` : "Tuần này xong hết nhiệm vụ rồi — luyện thêm cho chắc!",
-      href: m ? missionHrefFor(m.key) : "/island/path",
-      done: log.includes("mission"),
+      title: m && ch ? `Ngày ${m.day} · ${m.title}` : missionDone ? "Nhiệm vụ đã hoàn thành" : "Ôn lại chương bất kỳ",
+      desc: m && ch ? `Chương ${ch.id} · ${ch.title}` : missionDone ? "Đã ghi nhận tiến độ hôm nay" : "Chọn một chương để luyện thêm.",
+      href: m && ch ? missionHref(m.key, ch.id) : "/island/path",
+      done: missionDone,
       mins: m?.mins || 5,
     },
     {
       key: "review",
-      title: nPhrases > 0 ? "Ôn câu khung đến hạn" : nWords > 0 ? "Ôn sổ từ đến hạn" : "Ôn nhanh 8 câu khung",
-      desc: nWords + nPhrases > 0 ? `${nWords} từ · ${nPhrases} câu đang chờ` : "Nhìn tiếng Việt → nói tiếng Anh",
-      href: nPhrases > 0 || nWords === 0 ? "/island/phrases" : "/island/words",
+      title: nPhrases > 0 ? "Ôn câu khung đến hạn" : nWords > 0 ? "Ôn sổ từ đến hạn" : "Luyện 3 cụm giao tiếp",
+      desc: nWords + nPhrases > 0 ? `${nWords} từ · ${nPhrases} câu đang chờ` : "Nhìn tình huống, tự nói một câu bằng tiếng Anh",
+      href: nPhrases > 0 ? "/island/phrases" : nWords > 0 ? "/island/words" : `/island/vocabulary?ch=${ch?.id ?? curId}`,
       done: log.includes("review"),
       mins: 4,
     },
