@@ -10,7 +10,7 @@ import { CHAPTERS, NPCS, RESCUE_BAG, type NpcId } from "@/lib/island/curriculum"
 import { aboutLearner, personalizeDeep } from "@/lib/island/me";
 import { addChatTurn, addFix, fixCards, forgetMemory, saveReport, markChatDone, markMemoryUsed, completeMission, currentChapterId, getIsland, isUnlocked, markChatTask, praiseFix, today, unlockNote, useIsland, type Memory } from "@/lib/island/progress";
 import { pickRecall, practiceFixes, recallNoteVi, recallOpener, recentFacts } from "@/lib/island/memory";
-import { FIX_MODE_KEY, TAG_VI, chatMetrics, defaultFixMode, ideaCount, isRepair, topTags, trend, type ErrorTag, type FixMode, type ReportAI } from "@/lib/island/feedback";
+import { FIX_MODE_KEY, TAG_VI, chatMetrics, defaultFixMode, ideaCount, isMeaningfulCorrection, isRepair, topTags, trend, type ErrorTag, type FixMode, type ReportAI } from "@/lib/island/feedback";
 import { ReportCard, type ReportView } from "@/components/island/report-card";
 import { fetchReport, rememberChat } from "@/lib/island/chat-client";
 import { ADAPT_VI, adaptLevel } from "@/lib/island/adapt";
@@ -44,8 +44,10 @@ function Inner() {
   const router = useRouter();
   const sp = useSearchParams();
   const { addXP } = useGame();
+  const [entryChapter, setEntryChapter] = useState<number>();
+  useEffect(() => setEntryChapter(currentChapterId(getIsland())), []);
   const chParam = Number(sp.get("ch"));
-  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) ? chParam : currentChapterId(s);
+  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) && isUnlocked(s, chParam) ? chParam : entryChapter ?? currentChapterId(s);
   const rawCh = CHAPTERS.find((c) => c.id === chId)!;
   const profile = s.profile;
   const ch = useMemo(() => personalizeDeep(rawCh, profile), [rawCh, profile]);
@@ -190,6 +192,7 @@ function Inner() {
   }, [msgs, busy]);
 
   const fixes = msgs.filter((m) => m.role === "user" && m.correction);
+  const savedFix = fixCards(s).find((card) => fixes.some((m) => m.correction?.fixed.replace(/\s+/g, " ").trim() === card.en));
   const suggestions = useMemo(() => ch.turns.map((t) => t.options.find((o) => o.ok)!.en), [ch]);
   const unlockedChapters = CHAPTERS.filter((c) => isUnlocked(s, c.id));
 
@@ -242,7 +245,8 @@ function Inner() {
       });
       const data = (await res.json()) as { reply: string; correction: { fixed: string; note: string; tag?: ErrorTag } | null; praise?: number | null; offline?: boolean };
       setOffline(!!data.offline);
-      if (!data.offline && data.correction?.fixed) addFix(content, data.correction.fixed, data.correction.note || "", ch.id, data.correction.tag);
+      const correction = data.offline ? undefined : data.correction && isMeaningfulCorrection(content, data.correction.fixed, data.correction.note) ? data.correction : null;
+      if (correction) addFix(content, correction.fixed, correction.note, ch.id, correction.tag);
       const won = typeof data.praise === "number" ? sentPractice[data.praise] : undefined;
       if (!data.offline && won) {
         // Câu từng sai giờ nói đúng: đẩy thẻ Sổ lỗi sai lên, không "gài" câu này nữa trong cuộc trò chuyện.
@@ -253,11 +257,11 @@ function Inner() {
         setMsgs((m) => m.map((x) => (x.id === userMsg.id ? { ...x, praised: won } : x)));
       }
       setMsgs((m) => [
-        ...m.map((x) => (x.id === userMsg.id ? { ...x, correction: data.offline ? undefined : data.correction, checked: !data.offline } : x)),
+        ...m.map((x) => (x.id === userMsg.id ? { ...x, correction, checked: !data.offline } : x)),
         { id: idRef.current++, role: "assistant", content: data.reply },
       ]);
       // Ghi nhớ sớm ở lượt 3 (phòng khi đóng tab), rồi mỗi 5 lượt.
-      const full: ChatMsg[] = [...msgs, { ...userMsg, correction: data.offline ? undefined : data.correction, checked: !data.offline }, { id: -1, role: "assistant", content: data.reply }];
+      const full: ChatMsg[] = [...msgs, { ...userMsg, correction, checked: !data.offline }, { id: -1, role: "assistant", content: data.reply }];
       if (nTurns === 3 || nTurns % GOAL === 0) remember(ch.npc, ch.id, ch.chat.topic, full, true);
       // Đủ 5 lượt: tự chấm phiếu nhận xét (một lần; sau đó người học bấm "Chấm lại").
       if (nTurns === GOAL && !data.offline) makeReport(full);
@@ -510,10 +514,14 @@ function Inner() {
                 </li>
               ))}
             </ul>
-            <Link href="/island/phrases?fix=1" data-sfx="whoosh" className="cci-btn cci-btn-primary self-start">
-              Luyện nói lại {fixes.length} câu này
-            </Link>
-            <span className="text-xs font-semibold text-[#6B4A30]">Các câu này đã vào Sổ lỗi sai và sẽ quay lại đúng lúc bạn sắp quên.</span>
+            {savedFix && (
+              <>
+                <Link href={`/island/phrases?fix=quick&term=${encodeURIComponent(savedFix.en)}`} data-sfx="whoosh" className="cci-btn cci-btn-primary self-start">
+                  Luyện lại 1 câu · ~1 phút
+                </Link>
+                <Link href="/island/phrases?fix=1" className="text-sm font-bold underline underline-offset-4 self-start">Ôn thêm trong Sổ lỗi sai</Link>
+              </>
+            )}
           </div>
         )}
         {turns >= GOAL && <NextStep />}

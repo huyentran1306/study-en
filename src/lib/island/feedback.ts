@@ -23,6 +23,18 @@ export function asTag(v: unknown): ErrorTag | undefined {
   return ERROR_TAGS.includes(v as ErrorTag) ? (v as ErrorTag) : undefined;
 }
 
+const englishTokens = (text: string) => text.toLowerCase().match(/[a-z0-9]+/g)?.join(" ") ?? "";
+
+/** Bỏ đề xuất chỉ lặp một câu đúng trong lượt có nhiều câu, hoặc chỉ sửa dấu câu. */
+export function isMeaningfulCorrection(said: string, fixed: string, note = ""): boolean {
+  const source = englishTokens(said);
+  const target = englishTokens(fixed);
+  if (!source || !target || source === target) return false;
+  const explanation = note.trim().replace(/[.!…]+$/, "").trim();
+  if (/^(?:(?:câu (?:này )?)?(?:đã đúng|đúng rồi|đúng ngữ pháp|đã tự nhiên|tự nhiên rồi)|already (?:correct|natural)|no (?:correction|change) needed)$/iu.test(explanation)) return false;
+  return !said.split(/[.!?]+(?:\s+|$)/).some((sentence) => englishTokens(sentence) === target);
+}
+
 /** "flow" = Nói thoải mái (cư dân nhắc lại câu đúng trong lời đáp, lỗi gom cuối buổi) · "fix" = Sửa ngay dưới từng câu. */
 export type FixMode = "flow" | "fix";
 export const FIX_MODE_KEY = "cci-fix-mode";

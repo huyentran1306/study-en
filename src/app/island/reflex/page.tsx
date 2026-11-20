@@ -584,16 +584,16 @@ function Inner() {
         {phase === "result" && res && (
           <div className="flex flex-col gap-3">
             <Feedback ok={res.ok} silent title={res.timeout ? "Hết giờ rồi!" : res.ok ? (res.ms !== null && res.ms < 2000 ? "Siêu nhanh! ⚡" : "Đúng ý!") : "Chưa ổn lắm"}>
-              {res.said && !res.marks && <div>Bạn nói: “{res.said}”</div>}
+              {res.said && !res.marks && <div>{voice ? "Bạn nói" : "Bạn chọn"}: “{res.said}”</div>}
               {res.marks && (
                 <div className="my-1">
                   <WordMarks marks={res.marks} />
                 </div>
               )}
-              {res.ms !== null && <div className="text-sm">Bạn mở miệng sau {(res.ms / 1000).toFixed(1)} giây.</div>}
+              {res.ms !== null && <div className="text-sm">{voice ? "Bạn bắt đầu nói sau" : "Bạn chọn đáp án sau"} {(res.ms / 1000).toFixed(1)} giây.</div>}
               {res.filler && <div className="text-sm">Câu câu giờ: “{res.filler}” 👍</div>}
               {res.note && <div className="text-sm mt-1">💡 {res.note}</div>}
-              {res.timeout && <div className="text-sm">Không sao! Lần sau thử mở đầu bằng “Hmm, let me think...” để có thêm thời gian.</div>}
+              {res.timeout && <div className="text-sm">{voice ? "Lần sau thử mở đầu bằng “Hmm, let me think...” để có thêm thời gian." : "Lần sau thử tìm từ khóa trong câu hỏi trước khi chọn đáp án."}</div>}
             </Feedback>
             {(!res.ok || res.better || item.mode === "swap") && (
               <div className="cci-card px-4 py-3 flex items-start gap-3">

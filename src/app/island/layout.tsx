@@ -9,7 +9,7 @@ const nunito = Nunito({ subsets: ["latin", "vietnamese"], weight: ["400", "600",
 
 export const metadata: Metadata = {
   title: "Chit Chat Island · Đảo Tám Chuyện — Luyện tiếng Anh giao tiếp 3 tháng",
-  description: "Game học tiếng Anh giao tiếp A1 → B1 trong 13 tuần: nhập vai với cư dân đảo, câu cứu nguy, sổ từ ôn ngắt quãng và tám chuyện với AI.",
+  description: "Game luyện tiếng Anh giao tiếp qua 13 tuần chủ đề A1–B1, với nhập vai, cụm từ theo tình huống, ôn ngắt quãng và tám chuyện cùng cư dân đảo.",
   // Icon riêng của Đảo: chú shiba Bơ trên hòn đảo nhỏ có cây dừa.
   icons: {
     icon: [

@@ -8,7 +8,7 @@ import { Character } from "@/components/island/character";
 import { BackLink, Feedback, MicButton, WordMarks, cx, shuffle } from "@/components/island/ui";
 import { CHAPTERS } from "@/lib/island/curriculum";
 import { TAG_VI } from "@/lib/island/feedback";
-import { backfillPhrases, completeMission, currentChapterId, duePhrases, gradePhrase, today, useIsland, type PhraseCard } from "@/lib/island/progress";
+import { backfillPhrases, completeMission, currentChapterId, duePhrases, fixCards, gradePhrase, isFixCard, today, useIsland, type PhraseCard } from "@/lib/island/progress";
 import { scoreSpeech, speak, stopSpeaking, useListen } from "@/lib/island/speech";
 import { sfx } from "@/lib/island/sfx";
 import { personalize } from "@/lib/island/me";
@@ -30,7 +30,7 @@ function Inner() {
   const profile = s.profile;
   /** Câu hiển thị: thẻ thường được thay tên/quê/nghề mẫu bằng Hồ sơ của tôi; khoá lưu vẫn là câu gốc. */
   const shown = (c: PhraseCard) => (c.kind ? { en: c.en, vi: c.vi } : { en: personalize(c.en, profile), vi: personalize(c.vi, profile) });
-  const all = Object.values(s.phrases);
+  const all = Object.values(s.phrases).filter((card) => card.kind !== "fix" || isFixCard(card));
   const fixes = all.filter((p) => p.kind === "fix");
   const mine = all.filter((p) => p.kind === "me" || p.kind === "life");
   const due = duePhrases(s);
@@ -59,15 +59,19 @@ function Inner() {
   const view = card ? shown(card) : null;
 
   // Từ buổi Tám AI bấm "Luyện nói lại": vào thẳng phiên ôn lỗi sai.
-  const autoFix = sp.get("fix") === "1";
+  const fixMode = sp.get("fix");
+  const fixTerm = sp.get("term");
   const autoRef = useRef(false);
   useEffect(() => {
-    if (!mounted || !autoFix || autoRef.current) return;
+    if (!mounted || (fixMode !== "1" && fixMode !== "quick") || autoRef.current) return;
     autoRef.current = true;
-    const list = Object.values(s.phrases).filter((p) => p.kind === "fix");
-    if (list.length) start([...list].sort((a, b) => (a.due < b.due ? -1 : 1) || a.box - b.box).slice(0, 10), 10);
+    const list = fixCards(s).sort((a, b) => a.due.localeCompare(b.due) || a.box - b.box);
+    if (fixMode === "quick") {
+      const target = list.find((card) => card.en === fixTerm) ?? list[0];
+      if (target) start([target], 1);
+    } else if (list.length) start(list.slice(0, 10), 10);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, autoFix]);
+  }, [mounted, fixMode, fixTerm]);
 
   const grade = (ok: boolean) => {
     if (!session || !card) return;
@@ -77,7 +81,7 @@ function Inner() {
     if (idx + 1 >= session.length) {
       setFinished(true);
       sfx.win();
-      if (s.chapters[missionCh]?.lesson && !s.chapters[missionCh]?.review) {
+      if (fixMode !== "quick" && s.chapters[missionCh]?.lesson && !s.chapters[missionCh]?.review) {
         completeMission(missionCh, "review", 15);
         addXP(15);
       }

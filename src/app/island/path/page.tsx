@@ -82,7 +82,7 @@ export default function IslandPathPage() {
         </span>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight truncate">Chào {mounted ? playerName || "bạn" : "bạn"}!</h1>
-          <p className="font-semibold text-[#6B4A30] text-sm sm:text-base">{mounted && s.sprint?.on ? "Nước rút: hôm nay học khoảng 25 phút nhé." : "Hôm nay học khoảng 10–15 phút nhé."}</p>
+          <p className="font-semibold text-[#6B4A30] text-sm sm:text-base">{mounted && s.sprint?.on ? "Nước rút: hôm nay học khoảng 25 phút nhé." : "Dành khoảng 25–30 phút cho bài học, ôn lại và luyện nói."}</p>
           <span className="mt-1 flex items-center gap-2">
             <SyncBadge />
             <AccountMenu hideGuest />
@@ -103,7 +103,7 @@ export default function IslandPathPage() {
         <div className="rounded-[26px] p-5 text-white flex items-center gap-5" style={{ background: "#3F7A34", border: "3px solid #2C5A25", boxShadow: "0 6px 0 #2C5A25" }}>
           <Ring pct={mounted ? planPct : 0} label={`${mounted ? calWeek : 1}/${TOTAL_WEEKS}`} sub="tuần" />
           <div className="min-w-0">
-            <div className="text-xs font-extrabold tracking-[0.12em] uppercase text-[#F2C14E]">Kế hoạch 3 tháng · A1 → B1</div>
+            <div className="text-xs font-extrabold tracking-[0.12em] uppercase text-[#F2C14E]">Kế hoạch 13 tuần · Chủ đề A1–B1</div>
             <div className="font-baloo font-extrabold text-2xl leading-tight mt-0.5">
               Tuần {mounted ? calWeek : 1}: Chương {cur.id} · {cur.title}
             </div>
@@ -148,10 +148,22 @@ export default function IslandPathPage() {
         </div>
       </div>
 
+      <section className="cci-card p-4 sm:p-5 flex flex-col gap-3">
+        <h2 className="font-baloo font-extrabold text-xl sm:text-2xl">Sau 13 tuần, bạn muốn nói được gì?</h2>
+        <ol className="grid gap-2 sm:grid-cols-3 text-sm">
+          <li className="rounded-2xl bg-[#FBF0D9] p-3"><b>Tuần 4</b><p>Giới thiệu trong 30–45 giây, gọi món và hỏi lại khi chưa nghe rõ.</p></li>
+          <li className="rounded-2xl bg-[#EAF3DC] p-3"><b>Tuần 8</b><p>Xử lý một tình huống du lịch hoặc đổi lịch qua ít nhất 4 lượt nói.</p></li>
+          <li className="rounded-2xl bg-[#EAF4FA] p-3"><b>Tuần 13</b><p>Kể chuyện trong 1 phút, hỏi tiếp hoặc xử lý một tình huống bất ngờ bằng tiếng Anh.</p></li>
+        </ol>
+        <p className="text-sm font-semibold text-[#6B4A30]">Lấy mốc nói đầu tiên trong tuần 1 rồi làm lại cùng ba đề mỗi hai tuần. Xem mình diễn đạt đủ ý, hỏi tiếp và cần ít gợi ý hơn ra sao.</p>
+        <Link href="/island/checkpoint" className="cci-btn self-start !min-h-[40px]"><Mic className="w-4 h-4" /> Kiểm tra nói</Link>
+      </section>
+
       {/* Luyện thêm mỗi ngày */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <PracticeCard href="/island/garden" icon={Sprout} bg="#EAF3DC" title="Vườn Nhiệm Vụ" desc={mounted ? `Luống tuần này: ${missionsDone(s, curId)}/${MISSIONS.length} nhiệm vụ · ${Object.keys(s.garden).length}/13 luống đã thu hoạch` : "Mỗi nhiệm vụ làm cây lớn thêm"} />
         <PracticeCard href={`/island/reflex?ch=${curId}`} icon={Zap} bg="#FFF1C7" title="Ao Phản Xạ" desc={mounted && reflexSec !== null ? `Phản xạ trung bình ${reflexSec.toFixed(1)} giây · càng thấp càng giỏi` : "NPC hỏi, bạn có vài giây để đáp — đo tốc độ phản xạ"} />
+        <PracticeCard href={`/island/vocabulary?ch=${curId}`} icon={BookOpen} bg="#FFF1C7" title="Cụm từ giao tiếp" desc="Nhớ 3 cụm theo tình huống và đặt câu của riêng bạn." />
         <PracticeCard href="/island/phrases" icon={MessageSquareQuote} bg="#EAF3DC" title="Sổ câu khung" desc={mounted ? `${Object.keys(s.phrases).length} câu · ${duePhrases(s).length} câu đến hạn ôn` : "Nghe tiếng Việt → nói ngay câu tiếng Anh"} />
         <PracticeCard href={`/island/sounds?ch=${curId}`} icon={AudioLines} bg="#D7ECF5" title="Phát âm chuẩn" desc="Cặp âm người Việt hay lẫn: ship/sheep, three/tree, âm cuối -s, -ed" />
         <PracticeCard href="/island/collection" icon={BookHeart} bg="#FBE3E7" title="Sổ sưu tập" desc={mounted ? `${collection(s).have}/${collection(s).total} món · hải sản, cây, truyện bạn bè, công trình` : "Gom hải sản, cây, truyện bạn bè — mỗi món một câu tiếng Anh"} />
@@ -327,16 +339,16 @@ export default function IslandPathPage() {
       </ol>
 
       <div className="cci-card p-4 sm:p-5 flex flex-col gap-2">
-        <h2 className="text-xl font-extrabold">Cách học để nói được sau 3 tháng</h2>
+        <h2 className="text-xl font-extrabold">Cách luyện để dùng được tiếng Anh</h2>
         <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[15px] font-semibold text-[#6B4A30] list-disc pl-5">
-          <li>Mỗi ngày 1 nhiệm vụ (10–15 phút) tốt hơn học dồn 2 tiếng cuối tuần.</li>
+          <li>Mỗi ngày học một nhiệm vụ ngắn, ôn cụm từ và dành khoảng 10 phút để tự nói.</li>
           <li>Luôn bấm “Nghe” rồi nói to theo — miệng phải quen, không chỉ mắt.</li>
           <li>Ngày 3 và ngày 4 là quan trọng nhất: tự nói, không nhìn đáp án.</li>
           <li>Không nghe kịp? Dùng câu cứu nguy — đó cũng là kỹ năng giao tiếp.</li>
           <li>Ôn Sổ từ khi có thẻ đến hạn; thẻ nhớ tốt sẽ giãn dần 1 → 30 ngày.</li>
           <li>Cuối mỗi cấp làm thử thách không gợi ý để biết mình thật sự nói được.</li>
           <li>Ao Phản Xạ: mục tiêu là mở miệng trong 2–3 giây. Bí thì dùng câu câu giờ “Hmm, let me think...”.</li>
-          <li>Sổ câu khung: nói cả câu thành tiếng, đừng chỉ đọc thầm — câu khung là “phao” khi giao tiếp thật.</li>
+          <li>Mỗi tuần thử một cuộc nói chuyện ngắn ngoài đời hoặc ghi âm một lượt nói tự do. Dùng ít nhất một cụm mới.</li>
         </ul>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { NextRequest, NextResponse } from "next/server";
-import { ERROR_TAGS, asTag, type ErrorTag } from "@/lib/island/feedback";
+import { ERROR_TAGS, asTag, isMeaningfulCorrection, type ErrorTag } from "@/lib/island/feedback";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -93,7 +93,8 @@ ${body.adapt === -1 ? "- The learner is finding it hard: use very short, very co
 ${twist ? `Surprise for this conversation (do it once, naturally, early on): ${twist}\n\n` : ""}Rules for "correction" (check ONLY the learner's latest message):
 - If it has a grammar mistake or sounds unnatural, give "fixed": the full corrected sentence (keep their meaning), "note": a short explanation in Vietnamese (max 20 words), and "type": the main kind of mistake, one of ${ERROR_TAGS.join(", ")}. (tense = wrong verb tense or verb form; agreement = he/she + verb-s, is/are; question = wrong question form, e.g. missing do/does/did or wrong word order in a question; article = a/an/the; preposition = in/on/at/to...; plural = singular/plural nouns; word_order = word order in a statement; word_choice = wrong word; missing_word = a needed word is missing, not in a question.)
 - Ignore capitalization, missing final punctuation, and Vietnamese names or place names (speech-to-text often misspells them).
-- If the message is already correct and natural, "correction" must be null.
+- If the message is already correct and natural, "correction" must be null. Never use "đã đúng" as a correction note.
+- For a message with multiple sentences, keep every sentence in "fixed", including the ones that were already correct. Never return an unchanged excerpt as a correction.
 
 ${practice.length ? `Rules for "praise": if the learner's latest message has no mistake AND correctly uses the same grammar pattern as one of the correct sentences above (it may talk about something else), copy that correct sentence exactly into "praise"; otherwise null.\n\n` : ""}Respond ONLY with JSON, no other text: {"reply": "...", "correction": null${practice.length ? `, "praise": null` : ""}} or {"reply": "...", "correction": {"fixed": "...", "note": "...", "type": "tense"}${practice.length ? `, "praise": null` : ""}}`;
 
@@ -127,7 +128,7 @@ ${practice.length ? `Rules for "praise": if the learner's latest message has no 
     if (!reply.includes("?") && !secret) reply = `${reply.replace(/\s+$/, "")} What about you?`;
     let correction: { fixed: string; note: string; tag?: ErrorTag } | null = null;
     const c = parsed?.correction;
-    if (c && c.fixed && norm(c.fixed) !== norm(message)) {
+    if (typeof c?.fixed === "string" && isMeaningfulCorrection(message, c.fixed, String(c.note || ""))) {
       let tag: ErrorTag = asTag(c.type) || "other";
       // Câu hỏi thiếu do/does/did hoặc sai trật tự: tính là lỗi đặt câu hỏi.
       if (/\?\s*$/.test(String(c.fixed)) && (tag === "missing_word" || tag === "word_order")) tag = "question";

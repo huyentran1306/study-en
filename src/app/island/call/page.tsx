@@ -7,11 +7,11 @@ import { Captions, Lightbulb, Mic, Phone, PhoneOff, RotateCcw, Square, Volume2 }
 import { Avatar, Character } from "@/components/island/character";
 import { BackLink, cx } from "@/components/island/ui";
 import { ReportCard, type ReportView } from "@/components/island/report-card";
-import { CHAPTERS, NPCS, type NpcId } from "@/lib/island/curriculum";
+import { CHAPTERS, NPCS, RESCUE_BAG, type NpcId } from "@/lib/island/curriculum";
 import { aboutLearner, personalizeDeep } from "@/lib/island/me";
-import { addChatTurn, addFix, completeMission, currentChapterId, fixCards, getIsland, markBuilt, markChatDone, markMemoryUsed, saveReport, today, unlockNote, useIsland, type Memory } from "@/lib/island/progress";
+import { addChatTurn, addFix, completeMission, currentChapterId, fixCards, getIsland, isUnlocked, markBuilt, markChatDone, markMemoryUsed, saveReport, today, unlockNote, useIsland, type Memory } from "@/lib/island/progress";
 import { pickRecall, practiceFixes, recallOpener, recentFacts } from "@/lib/island/memory";
-import { chatMetrics, topTags, trend } from "@/lib/island/feedback";
+import { chatMetrics, isMeaningfulCorrection, topTags, trend } from "@/lib/island/feedback";
 import { askNpc, fetchReport, rememberChat, type Correction, type Turn } from "@/lib/island/chat-client";
 import { NPC_VOICE, canRecord, playVoice, speechStats, startRecording, stopVoice, transcribe, type SpeechStats } from "@/lib/island/voice";
 import { adaptLevel } from "@/lib/island/adapt";
@@ -21,14 +21,24 @@ import { useGame } from "@/contexts/game-context";
 type Phase = "ready" | "npc" | "you" | "rec" | "think" | "ended";
 type Line = Turn & { correction?: Correction | null };
 const GOAL = 5;
+const CALL_OPENING_HINTS: Partial<Record<number, { en: string; vi: string }>> = {
+  1: { en: "I'm from Vietnam. What about you?", vi: "Mình đến từ Việt Nam. Còn bạn thì sao?" },
+  3: { en: "I'm looking for some carrots.", vi: "Mình đang tìm mua cà rốt." },
+  4: { en: "I'd like to go to the café. Is it far?", vi: "Mình muốn tới quán cà phê. Có xa không?" },
+  5: { en: "Yes, I have a reservation under Lan.", vi: "Vâng, tôi có đặt phòng dưới tên Lan." },
+  9: { en: "Yes! I went for a walk with a friend.", vi: "Có! Mình đi dạo cùng một người bạn." },
+  10: { en: "I'd love to. What time are you going?", vi: "Mình rất muốn đi. Mấy giờ các bạn đi?" },
+};
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 
 function Inner() {
   const s = useIsland();
   const sp = useSearchParams();
   const { addXP } = useGame();
+  const [entryChapter, setEntryChapter] = useState<number>();
+  useEffect(() => setEntryChapter(currentChapterId(getIsland())), []);
   const chParam = Number(sp.get("ch"));
-  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) ? chParam : currentChapterId(s);
+  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) && isUnlocked(s, chParam) ? chParam : entryChapter ?? currentChapterId(s);
   const raw = CHAPTERS.find((c) => c.id === chId)!;
   const ch = useMemo(() => personalizeDeep(raw, s.profile), [raw, s.profile]);
   const who: NpcId = ch.npc;
@@ -165,8 +175,9 @@ function Inner() {
       adapt: adaptLevel(s),
     });
     if (ended.current) return;
-    if (!data.offline && data.correction?.fixed) addFix(tr.text, data.correction.fixed, data.correction.note || "", ch.id, data.correction.tag);
-    setLines((l) => [...l.slice(0, -1), { role: "user", content: tr.text, correction: data.offline ? undefined : data.correction }, { role: "assistant", content: data.reply }]);
+    const correction = data.offline ? undefined : data.correction && isMeaningfulCorrection(tr.text, data.correction.fixed, data.correction.note) ? data.correction : null;
+    if (correction) addFix(tr.text, correction.fixed, correction.note, ch.id, correction.tag);
+    setLines((l) => [...l.slice(0, -1), { role: "user", content: tr.text, correction }, { role: "assistant", content: data.reply }]);
     if (mine >= GOAL && !rewarded.current) {
       rewarded.current = true;
       markChatDone();
@@ -202,7 +213,10 @@ function Inner() {
   };
 
   const lastNpc = [...lines].reverse().find((l) => l.role === "assistant")?.content || "";
-  const suggestion = ch.turns.map((t) => t.options.find((o) => o.ok)!)[Math.min(lines.filter((l) => l.role === "user").length, ch.turns.length - 1)];
+  const lessonTurn = ch.turns.find((turn) => turn.npcLine === lastNpc);
+  const suggestion = lastNpc === ch.chat.opener
+    ? (CALL_OPENING_HINTS[ch.id] ?? ch.turns[0].options.find((option) => option.ok) ?? RESCUE_BAG[0])
+    : (lessonTurn?.options.find((option) => option.ok) ?? RESCUE_BAG[0]);
   const avgReact = reactions.current.length ? reactions.current.reduce((a, b) => a + b, 0) / reactions.current.length / 1000 : 0;
   const avgWpm = stats.current.length ? Math.round(stats.current.reduce((a, b) => a + b.wpm, 0) / stats.current.length) : 0;
   const fillers = stats.current.reduce((a, b) => a + b.fillers, 0);
