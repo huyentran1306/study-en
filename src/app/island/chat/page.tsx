@@ -47,7 +47,8 @@ function Inner() {
   const [entryChapter, setEntryChapter] = useState<number>();
   useEffect(() => setEntryChapter(currentChapterId(getIsland())), []);
   const chParam = Number(sp.get("ch"));
-  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) && isUnlocked(s, chParam) ? chParam : entryChapter ?? currentChapterId(s);
+  // Trước khi kho tiến độ tải xong (entryChapter chưa có), tin ?ch để khỏi nháy chương 1.
+  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) && (entryChapter === undefined || isUnlocked(s, chParam)) ? chParam : entryChapter ?? currentChapterId(s);
   const rawCh = CHAPTERS.find((c) => c.id === chId)!;
   const profile = s.profile;
   const ch = useMemo(() => personalizeDeep(rawCh, profile), [rawCh, profile]);

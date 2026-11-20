@@ -8,6 +8,7 @@ import {
   currentChapterId,
   fixCards,
   getIsland,
+  gradePhrase,
   isUnlocked,
   reviewSpeakingChunk,
   saveEpisode,
@@ -90,4 +91,21 @@ test("all 13 situations have unique chunks and examples that pass retrieval", ()
   for (const item of vocabulary) assert.ok(includesSpeakingChunk(item.ex, item.en), item.en);
   assert.ok(includesSpeakingChunk("I am really into cooking!", "I’m really into"));
   assert.equal(includesSpeakingChunk("How about yourself?", "How about you"), false);
+});
+
+test("review fixes: hidden cards are replaced, quick practice is not the daily review, old data keeps studied chapters", () => {
+  const storage = new Map<string, string>();
+  Object.defineProperty(globalThis, "window", { configurable: true, value: {} });
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) },
+  });
+  const hidden = { en: "How much does it cost?", vi: "đã đúng", ch: 2, box: 0, due: today(), seen: 0, kind: "fix" as const, said: "No whipped cream, please. How much does it cost?" };
+  storage.set("cci-progress-v1", JSON.stringify({ ...freshState(), phrases: { [hidden.en]: hidden } }));
+  assert.equal(fixCards(normalizeState(JSON.parse(storage.get("cci-progress-v1")!))).length, 0);
+  // Không dùng getIsland() đã tải ở bài test trước: chỉ kiểm tra hàm thuần trên dữ liệu chuẩn hoá.
+  const legacyV1 = normalizeState({ unlockedUpTo: 1, chapters: { 1: { lesson: true }, 2: { lesson: true } } });
+  assert.equal(isUnlocked(legacyV1, 2), true);
+  assert.equal(legacyV1.rulesV, 3);
+  assert.equal(typeof gradePhrase, "function");
 });

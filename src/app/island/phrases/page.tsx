@@ -75,7 +75,7 @@ function Inner() {
 
   const grade = (ok: boolean) => {
     if (!session || !card) return;
-    gradePhrase(card.en, ok);
+    gradePhrase(card.en, ok, fixMode !== "quick");
     setStats((st) => ({ ok: st.ok + (ok ? 1 : 0), again: st.again + (ok ? 0 : 1) }));
     stopSpeaking();
     if (idx + 1 >= session.length) {

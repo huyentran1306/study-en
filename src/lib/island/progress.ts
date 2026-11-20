@@ -448,13 +448,15 @@ export function backfillPhrases() {
   if (next !== s) save(next);
 }
 
-export function gradePhrase(en: string, remembered: boolean) {
+/** countsForDaily=false: luyện nhanh 1 câu (sau buổi chat) không tính là xong bước "Ôn" của ngày. */
+export function gradePhrase(en: string, remembered: boolean, countsForDaily = true) {
   update((s) => {
     const card = s.phrases[en];
     if (!card) return s;
     const box = remembered ? Math.min(card.box + 1, INTERVALS.length - 1) : 1;
     const due = remembered ? addDays(today(), INTERVALS[box]) : today();
-    return markStudy(markDaily({ ...s, phrases: { ...s.phrases, [en]: { ...card, box, due, seen: card.seen + 1 } } }, "review"));
+    const next = { ...s, phrases: { ...s.phrases, [en]: { ...card, box, due, seen: card.seen + 1 } } };
+    return markStudy(countsForDaily ? markDaily(next, "review") : next);
   });
 }
 
@@ -554,7 +556,9 @@ export function addFix(said: string, fixed: string, note: string, ch: number, ta
   const was = said.replace(/\s+/g, " ").trim().slice(0, 300);
   if (en.split(" ").length > 30 || !isMeaningfulCorrection(was, en, note)) return false;
   const s = load();
-  if (s.phrases[en]) return false;
+  const old = s.phrases[en];
+  // Thẻ cũ cùng câu nhưng đã bị ẩn (chỉ là đoạn lặp lại câu đúng) thì thay bằng lỗi thật này.
+  if (old && !(old.kind === "fix" && !isFixCard(old))) return false;
   const phrases = { ...s.phrases };
   const fixes = Object.values(phrases).filter((x) => x.kind === "fix");
   if (fixes.length >= MAX_FIXES) {

@@ -38,7 +38,8 @@ function Inner() {
   const [entryChapter, setEntryChapter] = useState<number>();
   useEffect(() => setEntryChapter(currentChapterId(getIsland())), []);
   const chParam = Number(sp.get("ch"));
-  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) && isUnlocked(s, chParam) ? chParam : entryChapter ?? currentChapterId(s);
+  // Trước khi kho tiến độ tải xong (entryChapter chưa có), tin ?ch để khỏi nháy chương 1.
+  const chId = chParam && CHAPTERS.some((c) => c.id === chParam) && (entryChapter === undefined || isUnlocked(s, chParam)) ? chParam : entryChapter ?? currentChapterId(s);
   const raw = CHAPTERS.find((c) => c.id === chId)!;
   const ch = useMemo(() => personalizeDeep(raw, s.profile), [raw, s.profile]);
   const who: NpcId = ch.npc;
@@ -213,8 +214,10 @@ function Inner() {
   };
 
   const lastNpc = [...lines].reverse().find((l) => l.role === "assistant")?.content || "";
-  const lessonTurn = ch.turns.find((turn) => turn.npcLine === lastNpc);
-  const suggestion = lastNpc === ch.chat.opener
+  // Lời AI hiếm khi trùng hẳn câu trong bài: không khớp thì gợi ý câu đúng của lượt tương ứng (như trước).
+  const myTurns = lines.filter((l) => l.role === "user").length;
+  const lessonTurn = ch.turns.find((turn) => turn.npcLine === lastNpc) ?? ch.turns[Math.min(myTurns, ch.turns.length - 1)];
+  const suggestion = lastNpc === ch.chat.opener && myTurns === 0
     ? (CALL_OPENING_HINTS[ch.id] ?? ch.turns[0].options.find((option) => option.ok) ?? RESCUE_BAG[0])
     : (lessonTurn?.options.find((option) => option.ok) ?? RESCUE_BAG[0]);
   const avgReact = reactions.current.length ? reactions.current.reduce((a, b) => a + b, 0) / reactions.current.length / 1000 : 0;
