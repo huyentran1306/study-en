@@ -559,11 +559,15 @@ export function normalizeState(input: unknown): IslandState {
   if (typeof x.planResetAt === "string" && !Number.isNaN(Date.parse(x.planResetAt))) out.planResetAt = x.planResetAt;
   if (typeof x.owner === "string" && x.owner) out.owner = x.owner.slice(0, 128);
   if (typeof x.updatedAt === "string" && !Number.isNaN(Date.parse(x.updatedAt))) out.updatedAt = x.updatedAt;
+  const studied = Object.keys(out.chapters)
+    .filter((id) => Number(id) <= 99 && MISSION_KEYS.some((key) => out.chapters[id][key]))
+    .map(Number);
   if (x.rulesV === 2) {
     // Bản v2 cũng tăng unlockedUpTo khi chỉ xong bài học. Giữ quyền xếp lớp và chương thực sự có tiến độ.
-    const placement = placementChapter(out.placement?.level);
-    const studied = Object.keys(out.chapters).filter((id) => Number(id) <= 99 && MISSION_KEYS.some((key) => out.chapters[id][key]));
-    out.unlockedUpTo = Math.max(placement, ...studied.map(Number));
+    out.unlockedUpTo = Math.max(placementChapter(out.placement?.level), ...studied);
+  } else if (x.rulesV === undefined) {
+    // Dữ liệu rất cũ (chưa có số phiên bản): giữ nguyên mức đã mở và không khoá chương đã có tiến độ.
+    out.unlockedUpTo = Math.max(out.unlockedUpTo, ...studied);
   }
   out.rulesV = 3;
   return out;

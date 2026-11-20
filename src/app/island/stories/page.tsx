@@ -72,6 +72,7 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
   const saved = s.episodes[ep.id];
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [offline, setOffline] = useState(false);
 
   const [vi, setVi] = useState(false);
   const { supported, listening, interim, listen, stop } = useListen();
@@ -106,7 +107,15 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
       about: aboutLearner(s.profile),
       mode: "flow",
     });
-    if (saveEpisode(ep.id, a, 15, { reply: r.reply, correction: r.offline ? undefined : r.correction ?? undefined })) {
+    // Mất mạng / AI lỗi: không lưu câu dự phòng làm lời đáp vĩnh viễn, để bạn gửi lại được.
+    if (r.offline) {
+      setBusy(false);
+      setOffline(true);
+      sfx.wrong();
+      return;
+    }
+    setOffline(false);
+    if (saveEpisode(ep.id, a, 15, { reply: r.reply, correction: r.correction ?? undefined })) {
       addXP(15);
       const sa = short(a);
       addMemories(ep.npc, ch.id, [{ fact: ep.memory.fact.replace("{a}", sa), vi: ep.memory.vi.replace("{a}", sa), ask: ep.memory.ask }]);
@@ -171,6 +180,7 @@ function Play({ ep, onBack }: { ep: Episode; onBack: () => void }) {
               <Send className="w-4 h-4" /> {busy ? `${npc.name} đang đọc…` : `Trả lời ${npc.name}`}
             </button>
           </div>
+          {offline && <p className="text-sm font-bold text-[#A4521D]">Mạng hoặc AI đang bận nên chưa gửi được. Câu trả lời của bạn vẫn còn đây, bấm gửi lại nhé.</p>}
         </section>
       ) : (
         <section className="flex flex-col gap-2 anim-pop">
